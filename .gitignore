@@ -1,0 +1,9 @@
+/target
+/db_data
+/data
+.fastembed_cache
+*.swp
+*.swo
+.DS_Store
+frontend/node_modules
+frontend/build

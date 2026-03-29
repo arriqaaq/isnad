@@ -1,0 +1,43 @@
+[package]
+name = "hadith"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+# Web framework
+axum = { version = "0.8", features = ["macros"] }
+tokio = { version = "1", features = ["full"] }
+tower-http = { version = "0.6", features = ["fs", "cors"] }
+
+# Database
+surrealdb = { version = "3.0.5", features = ["kv-rocksdb"] }
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# CSV parsing
+csv = "1"
+
+# HTTP client
+reqwest = { version = "0.12", features = ["json", "stream"] }
+
+# Streaming
+futures = "0.3"
+bytes = "1"
+
+# Embeddings
+fastembed = "5"
+
+# Zip extraction
+zip = "2"
+
+# Error handling
+anyhow = "1"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# CLI
+clap = { version = "4", features = ["derive", "env"] }

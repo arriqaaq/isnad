@@ -1,0 +1,63 @@
+<script lang="ts">
+  import type { ApiNarratorWithCount } from '$lib/types';
+  import Badge from '$lib/components/common/Badge.svelte';
+
+  let { narrator }: { narrator: ApiNarratorWithCount } = $props();
+</script>
+
+<a href="/narrators/{narrator.id}" class="narrator-card">
+  <div class="card-header">
+    <h3 class="name">{narrator.name_en}</h3>
+    {#if narrator.generation}
+      <Badge text={narrator.generation} variant="accent" />
+    {/if}
+  </div>
+
+  {#if narrator.name_ar}
+    <p class="name-ar arabic" dir="rtl">{narrator.name_ar}</p>
+  {/if}
+
+  <div class="card-footer">
+    <span class="hadith-count mono">{narrator.hadith_count} hadiths</span>
+  </div>
+</a>
+
+<style>
+  .narrator-card {
+    display: block;
+    padding: 16px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    transition: all var(--transition);
+    color: var(--text-primary);
+  }
+
+  .narrator-card:hover {
+    border-color: var(--accent);
+    background: var(--bg-hover);
+    color: var(--text-primary);
+  }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 4px;
+  }
+
+  .name { font-size: 0.95rem; font-weight: 600; }
+
+  .name-ar {
+    color: var(--text-secondary);
+    font-size: 1rem;
+    margin-bottom: 8px;
+  }
+
+  .card-footer { margin-top: 8px; }
+
+  .hadith-count {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+  }
+</style>

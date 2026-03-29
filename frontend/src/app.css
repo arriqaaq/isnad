@@ -1,0 +1,128 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Naskh+Arabic:wght@400;500;600;700&display=swap');
+
+:root {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8f9fa;
+  --bg-surface: #ffffff;
+  --bg-hover: #f0f1f3;
+  --bg-active: #e8e9ec;
+  --border: #e5e7eb;
+  --border-subtle: #f0f1f3;
+  --text-primary: #1a1a2e;
+  --text-secondary: #4a4a68;
+  --text-muted: #9ca3af;
+  --accent: #2d8f4e;
+  --accent-hover: #236b3b;
+  --accent-muted: rgba(45, 143, 78, 0.1);
+  --accent-secondary: #b8860b;
+  --success: #16a34a;
+  --warning: #d97706;
+  --error: #dc2626;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-arabic: 'Noto Naskh Arabic', 'Traditional Arabic', serif;
+  --font-body: Georgia, 'Times New Roman', serif;
+  --font-mono: 'Menlo', 'Consolas', monospace;
+  --radius: 8px;
+  --radius-lg: 12px;
+  --radius-sm: 4px;
+  --sidebar-width: 220px;
+  --topbar-height: 56px;
+  --transition: 150ms ease;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+  font-family: var(--font-sans);
+  font-size: 15px;
+  color: var(--text-primary);
+  background: var(--bg-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+  transition: color var(--transition);
+}
+a:hover {
+  color: var(--accent-hover);
+}
+
+h1, h2, h3, h4 {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+h1 { font-size: 1.5rem; }
+h2 { font-size: 1.25rem; }
+h3 { font-size: 1.1rem; }
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+[dir="rtl"], .arabic {
+  font-family: var(--font-arabic);
+  direction: rtl;
+  text-align: right;
+  line-height: 2.2;
+  font-size: 1.4em;
+  font-weight: 500;
+}
+
+/* Hadith body text — rich serif for English */
+.hadith-body {
+  font-family: 'Georgia', 'Palatino Linotype', 'Book Antiqua', serif;
+  font-size: 1.1rem;
+  line-height: 1.9;
+  color: var(--text-primary);
+  letter-spacing: 0.01em;
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+}
+
+button {
+  font-family: var(--font-sans);
+  cursor: pointer;
+  border: none;
+  background: none;
+  color: var(--text-primary);
+}
+
+input, select {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  color: var(--text-primary);
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 12px;
+  outline: none;
+  transition: border-color var(--transition);
+}
+input:focus, select:focus {
+  border-color: var(--accent);
+}
+input::placeholder {
+  color: var(--text-muted);
+}
