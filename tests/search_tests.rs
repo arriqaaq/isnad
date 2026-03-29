@@ -15,7 +15,9 @@ static EMBEDDER: OnceLock<Embedder> = OnceLock::new();
 
 async fn get_db() -> &'static Surreal<Db> {
     DB.get_or_init(|| async {
-        let db = db::connect("db_data").await.expect("Failed to connect to db_data/");
+        let db = db::connect("db_data")
+            .await
+            .expect("Failed to connect to db_data/");
         db::init_schema(&db).await.expect("Failed to init schema");
         db
     })
@@ -106,7 +108,10 @@ async fn test_text_search_returns_results() {
     let results = search::search_hadiths_text(db, "prayer", 10, 0)
         .await
         .unwrap();
-    assert!(!results.is_empty(), "Text search for 'prayer' returned no results");
+    assert!(
+        !results.is_empty(),
+        "Text search for 'prayer' returned no results"
+    );
     for h in &results {
         assert!(h.hadith_number > 0, "Invalid hadith number");
     }
@@ -118,7 +123,10 @@ async fn test_text_search_no_match() {
     let results = search::search_hadiths_text(db, "xyzzy999zzz", 10, 0)
         .await
         .unwrap();
-    assert!(results.is_empty(), "Nonsense query should return no results");
+    assert!(
+        results.is_empty(),
+        "Nonsense query should return no results"
+    );
 }
 
 // ============================
@@ -206,7 +214,11 @@ async fn test_hybrid_search_respects_limit() {
     let results = search::search_hadiths_hybrid(db, embedder, "prayer", 3, 0)
         .await
         .unwrap();
-    assert!(results.len() <= 3, "Expected at most 3 results, got {}", results.len());
+    assert!(
+        results.len() <= 3,
+        "Expected at most 3 results, got {}",
+        results.len()
+    );
 }
 
 // ============================
@@ -232,10 +244,11 @@ async fn test_narrator_search_has_hadith_count() {
     let db = get_db().await;
     let results = search::search_narrators(db, "Abu", 5, 0).await.unwrap();
     assert!(!results.is_empty());
-    let has_counts = results
-        .iter()
-        .any(|n| n.hadith_count.unwrap_or(0) > 0);
-    assert!(has_counts, "Expected at least one narrator with hadith_count > 0");
+    let has_counts = results.iter().any(|n| n.hadith_count.unwrap_or(0) > 0);
+    assert!(
+        has_counts,
+        "Expected at least one narrator with hadith_count > 0"
+    );
 }
 
 // ============================
@@ -271,10 +284,7 @@ async fn test_graph_traversal_narrator_chain() {
     let db = get_db().await;
 
     // Pick the first hadith that has narrators
-    let mut res = db
-        .query("SELECT id FROM hadith LIMIT 1")
-        .await
-        .unwrap();
+    let mut res = db.query("SELECT id FROM hadith LIMIT 1").await.unwrap();
     let hadith: Option<IdOnly> = res.take(0).unwrap();
     let hadith_id = hadith
         .expect("No hadith found")
@@ -296,7 +306,10 @@ async fn test_graph_traversal_narrator_chain() {
         "Expected narrators in chain for the hadith"
     );
     for n in &narrators {
-        assert!(!n.name_en.is_empty(), "Narrator name_en should not be empty");
+        assert!(
+            !n.name_en.is_empty(),
+            "Narrator name_en should not be empty"
+        );
     }
 }
 

@@ -41,6 +41,19 @@ DEFINE FIELD IF NOT EXISTS search_name  ON narrator TYPE option<string>;
 DEFINE FIELD IF NOT EXISTS gender       ON narrator TYPE option<string>;
 DEFINE FIELD IF NOT EXISTS generation   ON narrator TYPE option<string>;
 DEFINE FIELD IF NOT EXISTS bio          ON narrator TYPE option<string>;
+-- Biographical fields
+DEFINE FIELD IF NOT EXISTS kunya          ON narrator TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS aliases        ON narrator TYPE option<array<string>>;
+DEFINE FIELD IF NOT EXISTS birth_year     ON narrator TYPE option<int>;
+DEFINE FIELD IF NOT EXISTS birth_calendar ON narrator TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS death_year     ON narrator TYPE option<int>;
+DEFINE FIELD IF NOT EXISTS death_calendar ON narrator TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS locations      ON narrator TYPE option<array<string>>;
+DEFINE FIELD IF NOT EXISTS tags           ON narrator TYPE option<array<string>>;
+-- Reliability fields
+DEFINE FIELD IF NOT EXISTS reliability_rating ON narrator TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS reliability_prior  ON narrator TYPE option<float>;
+DEFINE FIELD IF NOT EXISTS reliability_source ON narrator TYPE option<string>;
 DEFINE INDEX IF NOT EXISTS narrator_name ON TABLE narrator FIELDS name_en;
 
 DEFINE TABLE IF NOT EXISTS hadith SCHEMAFULL;
@@ -65,6 +78,62 @@ DEFINE TABLE IF NOT EXISTS book SCHEMAFULL;
 DEFINE FIELD IF NOT EXISTS book_number ON book TYPE int;
 DEFINE FIELD IF NOT EXISTS name_en     ON book TYPE string;
 DEFINE FIELD IF NOT EXISTS name_ar     ON book TYPE option<string>;
+
+-- === ANALYSIS TABLES ===
+
+DEFINE TABLE IF NOT EXISTS hadith_family SCHEMAFULL;
+DEFINE FIELD IF NOT EXISTS family_label ON hadith_family TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS variant_count ON hadith_family TYPE option<int>;
+
+DEFINE FIELD IF NOT EXISTS family_id ON hadith TYPE option<record<hadith_family>>;
+DEFINE INDEX IF NOT EXISTS hadith_family_idx ON TABLE hadith FIELDS family_id;
+
+DEFINE TABLE IF NOT EXISTS cl_analysis SCHEMAFULL;
+DEFINE FIELD IF NOT EXISTS family ON cl_analysis TYPE record<hadith_family>;
+DEFINE FIELD IF NOT EXISTS narrator ON cl_analysis TYPE record<narrator>;
+DEFINE FIELD IF NOT EXISTS candidate_type ON cl_analysis TYPE string;
+DEFINE FIELD IF NOT EXISTS pcl_mode ON cl_analysis TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS fan_out ON cl_analysis TYPE int;
+DEFINE FIELD IF NOT EXISTS bundle_coverage ON cl_analysis TYPE float;
+DEFINE FIELD IF NOT EXISTS collector_diversity ON cl_analysis TYPE int;
+DEFINE FIELD IF NOT EXISTS pre_single_strand_ratio ON cl_analysis TYPE float;
+DEFINE FIELD IF NOT EXISTS bypass_ratio ON cl_analysis TYPE float;
+DEFINE FIELD IF NOT EXISTS chronology_conflict_ratio ON cl_analysis TYPE float;
+DEFINE FIELD IF NOT EXISTS matn_coherence ON cl_analysis TYPE float;
+DEFINE FIELD IF NOT EXISTS provenance_completeness ON cl_analysis TYPE float;
+DEFINE FIELD IF NOT EXISTS structural_score ON cl_analysis TYPE float;
+DEFINE FIELD IF NOT EXISTS reliability_prior ON cl_analysis TYPE option<float>;
+DEFINE FIELD IF NOT EXISTS final_confidence ON cl_analysis TYPE float;
+DEFINE FIELD IF NOT EXISTS outcome ON cl_analysis TYPE string;
+DEFINE FIELD IF NOT EXISTS contradiction_cap_active ON cl_analysis TYPE bool;
+DEFINE FIELD IF NOT EXISTS profile ON cl_analysis TYPE string;
+DEFINE FIELD IF NOT EXISTS family_status ON cl_analysis TYPE string;
+DEFINE FIELD IF NOT EXISTS rank ON cl_analysis TYPE int;
+DEFINE INDEX IF NOT EXISTS cl_family_idx ON TABLE cl_analysis FIELDS family;
+DEFINE INDEX IF NOT EXISTS cl_narrator_idx ON TABLE cl_analysis FIELDS narrator;
+
+DEFINE TABLE IF NOT EXISTS evidence SCHEMAFULL;
+DEFINE FIELD IF NOT EXISTS narrator ON evidence TYPE record<narrator>;
+DEFINE FIELD IF NOT EXISTS evidence_id ON evidence TYPE string;
+DEFINE FIELD IF NOT EXISTS rating ON evidence TYPE string;
+DEFINE FIELD IF NOT EXISTS rating_confidence ON evidence TYPE option<float>;
+DEFINE FIELD IF NOT EXISTS scholar ON evidence TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS work ON evidence TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS citation_text ON evidence TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS citation_span ON evidence TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS dissent_notes ON evidence TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS layer ON evidence TYPE string;
+DEFINE FIELD IF NOT EXISTS source_collection ON evidence TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS source_type ON evidence TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS source_locator ON evidence TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS ingested_at ON evidence TYPE option<datetime>;
+DEFINE INDEX IF NOT EXISTS evidence_narrator_idx ON TABLE evidence FIELDS narrator;
+
+DEFINE TABLE IF NOT EXISTS narrator_alias SCHEMAFULL;
+DEFINE FIELD IF NOT EXISTS canonical ON narrator_alias TYPE record<narrator>;
+DEFINE FIELD IF NOT EXISTS alias_name ON narrator_alias TYPE string;
+DEFINE FIELD IF NOT EXISTS alias_type ON narrator_alias TYPE string;
+DEFINE INDEX IF NOT EXISTS alias_name_idx ON TABLE narrator_alias FIELDS alias_name;
 
 -- === EDGES (graph relations) ===
 

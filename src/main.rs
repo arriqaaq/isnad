@@ -1,4 +1,4 @@
-use hadith::{db, ingest, web};
+use hadith::{analysis, db, embed, ingest, web};
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
@@ -48,6 +48,20 @@ enum Commands {
         /// Path to SurrealDB data directory
         #[arg(long, default_value = "db_data")]
         db_path: String,
+    },
+    /// Run analysis on ingested data (families, CL/PCL, narrator enrichment)
+    Analyze {
+        /// Path to SurrealDB data directory
+        #[arg(long, default_value = "db_data")]
+        db_path: String,
+
+        /// Compute hadith families from embedding similarity
+        #[arg(long)]
+        families: bool,
+
+        /// Enrich narrators with biographical data from AR-Sanad dataset (auto-downloads if missing)
+        #[arg(long, default_value = "data/ar_sanad_narrators.csv")]
+        narrator_bio: Option<String>,
     },
     /// Start the web server
     Serve {
@@ -205,6 +219,33 @@ async fn main() -> Result<()> {
             db::init_fulltext_indexes(&db).await?;
 
             tracing::info!("Ingestion complete");
+        }
+        Commands::Analyze {
+            db_path,
+            families,
+            narrator_bio,
+        } => {
+            let db = db::connect(&db_path).await?;
+            db::init_schema(&db).await?;
+
+            let mut did_something = false;
+
+            if families {
+                let embedder = embed::Embedder::new()?;
+                let count = analysis::family::compute_families(&db, &embedder).await?;
+                tracing::info!("Created {count} hadith families");
+                did_something = true;
+            }
+
+            if let Some(bio_path) = narrator_bio {
+                println!("📚 Enriching narrators with AR-Sanad biographical data...");
+                ingest::narrator_bio::ingest_narrator_bios(&db, &bio_path).await?;
+                did_something = true;
+            }
+
+            if !did_something {
+                tracing::warn!("No analysis flags specified. Use --families or --narrator-bio.");
+            }
         }
         Commands::Serve {
             port,

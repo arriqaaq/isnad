@@ -8,6 +8,7 @@ export interface ApiHadith {
   narrator_text: string | null;
   grade: string | null;
   book_name: string | null;
+  matn: string | null;
 }
 
 export interface ApiNarrator {
@@ -17,6 +18,17 @@ export interface ApiNarrator {
   gender: string | null;
   generation: string | null;
   bio: string | null;
+  kunya: string | null;
+  aliases: string[] | null;
+  birth_year: number | null;
+  birth_calendar: string | null;
+  death_year: number | null;
+  death_calendar: string | null;
+  locations: string[] | null;
+  tags: string[] | null;
+  reliability_rating: string | null;
+  reliability_prior: number | null;
+  reliability_source: string | null;
 }
 
 export interface ApiBook {
@@ -101,4 +113,54 @@ export interface GraphEdgeData {
 export interface GraphData {
   nodes: { data: GraphNodeData }[];
   edges: { data: GraphEdgeData }[];
+}
+
+// ── Analysis types ──
+
+export interface ApiHadithFamily {
+  id: string;
+  family_label: string | null;
+  variant_count: number | null;
+}
+
+export interface ApiClAnalysis {
+  narrator_id: string;
+  candidate_type: string;
+  pcl_mode: string | null;
+  fan_out: number;
+  bundle_coverage: number;
+  collector_diversity: number;
+  structural_score: number;
+  final_confidence: number;
+  outcome: string;
+  contradiction_cap_active: boolean;
+  profile: string;
+  family_status: string;
+  rank: number;
+}
+
+export interface FamilyDetailResponse {
+  family: ApiHadithFamily;
+  hadiths: ApiHadith[];
+  analysis: ApiClAnalysis[];
+}
+
+export interface AnalysisStatsResponse {
+  family_count: number;
+  candidate_count: number;
+  cl_count: number;
+  supported_count: number;
+}
+
+export interface DiffSegment {
+  text: string;
+  kind: 'Unchanged' | 'Added' | 'Missing';
+}
+
+export interface ApiMatnDiff {
+  hadith_a: string;
+  hadith_b: string;
+  segments_a: DiffSegment[];
+  segments_b: DiffSegment[];
+  similarity_ratio: number;
 }

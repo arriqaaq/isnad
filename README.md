@@ -2,55 +2,79 @@
 
 Browse, search, and explore Islamic hadith collections with narrator chain (isnad) visualization, hybrid BM25+vector search, and GraphRAG-powered Q&A — all running locally on SurrealDB.
 
+> **Before diving into the code, please read these documents first:**
+>
+> - **[Methodology & Algorithms](docs/METHODOLOGY.md)** — How the CL/PCL transmission analysis works, including a critical assessment of Juynboll's and Schacht's orientalist methodology and their documented errors. This tool uses only the structural graph analysis aspects of their framework and explicitly rejects the fabrication assumption.
+> - **[Data Sources](docs/DATA_SOURCES.md)** — Where the hadith data, narrator biographical data, and English translations come from, how they are downloaded, and how narrator matching works.
+>
+> For a thorough scholarly critique of the orientalist approach to hadith, see Barmaver's [*Dismantling Orientalist Narratives*](https://www.academia.edu/143038577/Dismantling_Orientalist_Narratives_A_Critique_of_Orientalists_Approach_to_Hadith_with_special_focus_on_Juynboll) (2025, free on Academia.edu).
+
 ## Architecture Overview
 
 ```
-┌──────────────────────────────────────────────────────────────┐
-│                      SvelteKit Frontend                      │
-│  Dashboard │ Hadiths │ Narrators │ Search │ Ask (GraphRAG)   │
-└────────────────────────────┬─────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────-┐
+│                      SvelteKit Frontend                       │
+│  Dashboard │ Hadiths │ Narrators │ Search │ Ask (GraphRAG)    │
+└────────────────────────────┬─────────────────────────────────-┘
                              │ JSON API
-┌────────────────────────────┴─────────────────────────────────┐
+┌────────────────────────────┴─────────────────────────────────-┐
 │                     Rust / Axum Backend                       │
-│                                                              │
-│  ┌──────────┐  ┌─────────────┐  ┌───────────┐ ┌───────────┐ │
-│  │ Handlers │  │   Search    │  │ GraphRAG  │ │  Ingest   │ │
-│  │ (JSON)   │  │ Hybrid/BM25 │  │  Ollama   │ │ Sanadset  │ │
-│  │          │  │  + Vector   │  │  + Isnad  │ │           │ │
-│  └────┬─────┘  └─────┬───────┘  └─────┬─────┘ └─────┬─────┘ │
-│       │              │                │              │       │
-│  ┌────┴──────────────┴────────────────┴──────────────┴────┐  │
-│  │                SurrealDB (SurrealKV)                    │  │
-│  │  hadiths │ narrators │ books │ heard_from │ narrates    │  │
-│  │  HNSW vector index │ BM25 full-text │ graph edges      │  │
-│  │  FastEmbed 384-dim embeddings stored per hadith        │  │
-│  └────────────────────────────────────────────────────────┘  │
-│                                                              │
-│  ┌──────────────┐  ┌──────────────┐                          │
-│  │  FastEmbed   │  │   Ollama     │                          │
-│  │ (embeddings) │  │ (local LLM)  │                          │
-│  └──────────────┘  └──────────────┘                          │
-└──────────────────────────────────────────────────────────────┘
+│                                                               │
+│  ┌──────────┐  ┌─────────────┐  ┌───────────┐ ┌───────────┐   │
+│  │ Handlers │  │   Search    │  │ GraphRAG  │ │  Ingest   │   │
+│  │ (JSON)   │  │ Hybrid/BM25 │  │  Ollama   │ │ Sanadset  │   │
+│  │          │  │  + Vector   │  │  + Isnad  │ │           │   │
+│  └────┬─────┘  └─────┬───────┘  └─────┬─────┘ └─────┬─────┘   │
+│       │              │                │              │        │
+│  ┌────┴──────────────┴────────────────┴──────────────┴────┐   │
+│  │                SurrealDB (SurrealKV)                   │   │
+│  │  hadiths │ narrators │ books │ heard_from │ narrates   │   │
+│  │  HNSW vector index │ BM25 full-text │ graph edges      │   │
+│  │  FastEmbed 384-dim embeddings stored per hadith        │   │
+│  └────────────────────────────────────────────────────────┘   │
+│                                                               │
+│              ┌──────────────┐  ┌──────────────┐               │
+│              │  FastEmbed   │  │   Ollama     │               │
+│              │ (embeddings) │  │ (local LLM)  │               │
+│              └──────────────┘  └──────────────┘               │
+└──────────────────────────────────────────────────────────────-┘
 ```
 
 ### Ingest Pipeline
 
-```mermaid
-flowchart TD
-    A[Sanadset CSV\n368K hadiths, 926 books] --> B[Parse CSV]
-    B --> C[Strip XML tags\nSANAD, NAR, MATN]
-    C --> D[Create Records\nhadith, narrator, book]
-    D --> E[Build Graph Edges\nheard_from + narrates]
-    E --> F{Compound Isnad?}
-    F -->|Yes| G[Deduplicate:\ncanonical position only]
-    F -->|No| H[Create edges normally]
-    G --> I[Generate Embeddings\nFastEmbed 384-dim]
-    H --> I
-    I --> J[Merge Human English\nsunnah.com via HuggingFace]
-    J --> K{--translate flag?}
-    K -->|Yes| L[Ollama fills gaps\nmissing hadiths + narrator names]
-    K -->|No| M[Done]
-    L --> M
+```
+hadith ingest
+  │
+  ├─ 1. Parse Sanadset CSV (368K hadiths, 926 books)
+  │     Strip XML tags → extract SANAD, MATN, narrator chains
+  │
+  ├─ 2. Create DB records
+  │     hadith (text_ar, matn) → narrator (name_ar) → book
+  │
+  ├─ 3. Build graph edges
+  │     narrates (narrator→hadith) + heard_from (student→teacher)
+  │     Compound isnads: deduplicate via canonical position
+  │
+  ├─ 4. Generate embeddings (FastEmbed 384-dim)
+  │
+  ├─ 5. Merge human English translations (sunnah.com via HuggingFace)
+  │
+  └─ 6. [--translate] Ollama fills remaining gaps
+```
+
+### Analyze Pipeline
+
+```
+hadith analyze
+  │
+  ├─ [--narrator-bio]  Enrich narrators from AR-Sanad dataset
+  │     18K narrators with Ibn Hajar reliability ranks
+  │     Match by normalized Arabic name → UPDATE existing records
+  │     Create evidence records (Taqrib al-Tahdhib)
+  │
+  └─ [--families]  Cluster hadiths into families
+        Embedding similarity (cosine ≥ 0.85) + narrator overlap
+        Cross-book grouping (same hadith in Bukhari + Muslim)
 ```
 
 ### Search Flow
@@ -219,6 +243,44 @@ Some hadiths have multiple parallel chains of narration (compound isnads), indic
 
 Our solution: when creating `heard_from` edges, we only create an edge between consecutive narrators if **both are at their last (canonical) position** in the chain. A narrator's last occurrence represents their true position in the transmission hierarchy. We also use diacritics-stripped comparison (`slug_bare()`) for duplicate detection, since the same narrator may appear with different tashkeel.
 
+## Analyze
+
+After ingestion, run the analyze phase to enrich narrators and compute hadith families. This works on the already-ingested database — no re-ingest needed.
+
+```bash
+# Enrich narrators with AR-Sanad biographical data (reliability ratings, dates, etc.)
+# Auto-downloads the dataset from GitHub on first run
+cargo run -- analyze --narrator-bio data/ar_sanad_narrators.csv
+
+# Compute hadith families (clusters variants of the same report across books)
+cargo run -- analyze --families
+
+# Run both together
+cargo run -- analyze --narrator-bio data/ar_sanad_narrators.csv --families
+
+# Or use Make
+make analyze-bio       # narrator enrichment only
+make analyze-families  # family clustering only
+make analyze           # both
+```
+
+### What `--narrator-bio` does
+
+Downloads the [AR-Sanad dataset](https://github.com/somaia02/Narrator-Disambiguation) (18,298 narrators with Ibn Hajar's reliability classifications from Taqrib al-Tahdhib) and matches them to existing narrators in the database by normalized Arabic name.
+
+For each match, the narrator record is updated with:
+- **Reliability rating** (thiqah/saduq/majhul/daif/matruk) mapped from Ibn Hajar's 1,348 unique rank phrases
+- **Reliability prior** (0.75/0.65/0.50/0.35/0.20)
+- **Birth/death years** (Hijri calendar)
+- **Kunya**, **locations**, **generation** (tabaqa)
+- An **evidence record** linking the assessment to "Taqrib al-Tahdhib"
+
+Matching uses diacritics-stripped Arabic normalization — exact match on shuhra (common name), then substring match on full formal name. Ambiguous matches (multiple DB narrators matching one AR-Sanad entry) are skipped.
+
+### What `--families` does
+
+Clusters hadiths into families using embedding similarity (cosine >= 0.85) combined with shared narrator overlap. Cross-book families are expected — the same hadith appearing in Bukhari and Muslim will be grouped together. This is a prerequisite for CL/PCL transmission analysis.
+
 ## Run
 
 ```bash
@@ -254,9 +316,16 @@ cargo run -- serve --port 3000 \
 - Narrator chain — clean card-based vertical visualization showing the isnad from Prophet/Companion down to the compiler
 
 ### Narrator Detail
-- Bilingual name (Arabic + English)
-- Three tabs: **Network** (Cytoscape.js graph of teachers/students), **Hadiths** (all hadiths narrated), **Connections** (teacher/student chips)
+- Bilingual name (Arabic + English) with kunya, reliability badge, birth/death dates, location tags
+- Four tabs: **Network** (Cytoscape.js graph of teachers/students), **Hadiths** (all hadiths narrated), **Connections** (teacher/student chips), **Details** (editable biographical form)
 - Deduplication of hadiths (handles multiple narrates edges from compound isnads)
+- Reliability source attribution (e.g., "Source: Taqrib al-Tahdhib")
+
+### Hadith Families & Analysis
+- Family browser showing groups of hadith variants across different books
+- Family detail with three tabs: **Variants** (list of hadiths), **Analysis** (CL/PCL candidates table with confidence scores), **Matn Diff** (word-level text comparison with color-coded segments)
+- Analysis dashboard with statistics (family count, CL/PCL candidates, supported outcomes)
+- Export family analysis as Markdown or JSON
 
 ### Search
 
@@ -343,15 +412,18 @@ This enables the LLM to give richer, more scholarly answers that cite not just t
 ## Makefile Commands
 
 ```bash
-make build        # build backend + frontend
-make dev          # build + start server in background
-make stop         # stop background server
-make server       # build + start server in foreground
-make ingest       # full ingest (Arabic + human English)
-make ingest-test  # quick test: 5 per book + Ollama translation
-make ingest-full  # full 6 books + Ollama translation
-make list-books   # show all 926 available books
-make clean        # wipe all generated data
+make build            # build backend + frontend
+make dev              # build + start server in background
+make stop             # stop background server
+make server           # build + start server in foreground
+make ingest           # full ingest (Arabic + human English)
+make ingest-test      # quick test: 5 per book + Ollama translation
+make ingest-full      # full 6 books + Ollama translation
+make list-books       # show all 926 available books
+make analyze          # run all analysis (narrator bios + families)
+make analyze-bio      # enrich narrators with AR-Sanad data
+make analyze-families # compute hadith families from embeddings
+make clean            # wipe all generated data
 ```
 
 ## Project Structure
@@ -365,8 +437,12 @@ hadith/
 │   ├── sanadset.csv              # Sanadset 650K (auto-downloaded)
 │   └── translations/             # Cached sunnah.com English CSVs
 ├── db_data/                      # SurrealDB data (generated)
+├── docs/
+│   ├── METHODOLOGY.md            # CL/PCL scoring methodology & algorithms
+│   └── DATA_SOURCES.md           # Dataset documentation & download instructions
 ├── src/
-│   ├── main.rs                   # CLI: Ingest + Serve commands
+│   ├── main.rs                   # CLI: Ingest + Analyze + Serve commands
+│   ├── lib.rs                    # Library crate module exports
 │   ├── db.rs                     # SurrealDB connection + schema
 │   ├── models.rs                 # Data types (Hadith, Narrator, Book, API responses)
 │   ├── embed.rs                  # FastEmbed vector generation
@@ -374,7 +450,16 @@ hadith/
 │   ├── rag.rs                    # GraphRAG: vector retrieval + graph traversal + Ollama
 │   ├── ingest/
 │   │   ├── mod.rs
-│   │   └── sanadset.rs           # Sanadset CSV parsing, chain building, translation
+│   │   ├── sanadset.rs           # Sanadset CSV parsing, chain building, translation
+│   │   └── narrator_bio.rs       # AR-Sanad narrator biographical data ingestion
+│   ├── analysis/
+│   │   ├── mod.rs
+│   │   ├── cl_pcl.rs             # CL/PCL Common Link analysis engine
+│   │   ├── family.rs             # Hadith family clustering (embedding + narrator overlap)
+│   │   ├── reliability.rs        # Three-layer reliability model (reported/analytical/derived)
+│   │   ├── matn_diff.rs          # Word-level LCS matn diffing
+│   │   ├── anti_hallucination.rs # Synthetic evidence detection + RAG validation
+│   │   └── export.rs             # Markdown + JSON export pipeline
 │   └── web/
 │       ├── mod.rs                # Axum router + SPA serving
 │       └── handlers.rs           # All API endpoints
@@ -391,7 +476,11 @@ hadith/
     │   │   │   └── [id]/+page.svelte  # Hadith detail
     │   │   ├── narrators/
     │   │   │   ├── +page.svelte  # Narrator list
-    │   │   │   └── [id]/+page.svelte  # Narrator detail
+    │   │   │   └── [id]/+page.svelte  # Narrator detail + bio edit
+    │   │   ├── families/
+    │   │   │   ├── +page.svelte  # Hadith family browser
+    │   │   │   └── [id]/+page.svelte  # Family detail (variants, analysis, diff)
+    │   │   ├── analysis/+page.svelte  # CL/PCL analysis dashboard
     │   │   ├── books/+page.svelte
     │   │   ├── search/+page.svelte
     │   │   └── ask/+page.svelte  # RAG chat
@@ -418,10 +507,17 @@ hadith/
 | GET | `/api/hadiths/{id}` | Hadith detail + narrators |
 | GET | `/api/narrators?q=&page=&limit=` | Paginated narrator list |
 | GET | `/api/narrators/{id}` | Narrator + hadiths + teachers + students |
+| PUT | `/api/narrators/{id}` | Update narrator biographical fields |
+| GET | `/api/narrators/{id}/reliability` | Narrator evidence records + derived assessment |
 | GET | `/api/search?q=&type=hybrid\|text\|semantic` | Bilingual search (hybrid is default) |
 | GET | `/api/chain/{hadith_id}` | Narrator chain graph data |
 | GET | `/api/narrators/{id}/graph` | Narrator network graph data |
 | POST | `/api/ask` | RAG Q&A (SSE streaming) |
+| GET | `/api/families?page=&limit=` | Paginated hadith families |
+| GET | `/api/families/{id}` | Family detail + variants + CL/PCL analysis |
+| GET | `/api/analysis/stats` | Analysis statistics (families, candidates, supported) |
+| GET | `/api/diff?a=&b=` | Word-level matn diff between two hadiths |
+| GET | `/api/export/family/{id}?format=md\|json` | Export family analysis report |
 | POST | `/api/internal/translate` | Update translations (internal) |
 
 ## Database Schema
@@ -480,5 +576,6 @@ cd frontend && npm run dev
 - **Arabic NLP** — better compound isnad parsing, narrator name disambiguation, improved Arabic BM25 analyzer with morphological stemming
 - **UI/UX** — improved chain visualization, mobile responsive, accessibility
 - **Search** — search result highlighting, faceted search by book/narrator/grade
-- **Narrator metadata** — generation (tabaqat), reliability grading, biographical data
+- **CL/PCL validation** — test analysis results against known scholarly assessments
+- **Additional narrator datasets** — supplementary biographical sources beyond AR-Sanad
 - **Performance** — batch DB operations during ingest, pagination optimization

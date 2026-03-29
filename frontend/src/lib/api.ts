@@ -1,5 +1,9 @@
 import type {
   ApiBook,
+  ApiHadithFamily,
+  ApiMatnDiff,
+  AnalysisStatsResponse,
+  FamilyDetailResponse,
   GraphData,
   HadithDetailResponse,
   NarratorDetailResponse,
@@ -72,4 +76,40 @@ export async function getChainGraph(hadithId: string): Promise<GraphData> {
 
 export async function getNarratorGraph(id: string): Promise<GraphData> {
   return get(`/narrators/${encodeURIComponent(id)}/graph`);
+}
+
+export async function updateNarrator(
+  id: string,
+  data: Record<string, unknown>
+): Promise<void> {
+  const res = await fetch(`${BASE}/narrators/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+}
+
+// ── Analysis API ──
+
+export async function getFamilies(params: {
+  page?: number;
+  limit?: number;
+}): Promise<PaginatedResponse<ApiHadithFamily>> {
+  const sp = new URLSearchParams();
+  if (params.page) sp.set('page', String(params.page));
+  if (params.limit) sp.set('limit', String(params.limit));
+  return get(`/families?${sp}`);
+}
+
+export async function getFamily(id: string): Promise<FamilyDetailResponse> {
+  return get(`/families/${encodeURIComponent(id)}`);
+}
+
+export async function getAnalysisStats(): Promise<AnalysisStatsResponse> {
+  return get('/analysis/stats');
+}
+
+export async function getMatnDiff(a: string, b: string): Promise<ApiMatnDiff> {
+  return get(`/diff?a=${encodeURIComponent(a)}&b=${encodeURIComponent(b)}`);
 }

@@ -55,7 +55,7 @@ pub async fn serve(
         )
         .route(
             "/api/narrators/{id}",
-            axum::routing::get(handlers::narrator_detail),
+            axum::routing::get(handlers::narrator_detail).put(handlers::update_narrator),
         )
         .route(
             "/api/chain/{hadith_id}",
@@ -66,6 +66,24 @@ pub async fn serve(
             axum::routing::get(handlers::narrator_graph_data),
         )
         .route("/api/ask", axum::routing::post(handlers::ask))
+        .route("/api/families", axum::routing::get(handlers::family_list))
+        .route(
+            "/api/families/{id}",
+            axum::routing::get(handlers::family_detail),
+        )
+        .route(
+            "/api/analysis/stats",
+            axum::routing::get(handlers::analysis_stats),
+        )
+        .route(
+            "/api/narrators/{id}/reliability",
+            axum::routing::get(handlers::narrator_reliability),
+        )
+        .route("/api/diff", axum::routing::get(handlers::matn_diff_handler))
+        .route(
+            "/api/export/family/{id}",
+            axum::routing::get(handlers::export_family),
+        )
         .route(
             "/api/internal/translate",
             axum::routing::post(handlers::update_translation),

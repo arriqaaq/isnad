@@ -91,10 +91,7 @@ pub async fn search_hadiths_hybrid(
     }
 
     // Fetch full hadith records for the fused IDs
-    let ids: Vec<surrealdb::types::RecordId> = fused
-        .iter()
-        .filter_map(|r| r.id.clone())
-        .collect();
+    let ids: Vec<surrealdb::types::RecordId> = fused.iter().filter_map(|r| r.id.clone()).collect();
 
     let mut fetch_response = db
         .query("SELECT *, 0.0 AS score FROM hadith WHERE id IN $ids")

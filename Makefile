@@ -1,4 +1,4 @@
-.PHONY: build frontend backend server dev stop ingest ingest-test ingest-full list-books clean
+.PHONY: build frontend backend server dev stop ingest ingest-test ingest-full list-books analyze analyze-bio analyze-families clean
 
 # Build everything
 build: backend frontend
@@ -44,6 +44,20 @@ ingest-full:
 ingest:
 	rm -rf db_data
 	cargo run -- ingest
+
+# === Analyze phase (runs on already-ingested data) ===
+
+# Enrich narrators with AR-Sanad biographical data (auto-downloads dataset)
+analyze-bio:
+	cargo run -- analyze --narrator-bio data/ar_sanad_narrators.csv
+
+# Compute hadith families from embedding similarity
+analyze-families:
+	cargo run -- analyze --families
+
+# Run all analysis: narrator bios + families
+analyze:
+	cargo run -- analyze --narrator-bio data/ar_sanad_narrators.csv --families
 
 # Clean all generated data
 clean:

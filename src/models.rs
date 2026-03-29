@@ -26,6 +26,19 @@ pub struct Narrator {
     pub gender: Option<String>,
     pub generation: Option<String>,
     pub bio: Option<String>,
+    // Biographical fields
+    pub kunya: Option<String>,
+    pub aliases: Option<Vec<String>>,
+    pub birth_year: Option<i64>,
+    pub birth_calendar: Option<String>,
+    pub death_year: Option<i64>,
+    pub death_calendar: Option<String>,
+    pub locations: Option<Vec<String>>,
+    pub tags: Option<Vec<String>>,
+    // Reliability fields
+    pub reliability_rating: Option<String>,
+    pub reliability_prior: Option<f64>,
+    pub reliability_source: Option<String>,
 }
 
 #[derive(Debug, SurrealValue, Serialize, Clone)]
@@ -39,6 +52,7 @@ pub struct Hadith {
     pub narrator_text: Option<String>,
     pub grade: Option<String>,
     pub book_name: Option<String>,
+    pub matn: Option<String>,
 }
 
 #[derive(Debug, SurrealValue, Serialize, Clone)]
@@ -47,6 +61,32 @@ pub struct Book {
     pub book_number: i64,
     pub name_en: String,
     pub name_ar: Option<String>,
+}
+
+// ── Analysis types ──
+
+#[derive(Debug, SurrealValue, Serialize, Clone)]
+pub struct HadithFamily {
+    pub id: Option<RecordId>,
+    pub family_label: Option<String>,
+    pub variant_count: Option<i64>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ApiHadithFamily {
+    pub id: String,
+    pub family_label: Option<String>,
+    pub variant_count: Option<i64>,
+}
+
+impl From<HadithFamily> for ApiHadithFamily {
+    fn from(f: HadithFamily) -> Self {
+        Self {
+            id: f.id.as_ref().map(record_id_key_string).unwrap_or_default(),
+            family_label: f.family_label,
+            variant_count: f.variant_count,
+        }
+    }
 }
 
 // ── Search result types ──
@@ -116,6 +156,17 @@ pub struct ApiNarrator {
     pub gender: Option<String>,
     pub generation: Option<String>,
     pub bio: Option<String>,
+    pub kunya: Option<String>,
+    pub aliases: Option<Vec<String>>,
+    pub birth_year: Option<i64>,
+    pub birth_calendar: Option<String>,
+    pub death_year: Option<i64>,
+    pub death_calendar: Option<String>,
+    pub locations: Option<Vec<String>>,
+    pub tags: Option<Vec<String>>,
+    pub reliability_rating: Option<String>,
+    pub reliability_prior: Option<f64>,
+    pub reliability_source: Option<String>,
 }
 
 impl From<Narrator> for ApiNarrator {
@@ -127,6 +178,17 @@ impl From<Narrator> for ApiNarrator {
             gender: n.gender,
             generation: n.generation,
             bio: n.bio,
+            kunya: n.kunya,
+            aliases: n.aliases,
+            birth_year: n.birth_year,
+            birth_calendar: n.birth_calendar,
+            death_year: n.death_year,
+            death_calendar: n.death_calendar,
+            locations: n.locations,
+            tags: n.tags,
+            reliability_rating: n.reliability_rating,
+            reliability_prior: n.reliability_prior,
+            reliability_source: n.reliability_source,
         }
     }
 }
@@ -142,6 +204,7 @@ pub struct ApiHadith {
     pub narrator_text: Option<String>,
     pub grade: Option<String>,
     pub book_name: Option<String>,
+    pub matn: Option<String>,
 }
 
 impl From<Hadith> for ApiHadith {
@@ -156,6 +219,7 @@ impl From<Hadith> for ApiHadith {
             narrator_text: h.narrator_text,
             grade: h.grade,
             book_name: h.book_name,
+            matn: h.matn,
         }
     }
 }

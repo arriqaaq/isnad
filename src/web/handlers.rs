@@ -6,10 +6,12 @@ use futures::StreamExt;
 use serde::Deserialize;
 use surrealdb::types::{RecordId, SurrealValue};
 
+use crate::analysis;
 use crate::models::{
-    ApiBook, ApiHadith, ApiHadithSearchResult, ApiNarrator, ApiNarratorSearchResult,
-    ApiNarratorWithCount, Book, GraphData, GraphEdge, GraphEdgeData, GraphNode, GraphNodeData,
-    Hadith, Narrator, PaginatedResponse, StatsResponse, record_id_key_string, record_id_string,
+    ApiBook, ApiHadith, ApiHadithFamily, ApiHadithSearchResult, ApiNarrator,
+    ApiNarratorSearchResult, ApiNarratorWithCount, Book, GraphData, GraphEdge, GraphEdgeData,
+    GraphNode, GraphNodeData, Hadith, HadithFamily, Narrator, PaginatedResponse, StatsResponse,
+    record_id_key_string, record_id_string,
 };
 use crate::rag::ChatChunk;
 
@@ -608,6 +610,82 @@ pub async fn ask(
 
 // ── Internal translation update endpoint ──
 
+// ── Narrator update endpoint ──
+
+#[derive(Deserialize)]
+pub struct UpdateNarratorRequest {
+    pub name_ar: Option<String>,
+    pub name_en: Option<String>,
+    pub gender: Option<String>,
+    pub generation: Option<String>,
+    pub bio: Option<String>,
+    pub kunya: Option<String>,
+    pub aliases: Option<Vec<String>>,
+    pub birth_year: Option<i64>,
+    pub birth_calendar: Option<String>,
+    pub death_year: Option<i64>,
+    pub death_calendar: Option<String>,
+    pub locations: Option<Vec<String>>,
+    pub tags: Option<Vec<String>>,
+    pub reliability_rating: Option<String>,
+    pub reliability_prior: Option<f64>,
+    pub reliability_source: Option<String>,
+}
+
+pub async fn update_narrator(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+    Json(body): Json<UpdateNarratorRequest>,
+) -> impl IntoResponse {
+    // Build a JSON object of all provided fields, then MERGE into the narrator
+    let mut update = serde_json::Map::new();
+
+    macro_rules! set_field {
+        ($name:ident) => {
+            if let Some(ref v) = body.$name {
+                update.insert(stringify!($name).to_string(), serde_json::json!(v));
+            }
+        };
+    }
+
+    set_field!(name_ar);
+    set_field!(name_en);
+    set_field!(gender);
+    set_field!(generation);
+    set_field!(bio);
+    set_field!(kunya);
+    set_field!(aliases);
+    set_field!(birth_year);
+    set_field!(birth_calendar);
+    set_field!(death_year);
+    set_field!(death_calendar);
+    set_field!(locations);
+    set_field!(tags);
+    set_field!(reliability_rating);
+    set_field!(reliability_prior);
+    set_field!(reliability_source);
+
+    if update.is_empty() {
+        return StatusCode::BAD_REQUEST;
+    }
+
+    match state
+        .db
+        .query("UPDATE $rid MERGE $data")
+        .bind(("rid", rid("narrator", &id)))
+        .bind(("data", serde_json::Value::Object(update)))
+        .await
+    {
+        Ok(_) => StatusCode::OK,
+        Err(e) => {
+            tracing::error!("Narrator update failed: {e}");
+            StatusCode::INTERNAL_SERVER_ERROR
+        }
+    }
+}
+
+// ── Internal translation update endpoint ──
+
 #[derive(Deserialize)]
 pub struct TranslateUpdate {
     pub table: String,
@@ -643,6 +721,244 @@ pub async fn update_translation(
             StatusCode::INTERNAL_SERVER_ERROR
         }
     }
+}
+
+// ── Analysis endpoints ──
+
+pub async fn family_list(
+    State(state): State<AppState>,
+    Query(params): Query<ListParams>,
+) -> impl IntoResponse {
+    let page = params.page.unwrap_or(1);
+    let limit = params.limit.unwrap_or(20);
+    let offset = (page - 1) * limit;
+
+    let mut res = state
+        .db
+        .query(
+            "SELECT * FROM hadith_family ORDER BY variant_count DESC \
+             LIMIT $limit START $offset",
+        )
+        .bind(("limit", limit + 1))
+        .bind(("offset", offset))
+        .await
+        .unwrap();
+    let families: Vec<HadithFamily> = res.take(0).unwrap_or_default();
+
+    let has_more = families.len() > limit;
+    let data: Vec<ApiHadithFamily> = families
+        .into_iter()
+        .take(limit)
+        .map(ApiHadithFamily::from)
+        .collect();
+
+    Json(PaginatedResponse {
+        data,
+        page,
+        has_more,
+    })
+}
+
+pub async fn family_detail(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+) -> Result<impl IntoResponse, StatusCode> {
+    // Get family
+    let mut res = state
+        .db
+        .query("SELECT * FROM $rid")
+        .bind(("rid", rid("hadith_family", &id)))
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let family: Option<HadithFamily> =
+        res.take(0).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let family = family.ok_or(StatusCode::NOT_FOUND)?;
+
+    // Get hadiths in family
+    let mut res = state
+        .db
+        .query("SELECT * FROM hadith WHERE family_id = $fid ORDER BY hadith_number ASC")
+        .bind(("fid", rid("hadith_family", &id)))
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let hadiths: Vec<Hadith> = res.take(0).unwrap_or_default();
+
+    // Get CL/PCL analysis results
+    let mut res = state
+        .db
+        .query("SELECT * FROM cl_analysis WHERE family = $fid ORDER BY rank ASC")
+        .bind(("fid", rid("hadith_family", &id)))
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    #[derive(Debug, SurrealValue, serde::Serialize)]
+    struct ClAnalysisRow {
+        narrator: Option<RecordId>,
+        candidate_type: String,
+        pcl_mode: Option<String>,
+        fan_out: i64,
+        bundle_coverage: f64,
+        collector_diversity: i64,
+        structural_score: f64,
+        final_confidence: f64,
+        outcome: String,
+        contradiction_cap_active: bool,
+        profile: String,
+        family_status: String,
+        rank: i64,
+    }
+    let analysis: Vec<ClAnalysisRow> = res.take(0).unwrap_or_default();
+
+    Ok(Json(serde_json::json!({
+        "family": ApiHadithFamily::from(family),
+        "hadiths": hadiths.into_iter().map(ApiHadith::from).collect::<Vec<_>>(),
+        "analysis": analysis.into_iter().map(|a| {
+            serde_json::json!({
+                "narrator_id": a.narrator.as_ref().map(record_id_key_string).unwrap_or_default(),
+                "candidate_type": a.candidate_type,
+                "pcl_mode": a.pcl_mode,
+                "fan_out": a.fan_out,
+                "bundle_coverage": a.bundle_coverage,
+                "collector_diversity": a.collector_diversity,
+                "structural_score": a.structural_score,
+                "final_confidence": a.final_confidence,
+                "outcome": a.outcome,
+                "contradiction_cap_active": a.contradiction_cap_active,
+                "profile": a.profile,
+                "family_status": a.family_status,
+                "rank": a.rank,
+            })
+        }).collect::<Vec<_>>(),
+    })))
+}
+
+pub async fn analysis_stats(State(state): State<AppState>) -> impl IntoResponse {
+    let mut res = state
+        .db
+        .query(
+            "SELECT count() AS c FROM hadith_family GROUP ALL;\
+             SELECT count() AS c FROM cl_analysis GROUP ALL;\
+             SELECT count() AS c FROM cl_analysis WHERE candidate_type = 'CL' GROUP ALL;\
+             SELECT count() AS c FROM cl_analysis WHERE outcome = 'supported' GROUP ALL",
+        )
+        .await
+        .unwrap();
+
+    let families: Option<CountResult> = res.take(0).unwrap_or(None);
+    let candidates: Option<CountResult> = res.take(1).unwrap_or(None);
+    let cl_count: Option<CountResult> = res.take(2).unwrap_or(None);
+    let supported: Option<CountResult> = res.take(3).unwrap_or(None);
+
+    Json(serde_json::json!({
+        "family_count": families.map(|c| c.c).unwrap_or(0),
+        "candidate_count": candidates.map(|c| c.c).unwrap_or(0),
+        "cl_count": cl_count.map(|c| c.c).unwrap_or(0),
+        "supported_count": supported.map(|c| c.c).unwrap_or(0),
+    }))
+}
+
+pub async fn narrator_reliability(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+) -> impl IntoResponse {
+    let evidence = analysis::reliability::get_narrator_evidence(&state.db, &id)
+        .await
+        .unwrap_or_default();
+    let derived = analysis::reliability::compute_derived(&evidence);
+
+    Json(serde_json::json!({
+        "narrator_id": id,
+        "evidence": evidence,
+        "derived": derived,
+    }))
+}
+
+pub async fn matn_diff_handler(
+    State(state): State<AppState>,
+    Query(params): Query<DiffParams>,
+) -> Result<impl IntoResponse, StatusCode> {
+    let a_id = params.a.ok_or(StatusCode::BAD_REQUEST)?;
+    let b_id = params.b.ok_or(StatusCode::BAD_REQUEST)?;
+
+    // Fetch both hadiths
+    let mut res = state
+        .db
+        .query("SELECT * FROM $rid")
+        .bind(("rid", rid("hadith", &a_id)))
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let hadith_a: Option<Hadith> = res.take(0).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let hadith_a = hadith_a.ok_or(StatusCode::NOT_FOUND)?;
+
+    let mut res = state
+        .db
+        .query("SELECT * FROM $rid")
+        .bind(("rid", rid("hadith", &b_id)))
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let hadith_b: Option<Hadith> = res.take(0).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let hadith_b = hadith_b.ok_or(StatusCode::NOT_FOUND)?;
+
+    // Use Arabic text (or English fallback) for diffing
+    let text_a = hadith_a
+        .text_ar
+        .as_deref()
+        .or(hadith_a.text_en.as_deref())
+        .unwrap_or("");
+    let text_b = hadith_b
+        .text_ar
+        .as_deref()
+        .or(hadith_b.text_en.as_deref())
+        .unwrap_or("");
+
+    let result = analysis::matn_diff::diff_matn(text_a, text_b, &a_id, &b_id);
+    Ok(Json(result))
+}
+
+#[derive(Deserialize)]
+pub struct DiffParams {
+    pub a: Option<String>,
+    pub b: Option<String>,
+}
+
+pub async fn export_family(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+    Query(params): Query<ExportParams>,
+) -> Result<impl IntoResponse, StatusCode> {
+    let result = analysis::export::fetch_family_analysis(&state.db, &id)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+        .ok_or(StatusCode::NOT_FOUND)?;
+
+    let format = params.format.as_deref().unwrap_or("json");
+
+    match format {
+        "md" | "markdown" => {
+            let md = analysis::export::export_markdown(&result);
+            Ok(Response::builder()
+                .header("Content-Type", "text/markdown")
+                .header(
+                    "Content-Disposition",
+                    format!("attachment; filename=\"family_{id}.md\""),
+                )
+                .body(Body::from(md))
+                .unwrap())
+        }
+        _ => {
+            let bundle = analysis::export::ArtifactBundle::from(&result);
+            let json = serde_json::to_string_pretty(&bundle).unwrap_or_default();
+            Ok(Response::builder()
+                .header("Content-Type", "application/json")
+                .body(Body::from(json))
+                .unwrap())
+        }
+    }
+}
+
+#[derive(Deserialize)]
+pub struct ExportParams {
+    pub format: Option<String>,
 }
 
 // ── Helper result types ──

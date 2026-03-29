@@ -10,7 +10,7 @@ use surrealdb::types::{RecordId, SurrealValue};
 
 use crate::db::Db;
 
-fn make_progress(len: u64, prefix: &str) -> ProgressBar {
+pub fn make_progress(len: u64, prefix: &str) -> ProgressBar {
     let pb = ProgressBar::new(len);
     pb.set_style(
         ProgressStyle::default_bar()
@@ -37,12 +37,11 @@ fn rid(table: &str, key: &str) -> RecordId {
 }
 
 /// Normalize an Arabic name into a slug for record IDs. Keeps diacritics.
+/// Normalize an Arabic name into a slug for record IDs.
+/// Uses normalize_arabic so that different diacritized forms of the same name
+/// (e.g., أَبِي هُرَيْرَةَ and أبى هريرة) produce the same slug.
 fn slug(name: &str) -> String {
-    let cleaned: String = name
-        .chars()
-        .filter(|c| c.is_alphanumeric() || *c == ' ')
-        .collect();
-    cleaned.split_whitespace().collect::<Vec<_>>().join("_")
+    normalize_arabic(name).replace(' ', "_")
 }
 
 /// Slug with diacritics stripped — used ONLY for comparing names in compound isnad
@@ -66,7 +65,7 @@ fn slug_bare(name: &str) -> String {
 
 /// Normalize Arabic text for fuzzy matching: strip diacritics, normalize letter
 /// variants (alef, taa marbuta, alef maqsura), keep only Arabic letters + spaces.
-fn normalize_arabic(text: &str) -> String {
+pub fn normalize_arabic(text: &str) -> String {
     let mut out = String::with_capacity(text.len());
     for c in text.chars() {
         let code = c as u32;
@@ -348,6 +347,14 @@ pub async fn ingest(
             if nslug.is_empty() {
                 continue;
             }
+            // Skip relative references ("his father", "his grandfather") — not real narrator names
+            let bare = normalize_arabic(name);
+            if matches!(
+                bare.as_str(),
+                "ابي" | "ابيه" | "جده" | "عمه" | "امه" | "اخيه" | "ابيها"
+            ) {
+                continue;
+            }
             if !narrators_created.contains(&nslug) {
                 db.query(
                     "CREATE $rid CONTENT { \
@@ -381,7 +388,10 @@ pub async fn ingest(
         // edges where BOTH narrators are at their last (canonical) position.
         // Use slug_bare() (diacritics stripped) for duplicate detection,
         // but slug() (with diacritics) for the actual record IDs.
-        let bare_slugs: Vec<String> = chain.iter().map(|n| slug_bare(n)).collect();
+        let bare_slugs: Vec<String> = chain
+            .iter()
+            .map(|n| normalize_arabic(n).replace(' ', "_"))
+            .collect();
         let real_slugs: Vec<String> = chain.iter().map(|n| slug(n)).collect();
         let mut last_pos: HashMap<&str, usize> = HashMap::new();
         for (i, s) in bare_slugs.iter().enumerate() {
@@ -577,7 +587,9 @@ pub async fn merge_human_translations(db: &Surreal<Db>) -> Result<()> {
             };
 
             // Find the sunnah.com translation whose Arabic contains this key
-            let matched = translations.iter().find(|t| t.normalized_arabic.contains(&*key));
+            let matched = translations
+                .iter()
+                .find(|t| t.normalized_arabic.contains(&*key));
 
             if let Some(t) = matched {
                 db.query("UPDATE $rid SET text_en = $en")

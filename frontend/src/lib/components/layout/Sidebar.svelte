@@ -6,8 +6,10 @@
     { path: '/hadiths', label: 'Hadiths', icon: '☰' },
     { path: '/narrators', label: 'Narrators', icon: '◎' },
     { path: '/books', label: 'Books', icon: '▤' },
+    { path: '/families', label: 'Families', icon: '⬢' },
     { path: '/search', label: 'Search', icon: '⌕' },
     { path: '/ask', label: 'Ask', icon: '◇' },
+    { path: '/analysis', label: 'Analysis', icon: '△' },
   ];
 
   function isActive(path: string): boolean {
