@@ -1,10 +1,4 @@
-mod db;
-mod embed;
-mod ingest;
-mod models;
-mod rag;
-mod search;
-mod web;
+use hadith::{db, ingest, web};
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
@@ -207,6 +201,9 @@ async fn main() -> Result<()> {
                 ingest::sanadset::translate_all(&db, &translate_model).await?;
             }
 
+            // Create BM25 full-text indexes after data is loaded
+            db::init_fulltext_indexes(&db).await?;
+
             tracing::info!("Ingestion complete");
         }
         Commands::Serve {
@@ -217,6 +214,7 @@ async fn main() -> Result<()> {
         } => {
             let db = db::connect(&db_path).await?;
             db::init_schema(&db).await?;
+            db::init_fulltext_indexes(&db).await?;
             web::serve(db, port, ollama_url, ollama_model).await?;
         }
     }

@@ -64,6 +64,38 @@ fn slug_bare(name: &str) -> String {
     cleaned.split_whitespace().collect::<Vec<_>>().join("_")
 }
 
+/// Normalize Arabic text for fuzzy matching: strip diacritics, normalize letter
+/// variants (alef, taa marbuta, alef maqsura), keep only Arabic letters + spaces.
+fn normalize_arabic(text: &str) -> String {
+    let mut out = String::with_capacity(text.len());
+    for c in text.chars() {
+        let code = c as u32;
+        // Skip diacritics (tashkeel)
+        if (0x064B..=0x065F).contains(&code)
+            || code == 0x0670
+            || code == 0x0640 // tatweel
+            || (0x0610..=0x061A).contains(&code)
+        {
+            continue;
+        }
+        // Normalize alef variants → bare alef
+        if matches!(c, 'أ' | 'إ' | 'آ' | 'ٱ') {
+            out.push('ا');
+        // Normalize taa marbuta → haa
+        } else if c == 'ة' {
+            out.push('ه');
+        // Normalize alef maqsura → yaa
+        } else if c == 'ى' {
+            out.push('ي');
+        // Keep Arabic letters and spaces
+        } else if (0x0620..=0x064A).contains(&code) || c == ' ' {
+            out.push(c);
+        }
+    }
+    // Collapse whitespace
+    out.split_whitespace().collect::<Vec<_>>().join(" ")
+}
+
 /// Book slug from Arabic book name.
 fn book_slug(name: &str) -> String {
     format!("book_{}", slug(name))
@@ -470,61 +502,93 @@ pub async fn merge_human_translations(db: &Surreal<Db>) -> Result<()> {
             }
         }
 
-        // Parse CSV and build hadith_number → english_text map
+        // Parse CSV and build normalized_arabic → (english, narrator_en) map
+        // We match by Arabic text similarity because Sanadset and sunnah.com use
+        // different hadith numbering systems (global vs per-book).
         let mut reader = csv::ReaderBuilder::new()
             .has_headers(true)
             .flexible(true)
             .from_path(&csv_path)?;
 
-        let mut translations: HashMap<i64, (String, Option<String>)> = HashMap::new(); // num → (english, narrator_en)
+        struct Translation {
+            normalized_arabic: String,
+            english: String,
+            narrator_en: Option<String>,
+        }
+        let mut translations: Vec<Translation> = Vec::new();
         for result in reader.records() {
             let record = match result {
                 Ok(r) => r,
                 Err(_) => continue,
             };
-            let reference = record.get(7).unwrap_or(""); // Reference column
+            let arabic = record.get(4).unwrap_or(""); // Arabic_Text column
             let english = record.get(5).unwrap_or("").to_string(); // English_Text
-            if english.is_empty() {
+            if english.is_empty() || arabic.is_empty() {
                 continue;
             }
-            if let Some(num) = parse_hadith_num_from_ref(reference) {
-                let narrator_en = extract_narrator_en(&english);
-                translations.insert(num, (english, narrator_en));
-            }
+            let narrator_en = extract_narrator_en(&english);
+            translations.push(Translation {
+                normalized_arabic: normalize_arabic(arabic),
+                english,
+                narrator_en,
+            });
         }
 
-        // Match translations to ingested hadiths
-        // Sanadset book name → hadith slugs use the same format
-        let book_slug_prefix = slug(arabic_book);
+        // Match translations to ingested hadiths by Arabic text similarity
         let mut merged = 0;
 
         #[derive(Debug, SurrealValue)]
-        struct HadithIdAndNum {
+        struct HadithForMatch {
             id: Option<RecordId>,
             hadith_number: i64,
             narrator_text: Option<String>,
+            matn: Option<String>,
+            text_ar: Option<String>,
         }
 
         let mut res = db
-            .query("SELECT id, hadith_number, narrator_text FROM hadith WHERE book_name = $book")
+            .query(
+                "SELECT id, hadith_number, narrator_text, matn, text_ar \
+                 FROM hadith WHERE book_name = $book",
+            )
             .bind(("book", arabic_book.to_string()))
             .await?;
-        let hadiths: Vec<HadithIdAndNum> = res.take(0)?;
+        let hadiths: Vec<HadithForMatch> = res.take(0)?;
 
         let pb = make_progress(hadiths.len() as u64, short_name);
         for h in &hadiths {
-            if let (Some(id), Some((english, narrator_en))) =
-                (&h.id, translations.get(&h.hadith_number))
-            {
+            let Some(id) = &h.id else {
+                pb.inc(1);
+                continue;
+            };
+
+            // Normalize the matn (or text_ar) for matching
+            let source_text = h.matn.as_deref().or(h.text_ar.as_deref()).unwrap_or("");
+            let norm = normalize_arabic(source_text);
+
+            // Use chars 20..80 as search key (skip common "رضي الله عنه" prefix)
+            let chars: Vec<char> = norm.chars().collect();
+            let key: String = if chars.len() > 80 {
+                chars[20..80].iter().collect()
+            } else if chars.len() > 30 {
+                chars[10..].iter().collect()
+            } else {
+                norm.clone()
+            };
+
+            // Find the sunnah.com translation whose Arabic contains this key
+            let matched = translations.iter().find(|t| t.normalized_arabic.contains(&*key));
+
+            if let Some(t) = matched {
                 db.query("UPDATE $rid SET text_en = $en")
                     .bind(("rid", id.clone()))
-                    .bind(("en", english.clone()))
+                    .bind(("en", t.english.clone()))
                     .await
                     .ok();
                 merged += 1;
 
                 // Update narrator name_en if we found one
-                if let Some(en_name) = narrator_en {
+                if let Some(en_name) = &t.narrator_en {
                     if let Some(ar_name) = &h.narrator_text {
                         let nslug = slug(ar_name);
                         if !nslug.is_empty() {

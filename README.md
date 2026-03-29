@@ -1,34 +1,36 @@
 # Hadith Explorer
 
-Browse, search, and explore Islamic hadith collections with narrator chain (isnad) visualization and RAG-powered Q&A — all running locally.
+Browse, search, and explore Islamic hadith collections with narrator chain (isnad) visualization, hybrid BM25+vector search, and GraphRAG-powered Q&A — all running locally on SurrealDB.
 
 ## Architecture Overview
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    SvelteKit Frontend                   │
-│  Dashboard │ Hadiths │ Narrators │ Search │ Ask (RAG)   │
-└──────────────────────┬──────────────────────────────────┘
-                       │ JSON API
-┌──────────────────────┴──────────────────────────────────--┐
-│                   Rust / Axum Backend                     │
-│                                                           │
-│  ┌─────────┐   ┌──────────┐  ┌─────────┐  ┌───────────┐   │
-│  │ Handlers │  │  Search  │  │   RAG   │  │  Ingest   │   │
-│  │ (JSON)   │  │ Text+Vec │  │ Ollama  │  │ Sanadset  │   │
-│  └────┬─────┘  └────┬─────┘  └────┬────┘  └─────┬─────┘   │
-│       │             │             │              │        │
-│  ┌────┴─────────────┴─────────────┴──────────────┴────-┐  │
-│  │              SurrealDB (SurrealKV)                  │  │
-│  │  hadiths │ narrators │ books │ heard_from │ narrates│  │
-│  │  HNSW vector index │ graph traversal                │  │
-│  └──────────────────────────────────────────────────── ┘  │
-│                                                           │
-│  ┌──────────────┐  ┌──────────────-┐                      │
-│  │  FastEmbed   │  │   Ollama      │                      │
-│  │  (embeddings)│  │  (local LLM)  │                      │
-│  └──────────────┘  └──────────────-┘                      │
-└─────────────────────────────────────────────────────────--┘
+┌──────────────────────────────────────────────────────────────┐
+│                      SvelteKit Frontend                      │
+│  Dashboard │ Hadiths │ Narrators │ Search │ Ask (GraphRAG)   │
+└────────────────────────────┬─────────────────────────────────┘
+                             │ JSON API
+┌────────────────────────────┴─────────────────────────────────┐
+│                     Rust / Axum Backend                       │
+│                                                              │
+│  ┌──────────┐  ┌─────────────┐  ┌───────────┐ ┌───────────┐ │
+│  │ Handlers │  │   Search    │  │ GraphRAG  │ │  Ingest   │ │
+│  │ (JSON)   │  │ Hybrid/BM25 │  │  Ollama   │ │ Sanadset  │ │
+│  │          │  │  + Vector   │  │  + Isnad  │ │           │ │
+│  └────┬─────┘  └─────┬───────┘  └─────┬─────┘ └─────┬─────┘ │
+│       │              │                │              │       │
+│  ┌────┴──────────────┴────────────────┴──────────────┴────┐  │
+│  │                SurrealDB (SurrealKV)                    │  │
+│  │  hadiths │ narrators │ books │ heard_from │ narrates    │  │
+│  │  HNSW vector index │ BM25 full-text │ graph edges      │  │
+│  │  FastEmbed 384-dim embeddings stored per hadith        │  │
+│  └────────────────────────────────────────────────────────┘  │
+│                                                              │
+│  ┌──────────────┐  ┌──────────────┐                          │
+│  │  FastEmbed   │  │   Ollama     │                          │
+│  │ (embeddings) │  │ (local LLM)  │                          │
+│  └──────────────┘  └──────────────┘                          │
+└──────────────────────────────────────────────────────────────┘
 ```
 
 ### Ingest Pipeline
@@ -56,15 +58,21 @@ flowchart TD
 ```mermaid
 flowchart LR
     Q[User Query] --> T{Search Type}
-    T -->|Text| TX[CONTAINS on\ntext_ar + text_en]
+    T -->|Hybrid\ndefault| HY[Two parallel queries]
+    T -->|Text| TX[Substring CONTAINS\non text_en + text_ar]
     T -->|Semantic| SE[FastEmbed\nquery → vector]
+    HY --> BM[BM25 full-text\nFULLTEXT index]
+    HY --> VS[Vector similarity\nHNSW index]
+    BM --> RRF[search::rrf\nReciprocal Rank Fusion]
+    VS --> RRF
     SE --> HN[SurrealDB HNSW\ncosine similarity]
     TX --> R[Ranked Results]
     HN --> R
+    RRF --> R
     R --> UI[Frontend]
 ```
 
-### Ask (RAG) Flow
+### Ask (GraphRAG) Flow
 
 ```mermaid
 sequenceDiagram
@@ -81,12 +89,17 @@ sequenceDiagram
     FEm-->>API: query vector
     API->>DB: HNSW vector search (top 6 hadiths)
     DB-->>API: 6 most similar hadiths
-    API->>LLM: System prompt + 6 hadiths + question
+    loop For each hadith
+        API->>DB: Graph traversal: narrator chain (isnad)
+        DB-->>API: Narrators in chain
+    end
+    Note over API: Build context with hadith text + narrator chains
+    API->>LLM: System prompt + 6 hadiths with isnad + question
     loop Streaming
         LLM-->>API: token
         API-->>FE: SSE event {text: "..."}
     end
-    FE-->>U: Streaming answer + source hadiths
+    FE-->>U: Streaming answer with chain-of-narration citations
 ```
 
 ### Database Graph Model
@@ -138,7 +151,7 @@ The [Sanadset 650K dataset](https://data.mendeley.com/datasets/5xth87zwb5/4) pro
 |---|---|---|
 | `Hadith` | Full Arabic text with `<SANAD>`, `<NAR>`, `<MATN>` tags | Stored as `text_ar` (tags stripped) |
 | `Book` | Arabic book name | Stored as `book_name`, used for grouping |
-| `Num_hadith` | Hadith number within the book | Join key for English translations |
+| `Num_hadith` | Hadith number (global, not per-book) | Stored as `hadith_number` |
 | `Matn` | Just the hadith content (no isnad) | Stored as `matn`, used for Ollama translation |
 | `Sanad` | Pre-parsed narrator chain as Python list | Used to create narrator records + chain edges |
 | `Sanad_Length` | Number of narrators | Validation |
@@ -160,7 +173,7 @@ For the 6 major hadith collections (Kutub al-Sittah), human English translations
 | Jami at-Tirmidhi | سنن الترمذي | ~3,900 |
 | Sunan Ibn Majah | سنن ابن ماجه | ~4,300 |
 
-Translations are matched by hadith number and cached in `data/translations/`.
+Translations are matched by **Arabic text similarity** (not hadith number, since Sanadset and sunnah.com use different numbering systems). Cached in `data/translations/`.
 
 ## Ingest
 
@@ -190,9 +203,9 @@ rm -rf db_data && cargo run -- ingest --translate
 
 The ingest pipeline has a two-tier translation system:
 
-**Tier 1 — Human translations (always runs, instant):**
+**Tier 1 — Human translations (always runs):**
 1. Downloads sunnah.com English CSVs from HuggingFace for the 6 major books
-2. Matches each hadith by number and updates `text_en` with the human translation
+2. Matches each Sanadset hadith to a sunnah.com translation by **Arabic text similarity** — the matn (hadith content) is normalized (diacritics stripped, alef variants unified) and matched against the sunnah.com Arabic text. This is necessary because Sanadset uses global hadith numbering while sunnah.com uses per-book numbering. Achieves ~93% match rate on Bukhari.
 3. Extracts English narrator names from "Narrated X:" prefixes
 
 **Tier 2 — Ollama fallback (with `--translate` flag):**
@@ -246,20 +259,86 @@ cargo run -- serve --port 3000 \
 - Deduplication of hadiths (handles multiple narrates edges from compound isnads)
 
 ### Search
-- Bilingual: searches both Arabic and English text
-- Text search: substring matching on hadith text and narrator names
-- Semantic search: FastEmbed converts query to vector, HNSW cosine similarity finds hadiths by meaning
 
-### Ask (RAG)
-- Chat interface for asking questions about hadiths
-- **How it works:**
-  1. Your question is converted to a 384-dimension vector by FastEmbed
-  2. SurrealDB's HNSW index finds the 6 most semantically similar hadiths
-  3. These hadiths are injected as context into a prompt sent to Ollama
-  4. Ollama generates an answer grounded in the actual hadith text
-  5. Response streams back token-by-token via Server-Sent Events (SSE)
-- Source hadiths shown as collapsible cards below the answer
-- Suggestion chips for common questions
+The search system supports three modes. Understanding how each works helps you choose the right one for your query.
+
+#### Hybrid Search (default)
+
+Hybrid search is the default and recommended mode. It combines two fundamentally different search techniques into one query, giving you the best of both worlds.
+
+**How it works:** When you search for "fasting in Ramadan", two separate searches run in parallel:
+
+1. **BM25 keyword scoring** — SurrealDB's full-text search index looks for the literal words "fasting" and "Ramadan" in the hadith text. BM25 (Best Matching 25) is a ranking algorithm that scores documents based on how often your search terms appear, weighted by how rare those terms are across the entire collection. A hadith that mentions "Ramadan" scores higher if "Ramadan" is a relatively uncommon word, because it's more likely to be specifically about Ramadan rather than just mentioning it in passing. BM25 also accounts for document length — a short hadith that mentions "fasting" is likely more focused on the topic than a long hadith that mentions it once among many subjects.
+
+2. **Vector similarity scoring** — FastEmbed converts your query into a 384-dimensional vector (a list of 384 numbers that represent the *meaning* of your text). This vector is compared against pre-computed vectors for every hadith using cosine similarity via SurrealDB's HNSW index. This finds hadiths that are *semantically* related even if they use different words. For example, a search for "fasting in Ramadan" would also find hadiths about "abstaining from food during the holy month" because the meaning is similar.
+
+3. **Reciprocal Rank Fusion (RRF)** — The two result sets are run as separate queries, then fused using SurrealDB's built-in `search::rrf()` function with k=60. RRF works by converting each result's rank position into a score (1/(k+rank)), then summing the scores across both lists. A hadith that ranks highly in *both* keyword and semantic results gets a strong combined score. A hadith that only appears in one list still gets included but with a lower score. This means you get precise keyword matches *and* meaning-based results, ranked by overall relevance.
+
+**When to use it:** For most searches. It handles both specific keyword lookups ("Abu Huraira prayer") and conceptual questions ("what Islam says about treating neighbors") in one query.
+
+#### Text Search
+
+Substring matching on `text_en` (case-insensitive) and `text_ar` fields using SurrealQL's `CONTAINS` operator. Simple and fast — finds hadiths where your exact search terms appear in the text.
+
+**When to use it:** When you know the exact words or phrases you're looking for, or when searching for specific Arabic terms.
+
+#### Semantic Search
+
+Pure vector similarity search. Your query is embedded into a 384-dimensional vector by FastEmbed (using the multilingual-e5-small model), then compared against all hadith embeddings using cosine similarity via SurrealDB's HNSW (Hierarchical Navigable Small World) index.
+
+**What HNSW is:** HNSW is a graph-based algorithm for approximate nearest neighbor search. Instead of comparing your query vector against every single hadith vector (which would be slow), HNSW builds a multi-layer graph where similar vectors are connected. At query time, it navigates this graph from a random entry point, greedily hopping to more similar vectors at each step. This finds the top matches in logarithmic time rather than linear time — critical when searching across hundreds of thousands of hadiths.
+
+**When to use it:** For conceptual or meaning-based searches where you don't know the exact terminology, or for cross-language queries (searching in English to find Arabic hadiths about the same topic).
+
+### Ask (GraphRAG)
+
+The Ask feature is a chat interface where you can ask questions about hadiths in natural language. It uses **GraphRAG** — a combination of Retrieval-Augmented Generation (RAG) and knowledge graph traversal.
+
+#### What is RAG?
+
+RAG (Retrieval-Augmented Generation) solves a fundamental problem with Large Language Models (LLMs): they can generate fluent text, but they hallucinate facts. An LLM asked about hadiths might confidently cite a hadith that doesn't exist.
+
+RAG fixes this by adding a retrieval step before generation:
+1. **Retrieve** relevant documents from a database based on the user's question
+2. **Augment** the LLM's prompt with these documents as context
+3. **Generate** an answer that is grounded in the retrieved documents
+
+This way, the LLM can only reference hadiths that actually exist in the database. The system prompt explicitly instructs it to use *only* the provided context and to say honestly if the context is insufficient.
+
+#### What is GraphRAG?
+
+Standard RAG retrieves documents as isolated text chunks. But hadiths aren't isolated — they exist within a rich network of relationships. Every hadith has an **isnad** (chain of narration): a sequence of scholars who transmitted the hadith from the Prophet Muhammad (peace be upon him) down through generations.
+
+GraphRAG enhances standard RAG by traversing the knowledge graph to include this relational context. After retrieving the 6 most relevant hadiths via vector search, the system performs a **graph traversal** on each hadith to fetch its narrator chain:
+
+```
+SurrealDB query: SELECT <-narrates<-narrator.{name_en} FROM hadith:xyz
+```
+
+This walks the graph edges backwards from the hadith to find all narrators in its chain of transmission.
+
+The resulting context sent to the LLM looks like this:
+
+```
+Hadith #5027 — Narrated Abu Huraira
+Chain of narration: Abu Huraira → Abdul Razzaq → Ma'mar → Hammam
+The Prophet (peace be upon him) said: "None of you truly believes
+until he loves for his brother what he loves for himself."
+```
+
+This enables the LLM to give richer, more scholarly answers that cite not just the hadith text but also its chain of transmission — which is central to hadith authentication in Islamic scholarship.
+
+#### How it works end-to-end
+
+1. Your question ("What did the Prophet say about kindness to animals?") is sent to `POST /api/ask`
+2. **Embedding**: FastEmbed converts your question into a 384-dimensional vector
+3. **Retrieval**: SurrealDB's HNSW index finds the 6 hadiths most semantically similar to your question
+4. **Graph traversal**: For each retrieved hadith, SurrealDB traverses the `narrates` and `heard_from` graph edges to reconstruct the narrator chain (isnad)
+5. **Context assembly**: The hadith text, narrator attribution, and chain of narration are combined into a structured context block
+6. **Generation**: The context + your question are sent to Ollama (local LLM). The system prompt instructs the LLM to act as an Islamic scholar, cite hadith numbers, mention chains of narration when relevant, and only use the provided context
+7. **Streaming**: The response streams back token-by-token via Server-Sent Events (SSE), so you see the answer appear progressively in the UI
+8. **Sources**: The retrieved hadiths are shown as collapsible cards below the answer, so you can verify the LLM's citations
+9. **Suggestion chips**: Common questions are shown as clickable chips for quick access
 
 ## Makefile Commands
 
@@ -291,8 +370,8 @@ hadith/
 │   ├── db.rs                     # SurrealDB connection + schema
 │   ├── models.rs                 # Data types (Hadith, Narrator, Book, API responses)
 │   ├── embed.rs                  # FastEmbed vector generation
-│   ├── search.rs                 # Text + semantic search
-│   ├── rag.rs                    # Ollama RAG client (Ask feature)
+│   ├── search.rs                 # Hybrid (BM25+vector), text, and semantic search
+│   ├── rag.rs                    # GraphRAG: vector retrieval + graph traversal + Ollama
 │   ├── ingest/
 │   │   ├── mod.rs
 │   │   └── sanadset.rs           # Sanadset CSV parsing, chain building, translation
@@ -339,7 +418,7 @@ hadith/
 | GET | `/api/hadiths/{id}` | Hadith detail + narrators |
 | GET | `/api/narrators?q=&page=&limit=` | Paginated narrator list |
 | GET | `/api/narrators/{id}` | Narrator + hadiths + teachers + students |
-| GET | `/api/search?q=&type=text\|semantic` | Bilingual search |
+| GET | `/api/search?q=&type=hybrid\|text\|semantic` | Bilingual search (hybrid is default) |
 | GET | `/api/chain/{hadith_id}` | Narrator chain graph data |
 | GET | `/api/narrators/{id}/graph` | Narrator network graph data |
 | POST | `/api/ask` | RAG Q&A (SSE streaming) |
@@ -351,7 +430,7 @@ SurrealDB with SurrealKV backend. Graph-capable document store.
 
 **Tables:**
 - `hadith` — hadith_number, book_id, text_ar, text_en, matn, narrator_text, book_name, embedding (384-dim float vector)
-- `narrator` — name_ar, name_en, search_name
+- `narrator` — name_ar, name_en, search_name, gender, generation, bio, kunya, aliases, birth_year, death_year, locations, tags, reliability_rating, reliability_prior, reliability_source
 - `book` — book_number, name_en, name_ar
 
 **Relations (graph edges):**
@@ -360,15 +439,17 @@ SurrealDB with SurrealKV backend. Graph-capable document store.
 - `belongs_to` — hadith → book
 
 **Indexes:**
-- HNSW vector index on `hadith.embedding` for semantic search
+- HNSW vector index on `hadith.embedding` for semantic/hybrid search (384 dimensions, cosine distance)
+- BM25 full-text index on `hadith.text_en` (`FULLTEXT ANALYZER en_analyzer BM25 HIGHLIGHTS` — English with snowball stemming)
+- BM25 full-text index on `hadith.text_ar` (`FULLTEXT ANALYZER ar_analyzer BM25 HIGHLIGHTS` — Arabic tokenizer)
 
 ## Tech Stack
 
 | Layer | Technology | Purpose |
 |---|---|---|
 | Backend | Rust, Axum | HTTP server, JSON API |
-| Database | SurrealDB (SurrealKV) | Document store + graph + vector search |
-| Embeddings | FastEmbed (multilingual-e5-small) | 384-dim vectors for semantic search |
+| Database | SurrealDB (SurrealKV) | Document store + graph edges + HNSW vector index + BM25 full-text |
+| Embeddings | FastEmbed (multilingual-e5-small) | 384-dim vectors for semantic/hybrid search |
 | Frontend | SvelteKit 2, Svelte 5 | SPA served as static files |
 | Graph viz | Cytoscape.js | Narrator network visualization |
 | LLM | Ollama (local) | Translation fallback + RAG Q&A |
@@ -396,8 +477,8 @@ cd frontend && npm run dev
 ### Key areas for contribution
 
 - **More hadith books with English translations** — currently only 6 major books have human translations
-- **Arabic NLP** — better compound isnad parsing, narrator name disambiguation
+- **Arabic NLP** — better compound isnad parsing, narrator name disambiguation, improved Arabic BM25 analyzer with morphological stemming
 - **UI/UX** — improved chain visualization, mobile responsive, accessibility
-- **Search** — BM25 full-text search (blocked by SurrealDB v3 syntax changes)
+- **Search** — search result highlighting, faceted search by book/narrator/grade
 - **Narrator metadata** — generation (tabaqat), reliability grading, biographical data
 - **Performance** — batch DB operations during ingest, pagination optimization

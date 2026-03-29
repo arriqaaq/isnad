@@ -100,7 +100,7 @@ pub async fn search(
     Query(params): Query<SearchParams>,
 ) -> impl IntoResponse {
     let query = params.q.unwrap_or_default();
-    let search_type = params.search_type.unwrap_or_else(|| "text".into());
+    let search_type = params.search_type.unwrap_or_else(|| "hybrid".into());
     let limit = params.limit.unwrap_or(20);
 
     if query.is_empty() {
@@ -112,14 +112,21 @@ pub async fn search(
         }));
     }
 
-    let hadith_results = if search_type == "semantic" {
-        crate::search::search_hadiths_semantic(&state.db, &state.embedder, &query, limit)
+    let hadith_results = match search_type.as_str() {
+        "semantic" => {
+            crate::search::search_hadiths_semantic(&state.db, &state.embedder, &query, limit)
+                .await
+                .unwrap_or_default()
+        }
+        "text" => crate::search::search_hadiths_text(&state.db, &query, limit, 0)
             .await
-            .unwrap_or_default()
-    } else {
-        crate::search::search_hadiths_text(&state.db, &query, limit, 0)
-            .await
-            .unwrap_or_default()
+            .unwrap_or_default(),
+        _ => {
+            // Default: hybrid search (BM25 + vector via RRF)
+            crate::search::search_hadiths_hybrid(&state.db, &state.embedder, &query, limit, 0)
+                .await
+                .unwrap_or_default()
+        }
     };
 
     let narrator_results = crate::search::search_narrators(&state.db, &query, 10, 0)
