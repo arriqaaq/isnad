@@ -1,11 +1,11 @@
 use anyhow::Result;
 use surrealdb::Surreal;
-use surrealdb::engine::local::RocksDb;
+use surrealdb::engine::local::SurrealKv;
 
 pub type Db = surrealdb::engine::local::Db;
 
 pub async fn connect(path: &str) -> Result<Surreal<Db>> {
-    let db = Surreal::new::<RocksDb>(path).await?;
+    let db = Surreal::new::<SurrealKv>(path).await?;
     db.use_ns("hadith_app").use_db("sahih_bukhari").await?;
     Ok(db)
 }
@@ -52,6 +52,7 @@ DEFINE FIELD IF NOT EXISTS text_en       ON hadith TYPE option<string>;
 DEFINE FIELD IF NOT EXISTS narrator_text ON hadith TYPE option<string>;
 DEFINE FIELD IF NOT EXISTS grade         ON hadith TYPE option<string>;
 DEFINE FIELD IF NOT EXISTS book_name    ON hadith TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS matn         ON hadith TYPE option<string>;
 DEFINE FIELD IF NOT EXISTS embedding     ON hadith TYPE option<array<float>>;
 DEFINE INDEX IF NOT EXISTS hadith_vec    ON TABLE hadith FIELDS embedding HNSW DIMENSION 384 DIST COSINE;
 DEFINE INDEX IF NOT EXISTS hadith_book   ON TABLE hadith FIELDS book_id;

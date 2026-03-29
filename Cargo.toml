@@ -10,7 +10,7 @@ tokio = { version = "1", features = ["full"] }
 tower-http = { version = "0.6", features = ["fs", "cors"] }
 
 # Database
-surrealdb = { version = "3.0.5", features = ["kv-rocksdb"] }
+surrealdb = { version = "3.0.5", features = ["kv-surrealkv"] }
 
 # Serialization
 serde = { version = "1", features = ["derive"] }
@@ -31,6 +31,9 @@ fastembed = "5"
 
 # Zip extraction
 zip = "2"
+
+# Progress bars
+indicatif = "0.17"
 
 # Error handling
 anyhow = "1"

@@ -5,7 +5,7 @@
   import { stripHtml } from '$lib/utils';
   import NarratorChip from '$lib/components/narrator/NarratorChip.svelte';
   import Badge from '$lib/components/common/Badge.svelte';
-  import GraphView from '$lib/components/graph/GraphView.svelte';
+  import ChainView from '$lib/components/graph/ChainView.svelte';
   import LoadingSpinner from '$lib/components/common/LoadingSpinner.svelte';
 
   let data: HadithDetailResponse | null = $state(null);
@@ -25,25 +25,11 @@
 
   /**
    * Highlight the matn (quoted speech) in Arabic text.
-   * Arabic quotes are typically between " ... " or « ... ».
-   * Returns HTML with <span class="matn"> around quoted portions.
    */
   function highlightMatn(text: string): string {
-    // Match text between Arabic-style quotes
     return text
       .replace(/"([^"]+)"/g, '<span class="matn">"$1"</span>')
       .replace(/«([^»]+)»/g, '<span class="matn">«$1»</span>');
-  }
-
-  /**
-   * Highlight the Prophet's speech in English text.
-   * English hadith quotes are typically between "..." after narrator intro.
-   */
-  function highlightEnglish(text: string | null): string {
-    if (!text) return '';
-    const cleaned = stripHtml(text);
-    // Highlight quoted speech on its own line, bold + italic
-    return cleaned.replace(/"([^"]+)"/g, '<br/><span class="prophet-speech">"$1"</span>');
   }
 </script>
 
@@ -72,7 +58,7 @@
     <div class="text-section">
       {#if data.hadith.text_en}
         <div class="text-en">
-          {@html highlightEnglish(data.hadith.text_en)}
+          {stripHtml(data.hadith.text_en)}
         </div>
       {/if}
 
@@ -96,7 +82,7 @@
 
     <section class="section">
       <h2>Narrator Chain</h2>
-      <GraphView data={graphData} />
+      <ChainView data={graphData} />
     </section>
   {:else}
     <div class="empty">Hadith not found.</div>
@@ -125,30 +111,19 @@
     margin-bottom: 28px;
   }
 
-  /* English text — rich serif font with highlighted Prophet's speech */
+  /* English text — matn only, entirely in green bold italic blockquote */
   .text-en {
     font-family: 'Georgia', 'Palatino Linotype', 'Book Antiqua', serif;
     font-size: 1.1rem;
     line-height: 1.9;
-    color: var(--text-primary);
-    padding: 24px 28px;
-    background: var(--bg-surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    letter-spacing: 0.01em;
-  }
-
-  /* Prophet's speech highlighted in English — bold italic on new line */
-  .text-en :global(.prophet-speech) {
-    display: block;
     color: #1a5c2e;
-    font-weight: 700;
+    font-weight: 600;
     font-style: italic;
-    margin-top: 8px;
-    padding: 12px 16px;
-    border-left: 3px solid #2d8f4e;
+    padding: 20px 24px;
+    border-left: 3px solid var(--accent);
     background: rgba(45, 143, 78, 0.04);
     border-radius: 0 var(--radius) var(--radius) 0;
+    letter-spacing: 0.01em;
   }
 
   /* Arabic text with highlighted matn */
@@ -162,7 +137,6 @@
     line-height: 2.4;
   }
 
-  /* Matn (actual hadith content) highlighted in Arabic */
   .text-ar :global(.matn) {
     color: var(--text-primary);
     font-weight: 600;

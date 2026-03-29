@@ -47,8 +47,8 @@ enum Commands {
         #[arg(long)]
         translate: bool,
 
-        /// Ollama model for translation
-        #[arg(long, default_value = "llama3.2")]
+        /// Ollama model for fallback translation
+        #[arg(long, default_value = "qwen3:8b")]
         translate_model: String,
 
         /// Path to SurrealDB data directory
@@ -78,58 +78,74 @@ enum Commands {
 const SANADSET_ZIP_URL: &str = "https://data.mendeley.com/public-api/zip/5xth87zwb5/download/5";
 
 async fn download_sanadset(target_path: &str) -> Result<()> {
-    let data_dir = std::path::Path::new(target_path).parent().unwrap_or(std::path::Path::new("data"));
+    use futures::StreamExt;
+    use indicatif::{ProgressBar, ProgressStyle};
+    use std::io::Write;
+
+    let data_dir = std::path::Path::new(target_path)
+        .parent()
+        .unwrap_or(std::path::Path::new("data"));
     std::fs::create_dir_all(data_dir)?;
 
     let zip_path = data_dir.join("sanadset.zip");
 
-    // Download
-    tracing::info!("Downloading Sanadset dataset from Mendeley Data...");
+    // Download with progress bar
+    println!("📥 Downloading Sanadset dataset from Mendeley Data...");
     let response = reqwest::get(SANADSET_ZIP_URL).await?;
     if !response.status().is_success() {
         anyhow::bail!("Download failed: HTTP {}", response.status());
     }
-    let bytes = response.bytes().await?;
-    tracing::info!("Downloaded {} MB", bytes.len() / 1_000_000);
 
-    std::fs::write(&zip_path, &bytes)?;
+    let total = response.content_length().unwrap_or(0);
+    let pb = ProgressBar::new(total);
+    pb.set_style(
+        ProgressStyle::default_bar()
+            .template("   {bar:40.cyan/blue} {bytes}/{total_bytes} ({eta})")
+            .unwrap(),
+    );
 
-    // Unzip
-    tracing::info!("Extracting...");
+    let mut file = std::fs::File::create(&zip_path)?;
+    let mut stream = response.bytes_stream();
+    while let Some(chunk) = stream.next().await {
+        let chunk = chunk?;
+        pb.inc(chunk.len() as u64);
+        file.write_all(&chunk)?;
+    }
+    pb.finish_with_message("downloaded");
+    println!("   ✓ Downloaded {} MB", total / 1_000_000);
+
+    // Unzip — find the largest CSV (that's the sanadset data)
+    println!("📦 Extracting...");
     let file = std::fs::File::open(&zip_path)?;
     let mut archive = zip::ZipArchive::new(file)?;
 
-    let mut found = false;
+    // List all CSVs and pick the largest one
+    let mut largest_idx: Option<usize> = None;
+    let mut largest_size: u64 = 0;
     for i in 0..archive.len() {
-        let mut entry = archive.by_index(i)?;
+        let entry = archive.by_index(i)?;
         let name = entry.name().to_string();
-        // Look for the sanadset CSV file inside the zip
-        if name.ends_with(".csv") && (name.contains("sanadset") || name.contains("Sanadset") || name.contains("650")) {
-            let mut out = std::fs::File::create(target_path)?;
-            std::io::copy(&mut entry, &mut out)?;
-            tracing::info!("Extracted {name} → {target_path}");
-            found = true;
-            break;
+        let size = entry.size();
+        if name.ends_with(".csv") {
+            println!("   found: {} ({} MB)", name, size / 1_000_000);
+            if size > largest_size {
+                largest_size = size;
+                largest_idx = Some(i);
+            }
         }
     }
 
-    if !found {
-        // If no matching filename, extract the largest CSV
-        let mut largest = (0, String::new());
-        for i in 0..archive.len() {
-            let entry = archive.by_index(i)?;
-            if entry.name().ends_with(".csv") && entry.size() > largest.0 {
-                largest = (entry.size() as u64, entry.name().to_string());
-            }
-        }
-        if !largest.1.is_empty() {
-            let mut entry = archive.by_name(&largest.1)?;
-            let mut out = std::fs::File::create(target_path)?;
-            std::io::copy(&mut entry, &mut out)?;
-            tracing::info!("Extracted {} → {target_path}", largest.1);
-        } else {
-            anyhow::bail!("No CSV file found in the downloaded zip");
-        }
+    if let Some(idx) = largest_idx {
+        let mut entry = archive.by_index(idx)?;
+        let name = entry.name().to_string();
+        let mut out = std::fs::File::create(target_path)?;
+        std::io::copy(&mut entry, &mut out)?;
+        println!(
+            "   ✓ Extracted {name} ({} MB) → {target_path}",
+            largest_size / 1_000_000
+        );
+    } else {
+        anyhow::bail!("No CSV file found in the downloaded zip");
     }
 
     // Cleanup zip
@@ -181,8 +197,13 @@ async fn main() -> Result<()> {
             db::init_schema(&db).await?;
             ingest::sanadset::ingest(&db, &file, &selected, limit).await?;
 
+            // Always merge human translations from sunnah.com (free, instant)
+            println!("🌐 Merging human English translations from sunnah.com...");
+            ingest::sanadset::merge_human_translations(&db).await?;
+
             if translate {
-                tracing::info!("Translating via Ollama ({translate_model})...");
+                // Fill gaps with Ollama for hadiths/narrators still missing English
+                println!("🤖 Filling translation gaps via Ollama ({translate_model})...");
                 ingest::sanadset::translate_all(&db, &translate_model).await?;
             }
 

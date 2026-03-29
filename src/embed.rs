@@ -46,9 +46,15 @@ pub async fn embed_all_hadiths(db: &Surreal<Db>) -> Result<()> {
     let hadiths: Vec<HadithForEmbed> = response.take(0)?;
 
     let total = hadiths.len();
-    tracing::info!("Generating embeddings for {total} hadiths");
 
-    for (batch_idx, chunk) in hadiths.chunks(BATCH_SIZE).enumerate() {
+    let pb = indicatif::ProgressBar::new(total as u64);
+    pb.set_style(
+        indicatif::ProgressStyle::default_bar()
+            .template("   {bar:40.green/black} {pos}/{len} embeddings ({eta})")
+            .unwrap(),
+    );
+
+    for chunk in hadiths.chunks(BATCH_SIZE) {
         let texts: Vec<String> = chunk
             .iter()
             .map(|h| {
@@ -70,11 +76,11 @@ pub async fn embed_all_hadiths(db: &Surreal<Db>) -> Result<()> {
             }
         }
 
-        let done = (batch_idx + 1) * BATCH_SIZE;
-        tracing::info!("Embedded {}/{total} hadiths", done.min(total));
+        pb.inc(chunk.len() as u64);
     }
 
-    tracing::info!("Embedding generation complete");
+    pb.finish_with_message("done");
+    println!("   ✓ {} embeddings generated", total);
     Ok(())
 }
 
