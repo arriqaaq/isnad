@@ -76,6 +76,10 @@ pub async fn serve(
             axum::routing::get(handlers::analysis_stats),
         )
         .route(
+            "/api/analysis/juynboll/summary",
+            axum::routing::get(handlers::juynboll_summary),
+        )
+        .route(
             "/api/narrators/{id}/reliability",
             axum::routing::get(handlers::narrator_reliability),
         )

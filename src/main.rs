@@ -59,6 +59,10 @@ enum Commands {
         #[arg(long)]
         families: bool,
 
+        /// Run Juynboll falsifiability analysis on CL candidates
+        #[arg(long)]
+        juynboll: bool,
+
         /// Enrich narrators with biographical data from AR-Sanad dataset (auto-downloads if missing)
         #[arg(long, default_value = "data/ar_sanad_narrators.csv")]
         narrator_bio: Option<String>,
@@ -201,9 +205,28 @@ async fn main() -> Result<()> {
             let selected = ingest::sanadset::resolve_books(&file, books.as_deref(), all)?;
             tracing::info!("Selected {} books for ingestion", selected.len());
 
+            // Load narrator name resolver for deterministic name deduplication
+            let narrator_csv = "data/ar_sanad_narrators.csv";
+            let resolver = if std::path::Path::new(narrator_csv).exists() {
+                println!("📋 Loading narrator name resolver...");
+                match ingest::name_resolver::NameResolver::load(narrator_csv) {
+                    Ok(r) => {
+                        println!("   ✓ {} narrators indexed", r.narrators.len());
+                        Some(r)
+                    }
+                    Err(e) => {
+                        tracing::warn!("Could not load name resolver: {e}, proceeding without");
+                        None
+                    }
+                }
+            } else {
+                tracing::info!("No narrator CSV at {narrator_csv}, skipping name resolution");
+                None
+            };
+
             let db = db::connect(&db_path).await?;
             db::init_schema(&db).await?;
-            ingest::sanadset::ingest(&db, &file, &selected, limit).await?;
+            ingest::sanadset::ingest(&db, &file, &selected, limit, resolver.as_ref()).await?;
 
             // Always merge human translations from sunnah.com (free, instant)
             println!("🌐 Merging human English translations from sunnah.com...");
@@ -223,6 +246,7 @@ async fn main() -> Result<()> {
         Commands::Analyze {
             db_path,
             families,
+            juynboll,
             narrator_bio,
         } => {
             let db = db::connect(&db_path).await?;
@@ -237,14 +261,103 @@ async fn main() -> Result<()> {
                 did_something = true;
             }
 
+            if juynboll {
+                println!("🔬 Running CL/PCL + Juynboll falsifiability analysis...");
+                use surrealdb::types::{RecordId, SurrealValue};
+
+                // Get all families
+                #[derive(Debug, SurrealValue)]
+                struct IdOnly {
+                    id: Option<RecordId>,
+                }
+                let mut res = db
+                    .query(
+                        "SELECT id, variant_count FROM hadith_family ORDER BY variant_count DESC",
+                    )
+                    .await?;
+                let family_rows: Vec<IdOnly> = res.take(0)?;
+
+                let mut cl_families = 0usize;
+                let mut juynboll_families = 0usize;
+                for row in &family_rows {
+                    let fid = row
+                        .id
+                        .as_ref()
+                        .map(hadith::models::record_id_key_string)
+                        .unwrap_or_default();
+                    if fid.is_empty() {
+                        continue;
+                    }
+                    let result =
+                        analysis::cl_pcl::analyze_family(&db, &fid, "structural_only").await?;
+
+                    // Store CL/PCL results
+                    if !result.candidates.is_empty() {
+                        analysis::cl_pcl::store_results(&db, &result).await?;
+                        cl_families += 1;
+                    }
+
+                    // Store Juynboll results
+                    if let Some(ref j) = result.juynboll {
+                        analysis::juynboll::store_juynboll_results(&db, j).await?;
+                        juynboll_families += 1;
+                    }
+                }
+
+                println!(
+                    "   CL/PCL analysis: {} families with candidates",
+                    cl_families
+                );
+
+                // Print corpus summary
+                let summary = analysis::juynboll::compute_cross_family_summary(&db).await?;
+                println!("   Juynboll analysis: {} families", juynboll_families);
+                println!(
+                    "   Families with reliable bypass: {}",
+                    summary.families_with_reliable_bypass
+                );
+                println!(
+                    "   Families with independent CLs: {}",
+                    summary.families_with_independent_cls
+                );
+                if !summary.cross_family_narrators.is_empty() {
+                    println!(
+                        "   Cross-family CL narrators (top): {}",
+                        summary
+                            .cross_family_narrators
+                            .iter()
+                            .take(5)
+                            .map(|n| {
+                                format!(
+                                    "{} ({}x, {:?})",
+                                    n.narrator_id, n.cl_family_count, n.reliability_rating
+                                )
+                            })
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    );
+                }
+                tracing::info!("Analysis complete");
+                did_something = true;
+            }
+
             if let Some(bio_path) = narrator_bio {
                 println!("📚 Enriching narrators with AR-Sanad biographical data...");
-                ingest::narrator_bio::ingest_narrator_bios(&db, &bio_path).await?;
+                // Load resolver for direct arsanad_ key matching
+                let resolver = if std::path::Path::new(&bio_path).exists() {
+                    ingest::name_resolver::NameResolver::load(&bio_path).ok()
+                } else {
+                    None
+                };
+                ingest::narrator_bio::ingest_narrator_bios(&db, &bio_path, resolver.as_ref())
+                    .await?;
                 did_something = true;
             }
 
             if !did_something {
-                tracing::warn!("No analysis flags specified. Use --families or --narrator-bio.");
+                tracing::warn!(
+                    "No analysis flags specified. Use --families, --juynboll, or --narrator-bio."
+                );
             }
         }
         Commands::Serve {

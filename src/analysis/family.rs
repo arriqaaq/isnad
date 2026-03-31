@@ -26,12 +26,7 @@ struct HadithForClustering {
 
 #[derive(Debug, SurrealValue)]
 struct NarratorsOfHadith {
-    narrators: Vec<NarratorId>,
-}
-
-#[derive(Debug, SurrealValue)]
-struct NarratorId {
-    id: Option<RecordId>,
+    narrators: Vec<RecordId>,
 }
 
 // ── Union-Find ──
@@ -120,10 +115,8 @@ pub async fn compute_families(db: &Surreal<Db>, embedder: &Embedder) -> Result<u
                 .await?;
             let result: Option<NarratorsOfHadith> = nr.take(0)?;
             if let Some(r) = result {
-                for n in r.narrators {
-                    if let Some(ref nid) = n.id {
-                        narrator_sets[i].insert(crate::models::record_id_key_string(nid));
-                    }
+                for nid in &r.narrators {
+                    narrator_sets[i].insert(crate::models::record_id_key_string(nid));
                 }
             }
         }

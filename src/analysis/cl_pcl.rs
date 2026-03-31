@@ -88,28 +88,29 @@ pub struct FamilyAnalysisResult {
     pub family_status: String, // cl_detected, pcl_only, insufficient_data
     pub profile: String,
     pub candidates: Vec<Candidate>,
+    pub juynboll: Option<super::juynboll::FamilyJuynbollResult>,
 }
 
 // ── Graph structures ──
 
-struct NarratorNode {
-    variants: HashSet<String>,        // hadith keys containing this narrator
-    direct_students: HashSet<String>, // narrators who heard from this one
-    direct_teachers: HashSet<String>, // narrators this one heard from
-    has_bio: bool,
-    generation: Option<i64>, // parsed generation for chronology
-    reliability_prior: Option<f64>,
+pub(crate) struct NarratorNode {
+    pub(crate) variants: HashSet<String>, // hadith keys containing this narrator
+    pub(crate) direct_students: HashSet<String>, // narrators who heard from this one
+    pub(crate) direct_teachers: HashSet<String>, // narrators this one heard from
+    pub(crate) has_bio: bool,
+    pub(crate) generation: Option<i64>, // parsed generation for chronology
+    pub(crate) reliability_prior: Option<f64>,
 }
 
-struct Edge {
-    variant_id: String,
-    chronology_conflict: bool,
+pub(crate) struct Edge {
+    pub(crate) variant_id: String,
+    pub(crate) chronology_conflict: bool,
 }
 
-struct FamilyGraph {
-    nodes: HashMap<String, NarratorNode>,
-    edges: HashMap<String, Vec<Edge>>, // key: "student->teacher"
-    variant_ids: HashSet<String>,
+pub(crate) struct FamilyGraph {
+    pub(crate) nodes: HashMap<String, NarratorNode>,
+    pub(crate) edges: HashMap<String, Vec<Edge>>, // key: "student->teacher"
+    pub(crate) variant_ids: HashSet<String>,
 }
 
 fn norm(val: f64, min: f64, max: f64) -> f64 {
@@ -188,7 +189,7 @@ impl FamilyGraph {
     }
 
     /// Find terminal narrators (leaves with no students) reachable from `start` via students.
-    fn reachable_terminals(&self, start: &str) -> HashSet<String> {
+    pub(crate) fn reachable_terminals(&self, start: &str) -> HashSet<String> {
         let mut visited = HashSet::new();
         let mut stack = vec![start.to_string()];
         let mut terminals = HashSet::new();
@@ -288,7 +289,7 @@ impl FamilyGraph {
         bypass_count as f64 / total as f64
     }
 
-    fn node_key(&self, _node: &NarratorNode) -> String {
+    pub(crate) fn node_key(&self, _node: &NarratorNode) -> String {
         // Find the key for this node (reverse lookup)
         for (k, v) in &self.nodes {
             if std::ptr::eq(v, _node) {
@@ -298,7 +299,7 @@ impl FamilyGraph {
         String::new()
     }
 
-    fn reachable_set(&self, start: &str, dir: Direction) -> HashSet<String> {
+    pub(crate) fn reachable_set(&self, start: &str, dir: Direction) -> HashSet<String> {
         let mut visited = HashSet::new();
         let mut stack = vec![start.to_string()];
         while let Some(current) = stack.pop() {
@@ -373,7 +374,7 @@ impl FamilyGraph {
     }
 }
 
-enum Direction {
+pub(crate) enum Direction {
     Teachers,
     Students,
 }
@@ -416,12 +417,12 @@ fn map_outcome(confidence: f64, contradiction_active: bool) -> &'static str {
     }
 }
 
-/// Analyze a single hadith family for CL/PCL candidates.
-pub async fn analyze_family(
+/// Build a FamilyGraph from database data for a given family.
+/// Returns None if the family has fewer than 2 hadiths.
+pub(crate) async fn build_family_graph(
     db: &Surreal<Db>,
     family_id: &str,
-    profile: &str, // "structural_only" or "reliability_weighted"
-) -> Result<FamilyAnalysisResult> {
+) -> Result<Option<FamilyGraph>> {
     let family_rid = RecordId::new("hadith_family", family_id);
 
     // 1. Get all hadiths in this family
@@ -437,12 +438,7 @@ pub async fn analyze_family(
     let hadith_ids: Vec<IdOnly> = res.take(0)?;
 
     if hadith_ids.len() < 2 {
-        return Ok(FamilyAnalysisResult {
-            family_id: family_id.to_string(),
-            family_status: "insufficient_data".to_string(),
-            profile: profile.to_string(),
-            candidates: vec![],
-        });
+        return Ok(None);
     }
 
     let hadith_keys: Vec<String> = hadith_ids
@@ -566,6 +562,28 @@ pub async fn analyze_family(
             chronology_conflict,
         });
     }
+
+    Ok(Some(graph))
+}
+
+/// Analyze a single hadith family for CL/PCL candidates.
+pub async fn analyze_family(
+    db: &Surreal<Db>,
+    family_id: &str,
+    profile: &str, // "structural_only" or "reliability_weighted"
+) -> Result<FamilyAnalysisResult> {
+    let graph = match build_family_graph(db, family_id).await? {
+        Some(g) => g,
+        None => {
+            return Ok(FamilyAnalysisResult {
+                family_id: family_id.to_string(),
+                family_status: "insufficient_data".to_string(),
+                profile: profile.to_string(),
+                candidates: vec![],
+                juynboll: None,
+            });
+        }
+    };
 
     // 6. Compute features
     let features = graph.compute_features();
@@ -694,11 +712,23 @@ pub async fn analyze_family(
         c.family_status = family_status.to_string();
     }
 
+    // 10. Juynboll falsifiability analysis (runs on families with CLs)
+    let juynboll = if !cl_candidates.is_empty() {
+        Some(super::juynboll::analyze_family_juynboll(
+            &graph,
+            &cl_candidates,
+            family_id,
+        ))
+    } else {
+        None
+    };
+
     Ok(FamilyAnalysisResult {
         family_id: family_id.to_string(),
         family_status: family_status.to_string(),
         profile: profile.to_string(),
         candidates,
+        juynboll,
     })
 }
 

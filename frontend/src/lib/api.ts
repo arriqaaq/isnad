@@ -110,6 +110,10 @@ export async function getAnalysisStats(): Promise<AnalysisStatsResponse> {
   return get('/analysis/stats');
 }
 
+export async function getJuynbollSummary(): Promise<import('./types').JuynbollSummaryResponse> {
+  return get('/analysis/juynboll/summary');
+}
+
 export async function getMatnDiff(a: string, b: string): Promise<ApiMatnDiff> {
   return get(`/diff?a=${encodeURIComponent(a)}&b=${encodeURIComponent(b)}`);
 }

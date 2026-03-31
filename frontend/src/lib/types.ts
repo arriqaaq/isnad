@@ -139,10 +139,34 @@ export interface ApiClAnalysis {
   rank: number;
 }
 
+export interface JuynbollAnalysis {
+  has_reliable_bypass: boolean;
+  reliable_bypass_count: number;
+  max_reliable_bypass_ratio: number;
+  has_independent_cls: boolean;
+  independent_cl_pairs: number;
+  cl_count: number;
+  upstream_reliable_ratio: number;
+  upstream_branching_points: number;
+}
+
+export interface JuynbollSummaryResponse {
+  families_analyzed: number;
+  families_with_reliable_bypass: number;
+  families_with_independent_cls: number;
+  cross_family_narrators: {
+    narrator_id: string;
+    cl_family_count: number;
+    reliability_prior: number | null;
+    reliability_rating: string | null;
+  }[];
+}
+
 export interface FamilyDetailResponse {
   family: ApiHadithFamily;
   hadiths: ApiHadith[];
   analysis: ApiClAnalysis[];
+  juynboll: JuynbollAnalysis | null;
 }
 
 export interface AnalysisStatsResponse {

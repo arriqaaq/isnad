@@ -112,6 +112,18 @@ DEFINE FIELD IF NOT EXISTS rank ON cl_analysis TYPE int;
 DEFINE INDEX IF NOT EXISTS cl_family_idx ON TABLE cl_analysis FIELDS family;
 DEFINE INDEX IF NOT EXISTS cl_narrator_idx ON TABLE cl_analysis FIELDS narrator;
 
+DEFINE TABLE IF NOT EXISTS juynboll_analysis SCHEMAFULL;
+DEFINE FIELD IF NOT EXISTS family ON juynboll_analysis TYPE record<hadith_family>;
+DEFINE FIELD IF NOT EXISTS has_reliable_bypass ON juynboll_analysis TYPE bool;
+DEFINE FIELD IF NOT EXISTS reliable_bypass_count ON juynboll_analysis TYPE int;
+DEFINE FIELD IF NOT EXISTS max_reliable_bypass_ratio ON juynboll_analysis TYPE float;
+DEFINE FIELD IF NOT EXISTS has_independent_cls ON juynboll_analysis TYPE bool;
+DEFINE FIELD IF NOT EXISTS independent_cl_pairs ON juynboll_analysis TYPE int;
+DEFINE FIELD IF NOT EXISTS cl_count ON juynboll_analysis TYPE int;
+DEFINE FIELD IF NOT EXISTS upstream_reliable_ratio ON juynboll_analysis TYPE float;
+DEFINE FIELD IF NOT EXISTS upstream_branching_points ON juynboll_analysis TYPE int;
+DEFINE INDEX IF NOT EXISTS juynboll_family_idx ON TABLE juynboll_analysis FIELDS family UNIQUE;
+
 DEFINE TABLE IF NOT EXISTS evidence SCHEMAFULL;
 DEFINE FIELD IF NOT EXISTS narrator ON evidence TYPE record<narrator>;
 DEFINE FIELD IF NOT EXISTS evidence_id ON evidence TYPE string;

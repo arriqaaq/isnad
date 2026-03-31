@@ -64,7 +64,8 @@ fn slug_bare(name: &str) -> String {
 }
 
 /// Normalize Arabic text for fuzzy matching: strip diacritics, normalize letter
-/// variants (alef, taa marbuta, alef maqsura), keep only Arabic letters + spaces.
+/// variants (alef, taa marbuta, alef maqsura), normalize kunya grammatical case,
+/// keep only Arabic letters + spaces.
 pub fn normalize_arabic(text: &str) -> String {
     let mut out = String::with_capacity(text.len());
     for c in text.chars() {
@@ -92,7 +93,44 @@ pub fn normalize_arabic(text: &str) -> String {
         }
     }
     // Collapse whitespace
-    out.split_whitespace().collect::<Vec<_>>().join(" ")
+    let collapsed = out.split_whitespace().collect::<Vec<_>>().join(" ");
+
+    // Normalize kunya grammatical case:
+    // ابي X / ابى X → ابو X  (genitive/accusative → nominative for أبو)
+    // امي X → ام X  (same for أم)
+    normalize_kunya(&collapsed)
+}
+
+/// Normalize kunya grammatical case variants to nominative form.
+/// In isnad chains, أبو becomes أبي/أبى after عن. This normalizes them back.
+fn normalize_kunya(text: &str) -> String {
+    let words: Vec<&str> = text.split(' ').collect();
+    if words.is_empty() {
+        return text.to_string();
+    }
+
+    let mut result = Vec::with_capacity(words.len());
+    let mut i = 0;
+    while i < words.len() {
+        let w = words[i];
+        if i + 1 < words.len() {
+            // ابي / ابى → ابو (when followed by another word, i.e. part of a kunya)
+            if w == "ابي" || w == "ابى" {
+                result.push("ابو");
+                i += 1;
+                continue;
+            }
+            // امي → ام
+            if w == "امي" {
+                result.push("ام");
+                i += 1;
+                continue;
+            }
+        }
+        result.push(w);
+        i += 1;
+    }
+    result.join(" ")
 }
 
 /// Book slug from Arabic book name.
@@ -203,17 +241,26 @@ pub async fn ingest(
     csv_path: &str,
     selected_books: &HashSet<String>,
     limit_per_book: Option<usize>,
+    resolver: Option<&super::name_resolver::NameResolver>,
 ) -> Result<()> {
     let path = Path::new(csv_path);
     if !path.exists() {
         anyhow::bail!("CSV file not found: {csv_path}");
     }
 
-    println!(
-        "📖 Ingesting from {} ({} books selected)",
-        csv_path,
-        selected_books.len()
-    );
+    if resolver.is_some() {
+        println!(
+            "📖 Ingesting from {} ({} books selected, with name resolution)",
+            csv_path,
+            selected_books.len()
+        );
+    } else {
+        println!(
+            "📖 Ingesting from {} ({} books selected)",
+            csv_path,
+            selected_books.len()
+        );
+    }
 
     // First pass: count how many hadiths we'll ingest (for progress bar)
     let total_expected = {
@@ -341,9 +388,37 @@ pub async fn ingest(
             .bind(("to", rid("book", &bslug)))
             .await?;
 
-        // Create narrators and chain edges
-        for name in &chain {
-            let nslug = slug(name);
+        // Resolve narrator names and create narrator records + edges.
+        //
+        // When a NameResolver is available, we resolve each chain name to a
+        // canonical ar_sanad_narrators ID. This deduplicates narrators that
+        // appear under different spellings (e.g. أبي هريرة vs أبو هريرة)
+        // and enables biographical enrichment later.
+
+        // Build resolved slugs for this chain
+        let resolved_chain: Vec<(String, String)> = if let Some(res) = resolver {
+            // Use full chain resolution (multi-pass with context disambiguation)
+            res.resolve_chain(&chain)
+                .into_iter()
+                .map(|(raw, resolution)| {
+                    let resolved_slug = match resolution {
+                        super::name_resolver::Resolution::Resolved(id) => {
+                            // Use canonical narrator ID as slug
+                            format!("arsanad_{id}")
+                        }
+                        _ => {
+                            // Fallback to normalized slug for unresolved names
+                            slug(&raw)
+                        }
+                    };
+                    (raw, resolved_slug)
+                })
+                .collect()
+        } else {
+            chain.iter().map(|n| (n.clone(), slug(n))).collect()
+        };
+
+        for (name, nslug) in &resolved_chain {
             if nslug.is_empty() {
                 continue;
             }
@@ -355,7 +430,22 @@ pub async fn ingest(
             ) {
                 continue;
             }
-            if !narrators_created.contains(&nslug) {
+            if !narrators_created.contains(nslug) {
+                // For resolved narrators, use canonical name from the resolver
+                let display_name = if let Some(res) = resolver {
+                    if let Some(id_str) = nslug.strip_prefix("arsanad_") {
+                        if let Ok(id) = id_str.parse::<u32>() {
+                            res.canonical_name(id).unwrap_or(name).to_string()
+                        } else {
+                            name.clone()
+                        }
+                    } else {
+                        name.clone()
+                    }
+                } else {
+                    name.clone()
+                };
+
                 db.query(
                     "CREATE $rid CONTENT { \
                         name_en: $name, \
@@ -366,8 +456,8 @@ pub async fn ingest(
                         bio: NONE \
                     }",
                 )
-                .bind(("rid", rid("narrator", &nslug)))
-                .bind(("name", name.clone()))
+                .bind(("rid", rid("narrator", nslug)))
+                .bind(("name", display_name))
                 .bind(("slug", nslug.clone()))
                 .await
                 .ok();
@@ -376,7 +466,7 @@ pub async fn ingest(
 
             // narrates edge
             db.query("RELATE $from->narrates->$to")
-                .bind(("from", rid("narrator", &nslug)))
+                .bind(("from", rid("narrator", nslug)))
                 .bind(("to", rid("hadith", &hslug)))
                 .await
                 .ok();
@@ -386,35 +476,28 @@ pub async fn ingest(
         // heard_from edges: chain[i] heard from chain[i+1]
         // For compound isnads (multiple chains merged by Sanadset), only create
         // edges where BOTH narrators are at their last (canonical) position.
-        // Use slug_bare() (diacritics stripped) for duplicate detection,
-        // but slug() (with diacritics) for the actual record IDs.
-        let bare_slugs: Vec<String> = chain
-            .iter()
-            .map(|n| normalize_arabic(n).replace(' ', "_"))
-            .collect();
-        let real_slugs: Vec<String> = chain.iter().map(|n| slug(n)).collect();
+        let slugs: Vec<&str> = resolved_chain.iter().map(|(_, s)| s.as_str()).collect();
         let mut last_pos: HashMap<&str, usize> = HashMap::new();
-        for (i, s) in bare_slugs.iter().enumerate() {
-            last_pos.insert(s.as_str(), i);
+        for (i, s) in slugs.iter().enumerate() {
+            last_pos.insert(s, i);
         }
 
-        for i in 0..chain.len().saturating_sub(1) {
-            let bare1 = &bare_slugs[i];
-            let bare2 = &bare_slugs[i + 1];
-            if bare1.is_empty() || bare2.is_empty() || bare1 == bare2 {
+        for i in 0..resolved_chain.len().saturating_sub(1) {
+            let s1 = slugs[i];
+            let s2 = slugs[i + 1];
+            if s1.is_empty() || s2.is_empty() || s1 == s2 {
                 continue;
             }
             // Only create edge if both narrators are at their canonical position
-            if last_pos.get(bare1.as_str()) != Some(&i) {
+            if last_pos.get(s1) != Some(&i) {
                 continue;
             }
-            if last_pos.get(bare2.as_str()) != Some(&(i + 1)) {
+            if last_pos.get(s2) != Some(&(i + 1)) {
                 continue;
             }
-            // Use real slugs (with diacritics) for the actual edge
             db.query("RELATE $from->heard_from->$to SET hadith_ref = $href")
-                .bind(("from", rid("narrator", &real_slugs[i])))
-                .bind(("to", rid("narrator", &real_slugs[i + 1])))
+                .bind(("from", rid("narrator", s1)))
+                .bind(("to", rid("narrator", s2)))
                 .bind(("href", rid("hadith", &hslug)))
                 .await
                 .ok();

@@ -3,7 +3,7 @@
 //! Source: https://github.com/somaia02/Narrator-Disambiguation
 //! Contains 18,298 narrators with Ibn Hajar reliability ranks from Taqrib al-Tahdhib.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::Path;
 
 use anyhow::Result;
@@ -143,7 +143,11 @@ async fn ensure_csv(csv_path: &str) -> Result<()> {
 /// Matches AR-Sanad narrators to existing DB narrators via normalized Arabic name
 /// fuzzy matching, then updates matched narrators with reliability ratings,
 /// birth/death dates, and creates evidence records.
-pub async fn ingest_narrator_bios(db: &Surreal<Db>, csv_path: &str) -> Result<BioIngestionStats> {
+pub async fn ingest_narrator_bios(
+    db: &Surreal<Db>,
+    csv_path: &str,
+    resolver: Option<&super::name_resolver::NameResolver>,
+) -> Result<BioIngestionStats> {
     // Auto-download if missing
     ensure_csv(csv_path).await?;
 
@@ -156,11 +160,13 @@ pub async fn ingest_narrator_bios(db: &Surreal<Db>, csv_path: &str) -> Result<Bi
     let db_narrators: Vec<NarratorForMatch> = res.take(0)?;
     tracing::info!("Found {} narrators in database", db_narrators.len());
 
-    // 2. Build matching index: normalized_arabic -> list of (key, original_name_ar)
+    // 2. Build matching indices
     let mut match_index: HashMap<String, Vec<(String, String)>> = HashMap::new();
+    let mut narrators_created_keys: HashSet<String> = HashSet::new();
     for n in &db_narrators {
         if let (Some(id), Some(name_ar)) = (&n.id, &n.name_ar) {
             let key = crate::models::record_id_key_string(id);
+            narrators_created_keys.insert(key.clone());
             let normalized = normalize_arabic(name_ar);
             if !normalized.is_empty() {
                 match_index
@@ -254,43 +260,65 @@ pub async fn ingest_narrator_bios(db: &Surreal<Db>, csv_path: &str) -> Result<Bi
             }
         };
 
-        // Try to match against DB narrators
-        let shuhra_norm = normalize_arabic(if !shuhra.is_empty() {
-            shuhra
-        } else {
-            full_name
-        });
-        let full_norm = normalize_arabic(full_name);
+        // Try to match against DB narrators.
+        //
+        // Strategy 1: If narrators were ingested with NameResolver, they have
+        // keys like "arsanad_{id}". We can get the AR-Sanad ID directly from
+        // the CSV's "id" column and check if that narrator exists in the DB.
+        let ar_sanad_id_str = record
+            .get(col("id").unwrap_or(16))
+            .unwrap_or("")
+            .trim()
+            .to_string();
 
-        // Exact match on shuhra
         let mut matched_key: Option<String> = None;
 
-        if let Some(matches) = match_index.get(&shuhra_norm) {
-            if matches.len() == 1 {
-                matched_key = Some(matches[0].0.clone());
+        // Direct match via arsanad_ key (when resolver was used during ingestion)
+        if !ar_sanad_id_str.is_empty() && ar_sanad_id_str != "-" {
+            let direct_key = format!("arsanad_{ar_sanad_id_str}");
+            if narrators_created_keys.contains(&direct_key) {
+                matched_key = Some(direct_key);
                 stats.matched_exact += 1;
-            } else if matches.len() > 1 {
-                stats.skipped_ambiguous += 1;
-                continue;
             }
         }
 
-        // Substring match: DB narrator name found within AR-Sanad full name
-        if matched_key.is_none() && !full_norm.is_empty() {
-            let mut substring_matches = Vec::new();
-            for (norm_key, entries) in &match_index {
-                if norm_key.len() >= 3 && full_norm.contains(norm_key.as_str()) {
-                    for (key, _) in entries {
-                        substring_matches.push(key.clone());
-                    }
+        // Strategy 2: Fallback to fuzzy name matching (for legacy ingestion without resolver)
+        if matched_key.is_none() {
+            let shuhra_norm = normalize_arabic(if !shuhra.is_empty() {
+                shuhra
+            } else {
+                full_name
+            });
+            let full_norm = normalize_arabic(full_name);
+
+            // Exact match on shuhra
+            if let Some(matches) = match_index.get(&shuhra_norm) {
+                if matches.len() == 1 {
+                    matched_key = Some(matches[0].0.clone());
+                    stats.matched_exact += 1;
+                } else if matches.len() > 1 {
+                    stats.skipped_ambiguous += 1;
+                    continue;
                 }
             }
-            if substring_matches.len() == 1 {
-                matched_key = Some(substring_matches[0].clone());
-                stats.matched_substring += 1;
-            } else if substring_matches.len() > 1 {
-                stats.skipped_ambiguous += 1;
-                continue;
+
+            // Substring match: DB narrator name found within AR-Sanad full name
+            if matched_key.is_none() && !full_norm.is_empty() {
+                let mut substring_matches = Vec::new();
+                for (norm_key, entries) in &match_index {
+                    if norm_key.len() >= 3 && full_norm.contains(norm_key.as_str()) {
+                        for (key, _) in entries {
+                            substring_matches.push(key.clone());
+                        }
+                    }
+                }
+                if substring_matches.len() == 1 {
+                    matched_key = Some(substring_matches[0].clone());
+                    stats.matched_substring += 1;
+                } else if substring_matches.len() > 1 {
+                    stats.skipped_ambiguous += 1;
+                    continue;
+                }
             }
         }
 

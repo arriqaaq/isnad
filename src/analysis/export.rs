@@ -207,5 +207,6 @@ pub async fn fetch_family_analysis(
         family_status,
         profile,
         candidates,
+        juynboll: None,
     }))
 }

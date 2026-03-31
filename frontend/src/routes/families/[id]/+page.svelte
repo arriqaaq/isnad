@@ -111,6 +111,33 @@
               </tbody>
             </table>
           </div>
+
+          {#if data.juynboll}
+            <div class="juynboll-section">
+              <h3>Juynboll Falsifiability Analysis</h3>
+              <div class="juynboll-grid">
+                <div class="juynboll-card" class:positive={data.juynboll.has_reliable_bypass}>
+                  <div class="label">Reliable Bypass</div>
+                  <div class="value">{data.juynboll.has_reliable_bypass ? 'Yes' : 'No'}</div>
+                  {#if data.juynboll.reliable_bypass_count > 0}
+                    <div class="detail">{data.juynboll.reliable_bypass_count} bypass path(s), ratio: {data.juynboll.max_reliable_bypass_ratio.toFixed(3)}</div>
+                  {/if}
+                </div>
+                <div class="juynboll-card" class:positive={data.juynboll.has_independent_cls}>
+                  <div class="label">Independent CLs</div>
+                  <div class="value">{data.juynboll.has_independent_cls ? 'Yes' : 'No'}</div>
+                  {#if data.juynboll.independent_cl_pairs > 0}
+                    <div class="detail">{data.juynboll.independent_cl_pairs} independent pair(s) of {data.juynboll.cl_count} CLs</div>
+                  {/if}
+                </div>
+                <div class="juynboll-card">
+                  <div class="label">Upstream Reliability</div>
+                  <div class="value">{(data.juynboll.upstream_reliable_ratio * 100).toFixed(1)}%</div>
+                  <div class="detail">{data.juynboll.upstream_branching_points} branching point(s)</div>
+                </div>
+              </div>
+            </div>
+          {/if}
         {/if}
       {:else if activeTab === 'diff'}
         <div class="diff-controls">
@@ -204,4 +231,15 @@
   .seg-unchanged { color: var(--text-primary); }
   .seg-missing { color: #ef4444; background: rgba(239,68,68,0.1); border-radius: 2px; padding: 1px 2px; }
   .seg-added { color: #22c55e; background: rgba(34,197,94,0.1); border-radius: 2px; padding: 1px 2px; }
+
+  /* Juynboll falsifiability */
+  .juynboll-section { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border); }
+  .juynboll-section h3 { font-size: 0.95rem; color: var(--text-secondary); margin-bottom: 12px; }
+  .juynboll-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+  .juynboll-card { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; }
+  .juynboll-card.positive { border-color: #22c55e; background: rgba(34,197,94,0.05); }
+  .juynboll-card .label { font-size: 0.8rem; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 4px; }
+  .juynboll-card .value { font-size: 1.2rem; font-weight: 600; }
+  .juynboll-card.positive .value { color: #22c55e; }
+  .juynboll-card .detail { font-size: 0.8rem; color: var(--text-muted); margin-top: 4px; }
 </style>

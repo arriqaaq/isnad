@@ -809,6 +809,26 @@ pub async fn family_detail(
     }
     let analysis: Vec<ClAnalysisRow> = res.take(0).unwrap_or_default();
 
+    // Get Juynboll falsifiability analysis
+    #[derive(Debug, SurrealValue, serde::Serialize)]
+    struct JuynbollRow {
+        has_reliable_bypass: bool,
+        reliable_bypass_count: i64,
+        max_reliable_bypass_ratio: f64,
+        has_independent_cls: bool,
+        independent_cl_pairs: i64,
+        cl_count: i64,
+        upstream_reliable_ratio: f64,
+        upstream_branching_points: i64,
+    }
+    let mut res = state
+        .db
+        .query("SELECT * FROM juynboll_analysis WHERE family = $fid LIMIT 1")
+        .bind(("fid", rid("hadith_family", &id)))
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let juynboll: Option<JuynbollRow> = res.take(0).unwrap_or(None);
+
     Ok(Json(serde_json::json!({
         "family": ApiHadithFamily::from(family),
         "hadiths": hadiths.into_iter().map(ApiHadith::from).collect::<Vec<_>>(),
@@ -829,6 +849,7 @@ pub async fn family_detail(
                 "rank": a.rank,
             })
         }).collect::<Vec<_>>(),
+        "juynboll": juynboll,
     })))
 }
 
@@ -855,6 +876,13 @@ pub async fn analysis_stats(State(state): State<AppState>) -> impl IntoResponse 
         "cl_count": cl_count.map(|c| c.c).unwrap_or(0),
         "supported_count": supported.map(|c| c.c).unwrap_or(0),
     }))
+}
+
+pub async fn juynboll_summary(State(state): State<AppState>) -> impl IntoResponse {
+    match analysis::juynboll::compute_cross_family_summary(&state.db).await {
+        Ok(summary) => Json(serde_json::json!(summary)).into_response(),
+        Err(_) => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
+    }
 }
 
 pub async fn narrator_reliability(
