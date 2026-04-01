@@ -72,9 +72,14 @@ hadith analyze
   │     Match by normalized Arabic name → UPDATE existing records
   │     Create evidence records (Taqrib al-Tahdhib)
   │
-  └─ [--families]  Cluster hadiths into families
-        Embedding similarity (cosine ≥ 0.85) + narrator overlap
-        Cross-book grouping (same hadith in Bukhari + Muslim)
+  ├─ [--families]  Cluster hadiths into families
+  │     Embedding similarity (cosine ≥ 0.85) + narrator overlap
+  │     Cross-book grouping (same hadith in Bukhari + Muslim)
+  │
+  └─ [--juynboll]  Transmission integrity analysis
+        Runs CL/PCL analysis on all hadith families
+        4 structural tests evaluating fabrication claims
+        Stores results in juynboll_analysis table
 ```
 
 ### Search Flow
@@ -327,6 +332,14 @@ cargo run -- serve --port 3000 \
 - Analysis dashboard with statistics (family count, CL/PCL candidates, supported outcomes)
 - Export family analysis as Markdown or JSON
 
+### Transmission Integrity Analysis
+- Algorithmic tests evaluating whether transmission networks show evidence of independent, reliable narration paths
+- **Independent Paths**: detects transmission paths through classically-vetted reliable narrators (thiqah/saduq) that bypass the convergence point — structural evidence of independent transmission
+- **Independent Convergence Points**: detects multiple convergence points (CLs) in the same family with no ancestor-descendant link — evidence of multiple independent origins
+- **Cross-Family Narrator Consistency**: identifies narrators who are convergence points across many families and cross-references their classical reliability ratings
+- **Chain Diversity**: measures reliability, biographical coverage, and branching of narrators above the convergence point
+- See [Methodology Section 7](docs/METHODOLOGY.md) for the theoretical framework and scholarly context
+
 ### Search
 
 The search system supports three modes. Understanding how each works helps you choose the right one for your query.
@@ -423,6 +436,9 @@ make list-books       # show all 926 available books
 make analyze          # run all analysis (narrator bios + families)
 make analyze-bio      # enrich narrators with AR-Sanad data
 make analyze-families # compute hadith families from embeddings
+make analyze-transmission # run transmission integrity analysis
+make pipeline-test    # full pipeline: ingest 100 + analyze + transmission
+make pipeline-full    # full pipeline with all data
 make clean            # wipe all generated data
 ```
 
@@ -516,6 +532,8 @@ hadith/
 | GET | `/api/families?page=&limit=` | Paginated hadith families |
 | GET | `/api/families/{id}` | Family detail + variants + CL/PCL analysis |
 | GET | `/api/analysis/stats` | Analysis statistics (families, candidates, supported) |
+| GET | `/api/analysis/juynboll/summary` | Corpus-level transmission integrity summary |
+| GET | `/api/narrators/{id}/cl-status` | Narrator CL/PCL status across families |
 | GET | `/api/diff?a=&b=` | Word-level matn diff between two hadiths |
 | GET | `/api/export/family/{id}?format=md\|json` | Export family analysis report |
 | POST | `/api/internal/translate` | Update translations (internal) |

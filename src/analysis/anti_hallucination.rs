@@ -68,7 +68,7 @@ pub struct RagValidationResult {
 /// - Hadith numbers referenced are in provided context_hadith_numbers
 pub fn validate_rag_output(
     response_text: &str,
-    known_narrator_names: &[String],
+    _known_narrator_names: &[String],
     context_hadith_numbers: &[i64],
 ) -> RagValidationResult {
     let mut violations = Vec::new();

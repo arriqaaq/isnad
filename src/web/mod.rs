@@ -83,6 +83,10 @@ pub async fn serve(
             "/api/narrators/{id}/reliability",
             axum::routing::get(handlers::narrator_reliability),
         )
+        .route(
+            "/api/narrators/{id}/cl-status",
+            axum::routing::get(handlers::narrator_cl_status),
+        )
         .route("/api/diff", axum::routing::get(handlers::matn_diff_handler))
         .route(
             "/api/export/family/{id}",

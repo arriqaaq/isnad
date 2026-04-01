@@ -901,6 +901,38 @@ pub async fn narrator_reliability(
     }))
 }
 
+pub async fn narrator_cl_status(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+) -> impl IntoResponse {
+    #[derive(Debug, SurrealValue, serde::Serialize)]
+    struct ClRow {
+        candidate_type: String,
+        family: Option<RecordId>,
+    }
+    let mut res = state
+        .db
+        .query("SELECT candidate_type, family FROM cl_analysis WHERE narrator = $nid")
+        .bind(("nid", rid("narrator", &id)))
+        .await
+        .unwrap();
+    let rows: Vec<ClRow> = res.take(0).unwrap_or_default();
+
+    let cl_count = rows.iter().filter(|r| r.candidate_type == "CL").count();
+    let pcl_count = rows.iter().filter(|r| r.candidate_type == "PCL").count();
+    let families: Vec<String> = rows
+        .iter()
+        .filter_map(|r| r.family.as_ref().map(record_id_key_string))
+        .collect();
+
+    Json(serde_json::json!({
+        "narrator_id": id,
+        "cl_family_count": cl_count,
+        "pcl_family_count": pcl_count,
+        "families": families,
+    }))
+}
+
 pub async fn matn_diff_handler(
     State(state): State<AppState>,
     Query(params): Query<DiffParams>,

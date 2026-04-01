@@ -114,14 +114,14 @@ fn normalize_kunya(text: &str) -> String {
     while i < words.len() {
         let w = words[i];
         if i + 1 < words.len() {
-            // ابي / ابى → ابو (when followed by another word, i.e. part of a kunya)
-            if w == "ابي" || w == "ابى" {
+            // ابي / ابى / ابا → ابو (genitive/accusative/accusative → nominative)
+            if w == "ابي" || w == "ابى" || w == "ابا" {
                 result.push("ابو");
                 i += 1;
                 continue;
             }
-            // امي → ام
-            if w == "امي" {
+            // امي / اما → ام
+            if w == "امي" || w == "اما" {
                 result.push("ام");
                 i += 1;
                 continue;
@@ -777,7 +777,7 @@ pub async fn translate_all(db: &Surreal<Db>, model: &str) -> Result<()> {
         total_batches
     );
     let pb = make_progress(narrators.len() as u64, "narrators");
-    for (batch_idx, chunk) in narrators.chunks(20).enumerate() {
+    for (_batch_idx, chunk) in narrators.chunks(20).enumerate() {
         let names: Vec<(&RecordId, &str)> = chunk
             .iter()
             .filter_map(|n| Some((n.id.as_ref()?, n.name_ar.as_deref()?)))

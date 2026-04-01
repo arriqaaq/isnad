@@ -146,7 +146,7 @@ async fn ensure_csv(csv_path: &str) -> Result<()> {
 pub async fn ingest_narrator_bios(
     db: &Surreal<Db>,
     csv_path: &str,
-    resolver: Option<&super::name_resolver::NameResolver>,
+    _resolver: Option<&super::name_resolver::NameResolver>,
 ) -> Result<BioIngestionStats> {
     // Auto-download if missing
     ensure_csv(csv_path).await?;

@@ -253,7 +253,7 @@ impl NameResolver {
             return candidates.to_vec();
         }
 
-        let mut scored: Vec<(u32, u32)> = candidates
+        let scored: Vec<(u32, u32)> = candidates
             .iter()
             .map(|&cid| {
                 let mut score = 0u32;

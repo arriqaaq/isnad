@@ -59,6 +59,24 @@ analyze-families:
 analyze:
 	cargo run -- analyze --narrator-bio data/ar_sanad_narrators.csv --families
 
+# Run transmission integrity analysis (CL/PCL + structural falsifiability tests)
+analyze-transmission:
+	cargo run -- analyze --juynboll
+
+# Full pipeline: ingest 100 per book + all analysis
+pipeline-test:
+	rm -rf db_data
+	cargo run -- ingest --limit 100
+	cargo run -- analyze --narrator-bio data/ar_sanad_narrators.csv --families
+	cargo run -- analyze --juynboll
+
+# Full pipeline with all data from 6 major books
+pipeline-full:
+	rm -rf db_data
+	cargo run -- ingest
+	cargo run -- analyze --narrator-bio data/ar_sanad_narrators.csv --families
+	cargo run -- analyze --juynboll
+
 # Clean all generated data
 clean:
 	rm -rf db_data target frontend/build frontend/node_modules

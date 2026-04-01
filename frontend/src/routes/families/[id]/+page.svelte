@@ -114,26 +114,30 @@
 
           {#if data.juynboll}
             <div class="juynboll-section">
-              <h3>Juynboll Falsifiability Analysis</h3>
+              <h3>Transmission Integrity</h3>
               <div class="juynboll-grid">
                 <div class="juynboll-card" class:positive={data.juynboll.has_reliable_bypass}>
-                  <div class="label">Reliable Bypass</div>
+                  <div class="label">Independent Paths</div>
                   <div class="value">{data.juynboll.has_reliable_bypass ? 'Yes' : 'No'}</div>
                   {#if data.juynboll.reliable_bypass_count > 0}
-                    <div class="detail">{data.juynboll.reliable_bypass_count} bypass path(s), ratio: {data.juynboll.max_reliable_bypass_ratio.toFixed(3)}</div>
+                    <div class="detail">{data.juynboll.reliable_bypass_count} path(s) through reliable narrators bypassing the convergence point</div>
+                  {:else}
+                    <div class="detail">No independent transmission paths detected through reliable narrators</div>
                   {/if}
                 </div>
                 <div class="juynboll-card" class:positive={data.juynboll.has_independent_cls}>
-                  <div class="label">Independent CLs</div>
+                  <div class="label">Independent Convergence</div>
                   <div class="value">{data.juynboll.has_independent_cls ? 'Yes' : 'No'}</div>
                   {#if data.juynboll.independent_cl_pairs > 0}
-                    <div class="detail">{data.juynboll.independent_cl_pairs} independent pair(s) of {data.juynboll.cl_count} CLs</div>
+                    <div class="detail">{data.juynboll.independent_cl_pairs} unlinked convergence pair(s) among {data.juynboll.cl_count} CLs</div>
+                  {:else}
+                    <div class="detail">{data.juynboll.cl_count} convergence point(s) — all in same transmission chain</div>
                   {/if}
                 </div>
                 <div class="juynboll-card">
-                  <div class="label">Upstream Reliability</div>
+                  <div class="label">Chain Reliability</div>
                   <div class="value">{(data.juynboll.upstream_reliable_ratio * 100).toFixed(1)}%</div>
-                  <div class="detail">{data.juynboll.upstream_branching_points} branching point(s)</div>
+                  <div class="detail">Reliable narrators above convergence point, {data.juynboll.upstream_branching_points} branching point(s)</div>
                 </div>
               </div>
             </div>

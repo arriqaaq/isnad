@@ -349,7 +349,7 @@ impl FamilyGraph {
 
     fn compute_provenance(&self, nid: &str) -> f64 {
         // Fraction of narrators in this narrator's chains that have biographical data
-        let node = match self.nodes.get(nid) {
+        let _node = match self.nodes.get(nid) {
             Some(n) => n,
             None => return 1.0,
         };

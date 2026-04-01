@@ -1,7 +1,7 @@
 <script lang="ts">
   import { page } from '$app/state';
-  import { getNarrator, getNarratorGraph, updateNarrator } from '$lib/api';
-  import type { NarratorDetailResponse, GraphData } from '$lib/types';
+  import { getNarrator, getNarratorGraph, updateNarrator, getNarratorClStatus } from '$lib/api';
+  import type { NarratorDetailResponse, GraphData, NarratorClStatus } from '$lib/types';
   import NarratorChip from '$lib/components/narrator/NarratorChip.svelte';
   import HadithCard from '$lib/components/hadith/HadithCard.svelte';
   import Badge from '$lib/components/common/Badge.svelte';
@@ -10,6 +10,7 @@
 
   let data: NarratorDetailResponse | null = $state(null);
   let graphData: GraphData | null = $state(null);
+  let clStatus: NarratorClStatus | null = $state(null);
   let loading = $state(true);
   let activeTab: 'network' | 'hadiths' | 'connections' | 'details' = $state('network');
   let saving = $state(false);
@@ -52,8 +53,8 @@
     if (!id) return;
     loading = true;
     activeTab = 'network';
-    Promise.all([getNarrator(id), getNarratorGraph(id)])
-      .then(([d, g]) => {
+    Promise.all([getNarrator(id), getNarratorGraph(id), getNarratorClStatus(id).catch(() => null)])
+      .then(([d, g, cls]) => {
         const seen = new Set<string>();
         d.hadiths = d.hadiths.filter(h => {
           if (seen.has(h.id)) return false;
@@ -62,6 +63,7 @@
         });
         data = d;
         graphData = g;
+        clStatus = cls;
         populateForm();
       })
       .catch((e) => console.error('Failed to load narrator:', e))
@@ -152,6 +154,12 @@
         {/if}
         {#if data.narrator.generation}
           <Badge text={data.narrator.generation} variant="accent" />
+        {/if}
+        {#if clStatus && clStatus.cl_family_count > 0}
+          <Badge text="CL in {clStatus.cl_family_count} {clStatus.cl_family_count === 1 ? 'family' : 'families'}" variant="success" />
+        {/if}
+        {#if clStatus && clStatus.pcl_family_count > 0 && clStatus.cl_family_count === 0}
+          <Badge text="PCL in {clStatus.pcl_family_count} {clStatus.pcl_family_count === 1 ? 'family' : 'families'}" variant="accent" />
         {/if}
         {#if data.narrator.gender}
           <Badge text={data.narrator.gender} />

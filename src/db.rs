@@ -19,7 +19,7 @@ pub async fn init_schema(db: &Surreal<Db>) -> Result<()> {
         .enumerate()
     {
         let sql = format!("{stmt};");
-        if let Err(e) = db.query(&sql).await.and_then(|mut r| r.check()) {
+        if let Err(e) = db.query(&sql).await.and_then(|r| r.check()) {
             tracing::error!(
                 "Schema statement {i} failed: {e}\n  SQL: {}",
                 stmt.chars().take(120).collect::<String>()
@@ -171,7 +171,7 @@ pub async fn init_fulltext_indexes(db: &Surreal<Db>) -> Result<()> {
         "DEFINE INDEX IF NOT EXISTS hadith_text_ar_search ON TABLE hadith FIELDS text_ar FULLTEXT ANALYZER ar_analyzer BM25 HIGHLIGHTS",
     ];
     for stmt in stmts {
-        if let Err(e) = db.query(stmt).await.and_then(|mut r| r.check()) {
+        if let Err(e) = db.query(stmt).await.and_then(|r| r.check()) {
             tracing::warn!("Fulltext index creation failed (non-fatal): {e}");
         }
     }

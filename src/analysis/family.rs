@@ -77,7 +77,7 @@ impl UnionFind {
 /// 4. Confirm via shared narrators (>= MIN_SHARED_NARRATORS)
 /// 5. Union-Find to merge into families
 /// 6. Create hadith_family records, update hadith.family_id
-pub async fn compute_families(db: &Surreal<Db>, embedder: &Embedder) -> Result<usize> {
+pub async fn compute_families(db: &Surreal<Db>, _embedder: &Embedder) -> Result<usize> {
     tracing::info!("Computing hadith families...");
 
     // 1. Fetch all hadiths with embeddings

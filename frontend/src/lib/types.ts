@@ -162,6 +162,13 @@ export interface JuynbollSummaryResponse {
   }[];
 }
 
+export interface NarratorClStatus {
+  narrator_id: string;
+  cl_family_count: number;
+  pcl_family_count: number;
+  families: string[];
+}
+
 export interface FamilyDetailResponse {
   family: ApiHadithFamily;
   hadiths: ApiHadith[];

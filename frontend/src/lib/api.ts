@@ -114,6 +114,10 @@ export async function getJuynbollSummary(): Promise<import('./types').JuynbollSu
   return get('/analysis/juynboll/summary');
 }
 
+export async function getNarratorClStatus(id: string): Promise<import('./types').NarratorClStatus> {
+  return get(`/narrators/${encodeURIComponent(id)}/cl-status`);
+}
+
 export async function getMatnDiff(a: string, b: string): Promise<ApiMatnDiff> {
   return get(`/diff?a=${encodeURIComponent(a)}&b=${encodeURIComponent(b)}`);
 }
