@@ -5,6 +5,7 @@ import type {
   ApiSurah,
   ApiAyah,
   AnalysisStatsResponse,
+  AyahHadithResponse,
   FamilyDetailResponse,
   GraphData,
   HadithDetailResponse,
@@ -159,4 +160,23 @@ export async function browseAyahs(params: {
   if (params.page) sp.set('page', String(params.page));
   if (params.limit) sp.set('limit', String(params.limit));
   return get(`/quran/browse?${sp}`);
+}
+
+export async function getAyahHadiths(
+  surah: number,
+  ayah: number,
+  includeSemantic = false,
+  semanticLimit = 5
+): Promise<AyahHadithResponse> {
+  const sp = new URLSearchParams();
+  if (includeSemantic) sp.set('include_semantic', 'true');
+  if (semanticLimit !== 5) sp.set('semantic_limit', String(semanticLimit));
+  const query = sp.toString() ? `?${sp}` : '';
+  return get(`/quran/ayah/${surah}:${ayah}/hadiths${query}`);
+}
+
+export async function getSurahHadithCounts(
+  surah: number
+): Promise<Record<string, number>> {
+  return get(`/quran/surahs/${surah}/hadith-counts`);
 }

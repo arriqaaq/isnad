@@ -5,6 +5,7 @@ use axum::response::{IntoResponse, Json, Response};
 use futures::StreamExt;
 use serde::Deserialize;
 
+use crate::models::{ApiHadith, ApiHadithSearchResult, Hadith};
 use crate::quran::models::{
     ApiAyah, ApiAyahSearchResult, ApiSurah, Ayah, QuranSearchResponse, QuranStatsResponse, Surah,
     SurahDetailResponse,
@@ -14,6 +15,12 @@ use crate::rag::ChatChunk;
 use super::AppState;
 
 // ── Query parameter types ──
+
+#[derive(Deserialize)]
+pub struct AyahHadithParams {
+    pub include_semantic: Option<bool>,
+    pub semantic_limit: Option<usize>,
+}
 
 #[derive(Deserialize)]
 pub struct QuranSearchParams {
@@ -258,4 +265,83 @@ pub async fn ask_quran(
         .header("cache-control", "no-cache")
         .body(Body::from_stream(sse_stream))
         .unwrap())
+}
+
+// ── Ayah-Hadith reference handlers ──
+
+#[derive(serde::Serialize)]
+pub struct AyahHadithResponse {
+    pub curated: Vec<ApiHadith>,
+    pub related: Option<Vec<ApiHadithSearchResult>>,
+}
+
+pub async fn ayah_hadiths(
+    State(state): State<AppState>,
+    Path(ayah_key): Path<String>,
+    Query(params): Query<AyahHadithParams>,
+) -> Result<Json<AyahHadithResponse>, StatusCode> {
+    // Parse "surah:ayah" from path
+    let (surah, ayah) = parse_ayah_key(&ayah_key).ok_or(StatusCode::BAD_REQUEST)?;
+
+    // Get curated hadiths via relation edges
+    let curated = crate::quran::hadith_refs::get_curated_hadiths(&state.db, surah, ayah)
+        .await
+        .map_err(|e| {
+            tracing::error!("Failed to get curated hadiths: {e}");
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    // Optionally get semantic results
+    let related = if params.include_semantic.unwrap_or(false) {
+        let limit = params.semantic_limit.unwrap_or(5);
+        let results =
+            crate::quran::hadith_refs::find_semantic_hadiths(&state.db, surah, ayah, limit)
+                .await
+                .map_err(|e| {
+                    tracing::error!("Failed to get semantic hadiths: {e}");
+                    StatusCode::INTERNAL_SERVER_ERROR
+                })?;
+        Some(
+            results
+                .into_iter()
+                .map(ApiHadithSearchResult::from)
+                .collect(),
+        )
+    } else {
+        None
+    };
+
+    Ok(Json(AyahHadithResponse {
+        curated: curated.into_iter().map(ApiHadith::from).collect(),
+        related,
+    }))
+}
+
+pub async fn surah_hadith_counts(
+    State(state): State<AppState>,
+    Path(number): Path<i64>,
+) -> Result<Json<std::collections::HashMap<String, i64>>, StatusCode> {
+    let counts = crate::quran::hadith_refs::get_hadith_counts(&state.db, number)
+        .await
+        .map_err(|e| {
+            tracing::error!("Failed to get hadith counts: {e}");
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    // Convert i64 keys to String keys for JSON
+    let string_counts: std::collections::HashMap<String, i64> =
+        counts.into_iter().map(|(k, v)| (k.to_string(), v)).collect();
+
+    Ok(Json(string_counts))
+}
+
+fn parse_ayah_key(key: &str) -> Option<(i64, i64)> {
+    let parts: Vec<&str> = key.split(':').collect();
+    if parts.len() == 2 {
+        let s = parts[0].parse().ok()?;
+        let a = parts[1].parse().ok()?;
+        Some((s, a))
+    } else {
+        None
+    }
 }

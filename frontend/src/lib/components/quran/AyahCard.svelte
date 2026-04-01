@@ -1,15 +1,35 @@
 <script lang="ts">
-  import type { ApiAyah, ApiAyahSearchResult } from '$lib/types';
+  import type { ApiAyah, ApiAyahSearchResult, AyahHadithResponse } from '$lib/types';
+  import { getAyahHadiths } from '$lib/api';
   import { truncate } from '$lib/utils';
+  import AyahHadithList from './AyahHadithList.svelte';
 
-  let { ayah, showScore = false, compact = false }: {
+  let { ayah, showScore = false, compact = false, hadithCount = 0 }: {
     ayah: ApiAyah | ApiAyahSearchResult;
     showScore?: boolean;
     compact?: boolean;
+    hadithCount?: number;
   } = $props();
 
   let showTafsir = $state(false);
+  let showHadiths = $state(false);
+  let hadithData: AyahHadithResponse | null = $state(null);
+  let hadithLoading = $state(false);
   let score = $derived('score' in ayah ? (ayah as ApiAyahSearchResult).score : null);
+
+  async function toggleHadiths() {
+    showHadiths = !showHadiths;
+    if (showHadiths && !hadithData && !hadithLoading) {
+      hadithLoading = true;
+      try {
+        hadithData = await getAyahHadiths(ayah.surah_number, ayah.ayah_number, true);
+      } catch (e) {
+        console.error('Failed to load hadiths:', e);
+      } finally {
+        hadithLoading = false;
+      }
+    }
+  }
 </script>
 
 <div class="ayah-card" class:compact>
@@ -37,12 +57,27 @@
     {#if showScore && score}
       <span class="score mono">{score.toFixed(3)}</span>
     {/if}
+    {#if hadithCount > 0}
+      <button class="hadith-toggle" onclick={toggleHadiths}>
+        {showHadiths ? 'Hide' : 'Show'} Hadith ({hadithCount})
+      </button>
+    {/if}
     {#if ayah.tafsir_en}
       <button class="tafsir-toggle" onclick={() => showTafsir = !showTafsir}>
         {showTafsir ? 'Hide' : 'Show'} Tafsir
       </button>
     {/if}
   </div>
+
+  {#if showHadiths}
+    <div class="hadith-block">
+      {#if hadithLoading}
+        <div class="hadith-loading">Loading hadiths...</div>
+      {:else if hadithData}
+        <AyahHadithList data={hadithData} />
+      {/if}
+    </div>
+  {/if}
 
   {#if showTafsir && ayah.tafsir_en}
     <div class="tafsir-block">
@@ -113,7 +148,7 @@
     font-size: 0.75rem;
     color: var(--success);
   }
-  .tafsir-toggle {
+  .tafsir-toggle, .hadith-toggle {
     margin-left: auto;
     font-size: 0.75rem;
     color: var(--accent);
@@ -124,8 +159,22 @@
     cursor: pointer;
     transition: all var(--transition);
   }
-  .tafsir-toggle:hover {
+  .hadith-toggle {
+    margin-left: 0;
+  }
+  .tafsir-toggle:hover, .hadith-toggle:hover {
     background: var(--accent-muted);
+  }
+  .hadith-block {
+    margin-top: 12px;
+    padding: 16px;
+    background: var(--bg-hover);
+    border-radius: var(--radius);
+    border-left: 3px solid var(--success);
+  }
+  .hadith-loading {
+    font-size: 0.85rem;
+    color: var(--text-muted);
   }
   .tafsir-block {
     margin-top: 12px;

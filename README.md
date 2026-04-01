@@ -322,12 +322,14 @@ Or use Make (handles venv automatically):
 ```bash
 make quran-prepare    # creates venv, installs deps, runs script
 make quran-ingest     # ingests CSV into SurrealDB
-make quran            # both in one step
+make quran-hadith-refs  # fetch verse→hadith mappings from Quran.com (requires ingest + quran-ingest)
+make quran            # all three in one step
 ```
 
 ### Quran Features
 
 - **Browse** — Surah listing (quran.com-style), surah reading view with Arabic + English + expandable Tafsir Ibn Kathir per ayah
+- **Verse→Hadith References** — Curated mappings from Quran.com (Bukhari + Muslim), displayed per ayah with lazy loading. Supplemented by semantic search across all 6 collections.
 - **Search** — 4 modes: Text (substring), Semantic (vector similarity), Hybrid (BM25 + vector RRF), Tafsir (BM25 on Ibn Kathir commentary)
 - **Ask Quran** — RAG chat grounded in Quranic verses + Tafsir Ibn Kathir via Ollama
 
@@ -491,7 +493,8 @@ make ingest-full      # full 6 books + Ollama translation
 make list-books       # show all 926 available books
 make quran-prepare    # download + merge Quran data into CSV
 make quran-ingest     # ingest Quran CSV into SurrealDB
-make quran            # both: prepare + ingest
+make quran-hadith-refs  # verse→hadith mappings from Quran.com
+make quran            # all three: prepare + ingest + hadith refs
 make analyze          # run all analysis (narrator bios + families)
 make analyze-bio      # enrich narrators with AR-Sanad data
 make analyze-families # compute hadith families from embeddings

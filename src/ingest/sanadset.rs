@@ -4,7 +4,7 @@ use std::path::Path;
 use anyhow::Result;
 use indicatif::{ProgressBar, ProgressStyle};
 use reqwest::Client;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use surrealdb::Surreal;
 use surrealdb::types::{RecordId, SurrealValue};
 
@@ -28,7 +28,7 @@ const DEFAULT_BOOKS: &[&str] = &[
     "صحيح مسلم",
     "سنن أبي داود",
     "سنن النسائى الصغرى",
-    "سنن الترمذي",
+    "جامع الترمذي",
     "سنن ابن ماجه",
 ];
 
@@ -120,7 +120,7 @@ const BOOK_CODES: &[(&str, &str)] = &[
     ("صحيح مسلم", "muslim"),
     ("سنن أبي داود", "abudawud"),
     ("سنن النسائى الصغرى", "nasai"),
-    ("سنن الترمذي", "tirmidhi"),
+    ("جامع الترمذي", "tirmidhi"),
     ("سنن ابن ماجه", "ibnmajah"),
 ];
 
@@ -542,7 +542,7 @@ const TRANSLATION_SOURCES: &[(&str, &str, &str)] = &[
     ("صحيح مسلم", "Sahih%20Muslim.csv", "muslim"),
     ("سنن أبي داود", "Sunan%20Abi%20Dawud.csv", "abudawud"),
     ("سنن النسائى الصغرى", "Sunan%20an-Nasa%27i.csv", "nasai"),
-    ("سنن الترمذي", "Jami%60%20at-Tirmidhi.csv", "tirmidhi"),
+    ("جامع الترمذي", "Jami%60%20at-Tirmidhi.csv", "tirmidhi"),
     ("سنن ابن ماجه", "Sunan%20Ibn%20Majah.csv", "ibnmajah"),
 ];
 

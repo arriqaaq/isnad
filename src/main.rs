@@ -77,6 +77,12 @@ enum Commands {
         #[arg(long, default_value = "db_data")]
         db_path: String,
     },
+    /// Ingest Quran→Hadith reference mappings from Quran.com
+    IngestQuranHadithRefs {
+        /// Path to SurrealDB data directory
+        #[arg(long, default_value = "db_data")]
+        db_path: String,
+    },
     /// Start the web server
     Serve {
         /// Port to listen on
@@ -384,6 +390,13 @@ async fn main() -> Result<()> {
             db::init_quran_fulltext_indexes(&db).await?;
 
             tracing::info!("Quran ingestion complete");
+        }
+        Commands::IngestQuranHadithRefs { db_path } => {
+            let db = db::connect(&db_path).await?;
+            db::init_schema(&db).await?;
+            db::init_quran_schema(&db).await?;
+            quran::hadith_refs::ingest_hadith_refs(&db).await?;
+            tracing::info!("Quran-Hadith reference ingestion complete");
         }
         Commands::Serve {
             port,

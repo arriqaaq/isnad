@@ -1,4 +1,4 @@
-.PHONY: build frontend backend server dev stop ingest ingest-test ingest-full list-books quran-prepare quran-ingest quran analyze analyze-bio analyze-families analyze-transmission pipeline-test pipeline-full clean
+.PHONY: build frontend backend server dev stop ingest ingest-test ingest-full list-books quran-prepare quran-ingest quran-hadith-refs quran analyze analyze-bio analyze-families analyze-transmission pipeline-test pipeline-full clean
 
 # SurrealDB HNSW index traversal needs extra stack space
 export RUST_MIN_STACK=8388608
@@ -68,8 +68,12 @@ quran-prepare: $(VENV_PYTHON)
 quran-ingest:
 	cargo run -- ingest-quran
 
-# Full Quran pipeline: create venv + prepare data + ingest
-quran: quran-prepare quran-ingest
+# Ingest Quran→Hadith reference mappings from Quran.com (requires ingest + quran-ingest first)
+quran-hadith-refs:
+	cargo run -- ingest-quran-hadith-refs
+
+# Full Quran pipeline: create venv + prepare data + ingest + hadith refs
+quran: quran-prepare quran-ingest quran-hadith-refs
 
 # === Analyze phase (runs on already-ingested data) ===
 
@@ -100,6 +104,7 @@ pipeline-test:
 pipeline-full:
 	rm -rf db_data
 	cargo run -- ingest
+	$(MAKE) quran
 	cargo run -- analyze --narrator-bio data/ar_sanad_narrators.csv --families
 	cargo run -- analyze --juynboll
 

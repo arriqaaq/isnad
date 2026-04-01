@@ -1,20 +1,25 @@
 <script lang="ts">
   import { page } from '$app/state';
-  import { getSurah } from '$lib/api';
+  import { getSurah, getSurahHadithCounts } from '$lib/api';
   import type { SurahDetailResponse } from '$lib/types';
   import SurahHeader from '$lib/components/quran/SurahHeader.svelte';
   import AyahCard from '$lib/components/quran/AyahCard.svelte';
   import LoadingSpinner from '$lib/components/common/LoadingSpinner.svelte';
 
   let data: SurahDetailResponse | null = $state(null);
+  let hadithCounts: Record<string, number> = $state({});
   let loading = $state(true);
 
   let surahNum = $derived(Number(page.params.surah));
 
   $effect(() => {
     loading = true;
-    getSurah(surahNum).then(d => {
+    Promise.all([
+      getSurah(surahNum),
+      getSurahHadithCounts(surahNum).catch(() => ({}))
+    ]).then(([d, counts]) => {
       data = d;
+      hadithCounts = counts;
       loading = false;
     });
   });
@@ -38,7 +43,7 @@
 
     <div class="ayah-list">
       {#each data.ayahs as ayah}
-        <AyahCard {ayah} />
+        <AyahCard {ayah} hadithCount={hadithCounts[String(ayah.ayah_number)] ?? 0} />
       {/each}
     </div>
 

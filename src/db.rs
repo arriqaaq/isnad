@@ -182,7 +182,13 @@ DEFINE FIELD IF NOT EXISTS text_ar_tajweed ON ayah TYPE option<string>;
 DEFINE FIELD IF NOT EXISTS embedding       ON ayah TYPE option<array<float>>;
 DEFINE INDEX IF NOT EXISTS ayah_vec        ON TABLE ayah FIELDS embedding HNSW DIMENSION 384 DIST COSINE;
 DEFINE INDEX IF NOT EXISTS ayah_surah_idx  ON TABLE ayah FIELDS surah_number;
-DEFINE INDEX IF NOT EXISTS ayah_composite  ON TABLE ayah FIELDS surah_number, ayah_number UNIQUE
+DEFINE INDEX IF NOT EXISTS ayah_composite  ON TABLE ayah FIELDS surah_number, ayah_number UNIQUE;
+
+-- Edge: ayah → hadith (curated mapping from Quran.com)
+DEFINE TABLE IF NOT EXISTS references_hadith SCHEMAFULL TYPE RELATION IN ayah OUT hadith;
+DEFINE FIELD IF NOT EXISTS collection     ON references_hadith TYPE string;
+DEFINE FIELD IF NOT EXISTS hadith_number  ON references_hadith TYPE string;
+DEFINE FIELD IF NOT EXISTS source         ON references_hadith TYPE string DEFAULT 'qurancom'
 "#;
 
 pub async fn init_quran_schema(db: &Surreal<Db>) -> Result<()> {
@@ -222,6 +228,11 @@ pub async fn init_quran_fulltext_indexes(db: &Surreal<Db>) -> Result<()> {
             tracing::error!("Quran fulltext index {i} failed: {e}");
             return Err(e.into());
         }
+        // Pause between FULLTEXT index definitions — SurrealDB builds indexes in the
+        // background and concurrent builds on the same table cause memtable conflicts.
+        if i >= 2 {
+            tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+        }
     }
     tracing::info!("Quran full-text search indexes initialized");
     Ok(())
@@ -248,6 +259,10 @@ pub async fn init_fulltext_indexes(db: &Surreal<Db>) -> Result<()> {
             }
             tracing::error!("Fulltext index {i} failed: {e}");
             return Err(e.into());
+        }
+        // Pause between FULLTEXT index definitions to avoid memtable conflicts
+        if i >= 2 {
+            tokio::time::sleep(std::time::Duration::from_secs(2)).await;
         }
     }
     tracing::info!("Full-text search indexes initialized");

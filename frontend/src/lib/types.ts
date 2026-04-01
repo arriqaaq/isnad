@@ -245,3 +245,8 @@ export interface SurahDetailResponse {
   surah: ApiSurah;
   ayahs: ApiAyah[];
 }
+
+export interface AyahHadithResponse {
+  curated: ApiHadith[];
+  related: ApiHadithSearchResult[] | null;
+}

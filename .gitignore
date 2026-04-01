@@ -16,3 +16,4 @@ frontend/build
 /models/hadith-scholar-fused/
 /models/*.gguf
 /llama.cpp/
+colab_translate/splits
