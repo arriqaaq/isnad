@@ -1,8 +1,7 @@
 <script lang="ts">
   import { page } from '$app/state';
 
-  const navItems = [
-    { path: '/', label: 'Dashboard', icon: '⬡' },
+  const hadithItems = [
     { path: '/hadiths', label: 'Hadiths', icon: '☰' },
     { path: '/narrators', label: 'Narrators', icon: '◎' },
     { path: '/books', label: 'Books', icon: '▤' },
@@ -10,6 +9,12 @@
     { path: '/search', label: 'Search', icon: '⌕' },
     { path: '/ask', label: 'Ask', icon: '◇' },
     { path: '/analysis', label: 'Analysis', icon: '△' },
+  ];
+
+  const quranItems = [
+    { path: '/quran', label: 'Quran', icon: '◈' },
+    { path: '/quran/search', label: 'Quran Search', icon: '⌕' },
+    { path: '/quran/ask', label: 'Ask Quran', icon: '◇' },
   ];
 
   function isActive(path: string): boolean {
@@ -22,11 +27,24 @@
 <nav class="sidebar">
   <div class="sidebar-header">
     <span class="logo">◆</span>
-    <span class="logo-text">Hadith Explorer</span>
+    <span class="logo-text">Ilm</span>
   </div>
 
   <div class="nav-items">
-    {#each navItems as item}
+    {#each hadithItems as item}
+      <a
+        href={item.path}
+        class="nav-item"
+        class:active={isActive(item.path)}
+      >
+        <span class="nav-icon">{item.icon}</span>
+        <span class="nav-label">{item.label}</span>
+      </a>
+    {/each}
+
+    <div class="nav-divider"></div>
+
+    {#each quranItems as item}
       <a
         href={item.path}
         class="nav-item"
@@ -39,7 +57,7 @@
   </div>
 
   <div class="sidebar-footer">
-    <span class="footer-text">Sahih al-Bukhari</span>
+    <span class="footer-text">Islamic Knowledge Platform</span>
   </div>
 </nav>
 
@@ -80,6 +98,13 @@
     display: flex;
     flex-direction: column;
     gap: 2px;
+    overflow-y: auto;
+  }
+
+  .nav-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 8px 12px;
   }
 
   .nav-item {

@@ -1,4 +1,4 @@
-use hadith::{analysis, db, embed, ingest, web};
+use hadith::{analysis, db, embed, ingest, quran, web};
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
@@ -66,6 +66,16 @@ enum Commands {
         /// Enrich narrators with biographical data from AR-Sanad dataset (auto-downloads if missing)
         #[arg(long, default_value = "data/ar_sanad_narrators.csv")]
         narrator_bio: Option<String>,
+    },
+    /// Ingest Quran data (Arabic + English + Tafsir Ibn Kathir)
+    IngestQuran {
+        /// Path to Quran CSV file (from scripts/prepare_quran_data.py)
+        #[arg(long, default_value = "data/quran.csv")]
+        file: String,
+
+        /// Path to SurrealDB data directory
+        #[arg(long, default_value = "db_data")]
+        db_path: String,
     },
     /// Start the web server
     Serve {
@@ -360,6 +370,21 @@ async fn main() -> Result<()> {
                 );
             }
         }
+        Commands::IngestQuran { file, db_path } => {
+            if !std::path::Path::new(&file).exists() {
+                anyhow::bail!(
+                    "Quran CSV not found at {file}. Run: python scripts/prepare_quran_data.py"
+                );
+            }
+
+            let db = db::connect(&db_path).await?;
+            db::init_schema(&db).await?;
+            db::init_quran_schema(&db).await?;
+            quran::ingest::ingest(&db, &file).await?;
+            db::init_quran_fulltext_indexes(&db).await?;
+
+            tracing::info!("Quran ingestion complete");
+        }
         Commands::Serve {
             port,
             db_path,
@@ -368,7 +393,10 @@ async fn main() -> Result<()> {
         } => {
             let db = db::connect(&db_path).await?;
             db::init_schema(&db).await?;
+            db::init_quran_schema(&db).await?;
             db::init_fulltext_indexes(&db).await?;
+            // Quran fulltext indexes are created during ingest-quran, not here.
+            // Creating them on an empty table with option<string> fields causes errors.
             web::serve(db, port, ollama_url, ollama_model).await?;
         }
     }

@@ -17,7 +17,7 @@ const CONTEXT_HADITH_COUNT: usize = 6;
 
 #[derive(Clone)]
 pub struct OllamaClient {
-    http: Client,
+    pub http: Client,
     pub base_url: String,
     pub model: String,
 }

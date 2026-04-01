@@ -2,6 +2,8 @@ import type {
   ApiBook,
   ApiHadithFamily,
   ApiMatnDiff,
+  ApiSurah,
+  ApiAyah,
   AnalysisStatsResponse,
   FamilyDetailResponse,
   GraphData,
@@ -12,6 +14,9 @@ import type {
   ApiNarratorWithCount,
   SearchResponse,
   StatsResponse,
+  QuranSearchResponse,
+  QuranStatsResponse,
+  SurahDetailResponse,
 } from './types';
 
 const BASE = '/api';
@@ -120,4 +125,38 @@ export async function getNarratorClStatus(id: string): Promise<import('./types')
 
 export async function getMatnDiff(a: string, b: string): Promise<ApiMatnDiff> {
   return get(`/diff?a=${encodeURIComponent(a)}&b=${encodeURIComponent(b)}`);
+}
+
+// ── Quran API ──
+
+export async function getQuranStats(): Promise<QuranStatsResponse> {
+  return get('/quran/stats');
+}
+
+export async function getSurahs(): Promise<ApiSurah[]> {
+  return get('/quran/surahs');
+}
+
+export async function getSurah(number: number): Promise<SurahDetailResponse> {
+  return get(`/quran/surahs/${number}`);
+}
+
+export async function searchQuran(
+  q: string,
+  type: 'text' | 'semantic' | 'hybrid' | 'tafsir' = 'text',
+  limit = 20
+): Promise<QuranSearchResponse> {
+  return get(`/quran/search?q=${encodeURIComponent(q)}&type=${type}&limit=${limit}`);
+}
+
+export async function browseAyahs(params: {
+  surah?: number;
+  page?: number;
+  limit?: number;
+}): Promise<PaginatedResponse<ApiAyah>> {
+  const sp = new URLSearchParams();
+  if (params.surah) sp.set('surah', String(params.surah));
+  if (params.page) sp.set('page', String(params.page));
+  if (params.limit) sp.set('limit', String(params.limit));
+  return get(`/quran/browse?${sp}`);
 }

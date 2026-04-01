@@ -1,4 +1,4 @@
-.PHONY: build frontend backend server dev stop ingest ingest-test ingest-full list-books analyze analyze-bio analyze-families analyze-transmission pipeline-test pipeline-full clean
+.PHONY: build frontend backend server dev stop ingest ingest-test ingest-full list-books quran-prepare quran-ingest quran analyze analyze-bio analyze-families analyze-transmission pipeline-test pipeline-full clean
 
 # SurrealDB HNSW index traversal needs extra stack space
 export RUST_MIN_STACK=8388608
@@ -47,6 +47,19 @@ ingest-full:
 ingest:
 	rm -rf db_data
 	cargo run -- ingest
+
+# === Quran ingestion ===
+
+# Prepare Quran data (download Tanzil + Tafsir Ibn Kathir, merge into CSV)
+quran-prepare:
+	python3 scripts/prepare_quran_data.py
+
+# Ingest Quran into SurrealDB (requires data/quran.csv from quran-prepare)
+quran-ingest:
+	cargo run -- ingest-quran
+
+# Full Quran pipeline: prepare data + ingest
+quran: quran-prepare quran-ingest
 
 # === Analyze phase (runs on already-ingested data) ===
 

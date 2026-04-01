@@ -157,6 +157,76 @@ DEFINE FIELD IF NOT EXISTS chain_position ON narrates TYPE option<int>;
 DEFINE TABLE IF NOT EXISTS belongs_to TYPE RELATION FROM hadith TO book;
 "#;
 
+// ── Quran Schema ──
+
+const QURAN_SCHEMA: &str = r#"
+DEFINE TABLE IF NOT EXISTS surah SCHEMAFULL;
+DEFINE FIELD IF NOT EXISTS surah_number    ON surah TYPE int;
+DEFINE FIELD IF NOT EXISTS name_ar         ON surah TYPE string;
+DEFINE FIELD IF NOT EXISTS name_en         ON surah TYPE string;
+DEFINE FIELD IF NOT EXISTS name_translit   ON surah TYPE string;
+DEFINE FIELD IF NOT EXISTS revelation_type ON surah TYPE string;
+DEFINE FIELD IF NOT EXISTS ayah_count      ON surah TYPE int;
+DEFINE INDEX IF NOT EXISTS surah_number_idx ON TABLE surah FIELDS surah_number UNIQUE;
+
+DEFINE TABLE IF NOT EXISTS ayah SCHEMAFULL;
+DEFINE FIELD IF NOT EXISTS surah_number    ON ayah TYPE int;
+DEFINE FIELD IF NOT EXISTS ayah_number     ON ayah TYPE int;
+DEFINE FIELD IF NOT EXISTS text_ar         ON ayah TYPE string;
+DEFINE FIELD IF NOT EXISTS text_ar_simple  ON ayah TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS text_en         ON ayah TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS tafsir_en       ON ayah TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS juz             ON ayah TYPE option<int>;
+DEFINE FIELD IF NOT EXISTS hizb            ON ayah TYPE option<int>;
+DEFINE FIELD IF NOT EXISTS text_ar_tajweed ON ayah TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS embedding       ON ayah TYPE option<array<float>>;
+DEFINE INDEX IF NOT EXISTS ayah_vec        ON TABLE ayah FIELDS embedding HNSW DIMENSION 384 DIST COSINE;
+DEFINE INDEX IF NOT EXISTS ayah_surah_idx  ON TABLE ayah FIELDS surah_number;
+DEFINE INDEX IF NOT EXISTS ayah_composite  ON TABLE ayah FIELDS surah_number, ayah_number UNIQUE
+"#;
+
+pub async fn init_quran_schema(db: &Surreal<Db>) -> Result<()> {
+    for (i, stmt) in QURAN_SCHEMA
+        .split(';')
+        .map(|s| s.trim())
+        .filter(|s| !s.is_empty() && !s.starts_with("--"))
+        .enumerate()
+    {
+        let sql = format!("{stmt};");
+        if let Err(e) = db.query(&sql).await.and_then(|r| r.check()) {
+            tracing::error!(
+                "Quran schema statement {i} failed: {e}\n  SQL: {}",
+                stmt.chars().take(120).collect::<String>()
+            );
+            return Err(e.into());
+        }
+    }
+    tracing::info!("Quran database schema initialized");
+    Ok(())
+}
+
+pub async fn init_quran_fulltext_indexes(db: &Surreal<Db>) -> Result<()> {
+    let stmts = [
+        "DEFINE ANALYZER en_analyzer TOKENIZERS blank,class FILTERS lowercase,snowball(english)",
+        "DEFINE ANALYZER ar_analyzer TOKENIZERS blank,class",
+        "DEFINE INDEX IF NOT EXISTS ayah_text_en_search ON TABLE ayah FIELDS text_en FULLTEXT ANALYZER en_analyzer BM25 HIGHLIGHTS",
+        "DEFINE INDEX IF NOT EXISTS ayah_text_ar_search ON TABLE ayah FIELDS text_ar_simple FULLTEXT ANALYZER ar_analyzer BM25 HIGHLIGHTS",
+        "DEFINE INDEX IF NOT EXISTS ayah_tafsir_en_search ON TABLE ayah FIELDS tafsir_en FULLTEXT ANALYZER en_analyzer BM25 HIGHLIGHTS",
+    ];
+    for (i, stmt) in stmts.iter().enumerate() {
+        if let Err(e) = db.query(*stmt).await.and_then(|r| r.check()) {
+            let msg = e.to_string();
+            if msg.contains("already exists") {
+                continue;
+            }
+            tracing::error!("Quran fulltext index {i} failed: {e}");
+            return Err(e.into());
+        }
+    }
+    tracing::info!("Quran full-text search indexes initialized");
+    Ok(())
+}
+
 /// Create BM25 full-text search indexes on hadith text fields.
 /// Called separately from init_schema because FULLTEXT indexes on SCHEMAFULL
 /// tables with option<string> fields block inserts when the value is NONE.
@@ -166,16 +236,18 @@ pub async fn init_fulltext_indexes(db: &Surreal<Db>) -> Result<()> {
         // Analyzers first (no IF NOT EXISTS support — re-define is idempotent)
         "DEFINE ANALYZER en_analyzer TOKENIZERS blank,class FILTERS lowercase,snowball(english)",
         "DEFINE ANALYZER ar_analyzer TOKENIZERS blank,class",
-        // Then indexes
+        // Then indexes — sequential to avoid concurrent creation issues
         "DEFINE INDEX IF NOT EXISTS hadith_text_en_search ON TABLE hadith FIELDS text_en FULLTEXT ANALYZER en_analyzer BM25 HIGHLIGHTS",
         "DEFINE INDEX IF NOT EXISTS hadith_text_ar_search ON TABLE hadith FIELDS text_ar FULLTEXT ANALYZER ar_analyzer BM25 HIGHLIGHTS",
     ];
-    for stmt in stmts {
-        if let Err(e) = db.query(stmt).await.and_then(|r| r.check()) {
+    for (i, stmt) in stmts.iter().enumerate() {
+        if let Err(e) = db.query(*stmt).await.and_then(|r| r.check()) {
             let msg = e.to_string();
-            if !msg.contains("already exists") {
-                tracing::warn!("Fulltext index creation failed (non-fatal): {e}");
+            if msg.contains("already exists") {
+                continue;
             }
+            tracing::error!("Fulltext index {i} failed: {e}");
+            return Err(e.into());
         }
     }
     tracing::info!("Full-text search indexes initialized");

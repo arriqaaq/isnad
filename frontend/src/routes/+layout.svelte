@@ -1,24 +1,31 @@
 <script lang="ts">
   import '../app.css';
+  import { page } from '$app/state';
   import Sidebar from '$lib/components/layout/Sidebar.svelte';
   import TopBar from '$lib/components/layout/TopBar.svelte';
 
   let { children } = $props();
+
+  let isLanding = $derived(page.url.pathname === '/');
 </script>
 
 <svelte:head>
-  <title>Hadith Explorer</title>
+  <title>Ilm</title>
 </svelte:head>
 
-<div class="app-layout">
-  <Sidebar />
-  <div class="main-area">
-    <TopBar />
-    <main class="content">
-      {@render children()}
-    </main>
+{#if isLanding}
+  {@render children()}
+{:else}
+  <div class="app-layout">
+    <Sidebar />
+    <div class="main-area">
+      <TopBar />
+      <main class="content">
+        {@render children()}
+      </main>
+    </div>
   </div>
-</div>
+{/if}
 
 <style>
   .app-layout {

@@ -196,3 +196,52 @@ export interface ApiMatnDiff {
   segments_b: DiffSegment[];
   similarity_ratio: number;
 }
+
+// ── Quran types ──
+
+export interface ApiSurah {
+  id: string;
+  surah_number: number;
+  name_ar: string;
+  name_en: string;
+  name_translit: string;
+  revelation_type: string;
+  ayah_count: number;
+}
+
+export interface ApiAyah {
+  id: string;
+  surah_number: number;
+  ayah_number: number;
+  text_ar: string;
+  text_en: string | null;
+  tafsir_en: string | null;
+  text_ar_tajweed: string | null;
+}
+
+export interface ApiAyahSearchResult {
+  id: string;
+  surah_number: number;
+  ayah_number: number;
+  text_ar: string;
+  text_en: string | null;
+  tafsir_en: string | null;
+  text_ar_tajweed: string | null;
+  score: number | null;
+}
+
+export interface QuranSearchResponse {
+  query: string;
+  search_type: string;
+  ayahs: ApiAyahSearchResult[];
+}
+
+export interface QuranStatsResponse {
+  surah_count: number;
+  ayah_count: number;
+}
+
+export interface SurahDetailResponse {
+  surah: ApiSurah;
+  ayahs: ApiAyah[];
+}

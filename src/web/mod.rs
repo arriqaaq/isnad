@@ -1,4 +1,5 @@
 pub mod handlers;
+pub mod quran_handlers;
 
 use std::sync::Arc;
 
@@ -95,6 +96,31 @@ pub async fn serve(
         .route(
             "/api/internal/translate",
             axum::routing::post(handlers::update_translation),
+        )
+        // Quran routes
+        .route(
+            "/api/quran/stats",
+            axum::routing::get(quran_handlers::quran_stats),
+        )
+        .route(
+            "/api/quran/surahs",
+            axum::routing::get(quran_handlers::surah_list),
+        )
+        .route(
+            "/api/quran/surahs/{number}",
+            axum::routing::get(quran_handlers::surah_detail),
+        )
+        .route(
+            "/api/quran/search",
+            axum::routing::get(quran_handlers::quran_search),
+        )
+        .route(
+            "/api/quran/browse",
+            axum::routing::get(quran_handlers::ayah_browse),
+        )
+        .route(
+            "/api/quran/ask",
+            axum::routing::post(quran_handlers::ask_quran),
         )
         .with_state(state);
 

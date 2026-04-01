@@ -1,6 +1,6 @@
-# Hadith Explorer
+# Ilm (عِلْم)
 
-Browse, search, and explore Islamic hadith collections with narrator chain (isnad) visualization, hybrid BM25+vector search, and GraphRAG-powered Q&A — all running locally on SurrealDB.
+Explore the Quran and Hadith with semantic search, transmission analysis, and AI-powered Q&A — all running locally on SurrealDB.
 
 > **Before diving into the code, please read these documents first:**
 >
@@ -14,7 +14,7 @@ Browse, search, and explore Islamic hadith collections with narrator chain (isna
 ```
 ┌──────────────────────────────────────────────────────────────-┐
 │                      SvelteKit Frontend                       │
-│  Dashboard │ Hadiths │ Narrators │ Search │ Ask (GraphRAG)    │
+│  Dashboard │ Hadiths │ Narrators │ Search │ Ask │ Quran       │
 └────────────────────────────┬─────────────────────────────────-┘
                              │ JSON API
 ┌────────────────────────────┴─────────────────────────────────-┐
@@ -288,6 +288,53 @@ Matching uses diacritics-stripped Arabic normalization — exact match on shuhra
 
 Clusters hadiths into families using embedding similarity (cosine >= 0.85) combined with shared narrator overlap. Cross-book families are expected — the same hadith appearing in Bukhari and Muslim will be grouped together. This is a prerequisite for CL/PCL transmission analysis.
 
+## Quran
+
+A separate Quran section with browse, search, tafsir, and RAG-powered Q&A.
+
+### Data Sources
+
+- **[Tanzil.net](https://tanzil.net/)** — Arabic (Uthmani) + English (Sahih International), pipe-delimited, 6,236 verses
+- **[M-AI-C/en-tafsir-ibn-kathir](https://huggingface.co/datasets/M-AI-C/en-tafsir-ibn-kathir)** — Tafsir Ibn Kathir in English (up to 66KB per ayah)
+
+### Ingest Quran
+
+```bash
+# Step 1: Prepare data (downloads Tanzil + Tafsir, merges into CSV)
+# Requires: pip install datasets pandas
+make quran-prepare
+
+# Step 2: Ingest into SurrealDB (6,236 ayahs + 114 surahs + embeddings)
+make quran-ingest
+
+# Or both in one step:
+make quran
+```
+
+Or manually:
+
+```bash
+python3 scripts/prepare_quran_data.py        # → data/quran.csv
+cargo run -- ingest-quran                     # → SurrealDB
+```
+
+### Quran Features
+
+- **Browse** — Surah listing (quran.com-style), surah reading view with Arabic + English + expandable Tafsir Ibn Kathir per ayah
+- **Search** — 4 modes: Text (substring), Semantic (vector similarity), Hybrid (BM25 + vector RRF), Tafsir (BM25 on Ibn Kathir commentary)
+- **Ask Quran** — RAG chat grounded in Quranic verses + Tafsir Ibn Kathir via Ollama
+
+### Quran API Endpoints
+
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/api/quran/stats` | Surah/ayah counts |
+| GET | `/api/quran/surahs` | All 114 surahs |
+| GET | `/api/quran/surahs/{number}` | Surah detail + all ayahs |
+| GET | `/api/quran/search?q=&type=text\|semantic\|hybrid\|tafsir` | Quran search |
+| GET | `/api/quran/browse?surah=&page=&limit=` | Paginated ayah browsing |
+| POST | `/api/quran/ask` | Quran RAG Q&A (SSE streaming) |
+
 ## Run
 
 ```bash
@@ -435,6 +482,9 @@ make ingest           # full ingest (Arabic + human English)
 make ingest-test      # quick test: 5 per book + Ollama translation
 make ingest-full      # full 6 books + Ollama translation
 make list-books       # show all 926 available books
+make quran-prepare    # download + merge Quran data into CSV
+make quran-ingest     # ingest Quran CSV into SurrealDB
+make quran            # both: prepare + ingest
 make analyze          # run all analysis (narrator bios + families)
 make analyze-bio      # enrich narrators with AR-Sanad data
 make analyze-families # compute hadith families from embeddings
@@ -453,19 +503,28 @@ hadith/
 ├── README.md
 ├── data/
 │   ├── sanadset.csv              # Sanadset 650K (auto-downloaded)
+│   ├── quran.csv                 # Quran data (from scripts/prepare_quran_data.py)
 │   └── translations/             # Cached sunnah.com English CSVs
+├── scripts/
+│   └── prepare_quran_data.py     # Download + merge Tanzil + Tafsir Ibn Kathir
 ├── db_data/                      # SurrealDB data (generated)
 ├── docs/
 │   ├── METHODOLOGY.md            # CL/PCL scoring methodology & algorithms
 │   └── DATA_SOURCES.md           # Dataset documentation & download instructions
 ├── src/
-│   ├── main.rs                   # CLI: Ingest + Analyze + Serve commands
+│   ├── main.rs                   # CLI: Ingest + IngestQuran + Analyze + Serve
 │   ├── lib.rs                    # Library crate module exports
-│   ├── db.rs                     # SurrealDB connection + schema
+│   ├── db.rs                     # SurrealDB connection + schema (hadith + quran)
 │   ├── models.rs                 # Data types (Hadith, Narrator, Book, API responses)
 │   ├── embed.rs                  # FastEmbed vector generation
 │   ├── search.rs                 # Hybrid (BM25+vector), text, and semantic search
 │   ├── rag.rs                    # GraphRAG: vector retrieval + graph traversal + Ollama
+│   ├── quran/
+│   │   ├── mod.rs
+│   │   ├── models.rs             # Surah, Ayah, AyahSearchResult, API response types
+│   │   ├── ingest.rs             # Quran CSV ingestion + embedding generation
+│   │   ├── search.rs             # Text, semantic, hybrid, and tafsir search
+│   │   └── rag.rs                # Quran RAG: ayah retrieval + Tafsir Ibn Kathir + Ollama
 │   ├── ingest/
 │   │   ├── mod.rs
 │   │   ├── sanadset.rs           # Sanadset CSV parsing, chain building, translation
@@ -480,7 +539,8 @@ hadith/
 │   │   └── export.rs             # Markdown + JSON export pipeline
 │   └── web/
 │       ├── mod.rs                # Axum router + SPA serving
-│       └── handlers.rs           # All API endpoints
+│       ├── handlers.rs           # Hadith API endpoints
+│       └── quran_handlers.rs     # Quran API endpoints
 └── frontend/
     ├── svelte.config.js          # SvelteKit SPA config (adapter-static)
     ├── vite.config.ts            # Vite dev proxy
@@ -501,7 +561,12 @@ hadith/
     │   │   ├── analysis/+page.svelte  # CL/PCL analysis dashboard
     │   │   ├── books/+page.svelte
     │   │   ├── search/+page.svelte
-    │   │   └── ask/+page.svelte  # RAG chat
+    │   │   ├── ask/+page.svelte  # RAG chat
+    │   │   └── quran/            # Quran section
+    │   │       ├── +page.svelte  # Surah listing
+    │   │       ├── [surah]/+page.svelte  # Surah reading view
+    │   │       ├── search/+page.svelte   # Quran search
+    │   │       └── ask/+page.svelte      # Ask Quran (RAG)
     │   └── lib/
     │       ├── api.ts            # Typed API client
     │       ├── types.ts          # TypeScript interfaces
@@ -511,7 +576,8 @@ hadith/
     │           ├── common/       # Badge, Pagination, LoadingSpinner
     │           ├── hadith/       # HadithCard
     │           ├── narrator/     # NarratorCard, NarratorChip
-    │           └── graph/        # ChainView (cards), GraphView (Cytoscape)
+    │           ├── graph/        # ChainView (cards), GraphView (Cytoscape)
+    │           └── quran/        # AyahCard, SurahHeader, SurahRow
     └── build/                    # Production build (generated)
 ```
 
