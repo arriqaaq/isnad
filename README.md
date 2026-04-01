@@ -1,13 +1,15 @@
-# Ilm (عِلْم)
+<p align="center">
+  <img src="img/ilm.png" alt="Ilm — Islamic Knowledge Platform" width="700">
+</p>
 
-Explore the Quran and Hadith with semantic search, transmission analysis, and AI-powered Q&A — all running locally on SurrealDB.
+---
 
 > **Before diving into the code, please read these documents first:**
 >
-> - **[Methodology & Algorithms](docs/METHODOLOGY.md)** — How the CL/PCL transmission analysis works, including a critical assessment of Juynboll's and Schacht's orientalist methodology and their documented errors. This tool uses only the structural graph analysis aspects of their framework and explicitly rejects the fabrication assumption.
-> - **[Data Sources](docs/DATA_SOURCES.md)** — Where the hadith data, narrator biographical data, and English translations come from, how they are downloaded, and how narrator matching works.
+> - **[Methodology & Algorithms](docs/METHODOLOGY.md)** — How transmission analysis works. Includes CL/PCL structural tests used to disprove fabrication claims against hadith.
+> - **[Data Sources](docs/DATA_SOURCES.md)** — Where the hadith data, Quran text, narrator biographical data, and English translations come from.
 >
-> For a thorough scholarly critique of the orientalist approach to hadith, see Barmaver's [*Dismantling Orientalist Narratives*](https://www.academia.edu/143038577/Dismantling_Orientalist_Narratives_A_Critique_of_Orientalists_Approach_to_Hadith_with_special_focus_on_Juynboll) (2025, free on Academia.edu).
+> See also Barmaver's [*Dismantling Orientalist Narratives*](https://www.academia.edu/143038577/Dismantling_Orientalist_Narratives_A_Critique_of_Orientalists_Approach_to_Hadith_with_special_focus_on_Juynboll) (2025, free on Academia.edu).
 
 ## Architecture Overview
 

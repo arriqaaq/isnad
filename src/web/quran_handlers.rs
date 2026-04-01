@@ -130,18 +130,10 @@ pub async fn quran_search(
                 .await
         }
         "hybrid" => {
-            crate::quran::search::search_ayahs_hybrid(
-                &state.db,
-                &state.embedder,
-                &query,
-                limit,
-                0,
-            )
-            .await
+            crate::quran::search::search_ayahs_hybrid(&state.db, &state.embedder, &query, limit, 0)
+                .await
         }
-        "tafsir" => {
-            crate::quran::search::search_ayahs_tafsir(&state.db, &query, limit, 0).await
-        }
+        "tafsir" => crate::quran::search::search_ayahs_tafsir(&state.db, &query, limit, 0).await,
         _ => crate::quran::search::search_ayahs_text(&state.db, &query, limit, 0).await,
     };
 

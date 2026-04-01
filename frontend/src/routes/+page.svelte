@@ -25,7 +25,7 @@
         <span class="title-en">Ilm</span>
         <span class="title-ar" dir="rtl">عِلْم</span>
       </h1>
-      <p class="hero-subtitle">Search the Quran and Hadith by meaning, explore narrator chains and transmission graphs, and study with Tafsir Ibn Kathir</p>
+      <p class="hero-subtitle">Search the <strong>Quran</strong> and <strong>Hadith</strong> by meaning, explore <strong>narrator chains</strong> and <strong>transmission graphs</strong>, and study with <strong>Tafsir Ibn Kathir</strong></p>
     </div>
 
     <!-- Quick Access Cards -->
@@ -67,101 +67,142 @@
 
   <!-- Features -->
   <section class="section features" use:inview>
+    <div class="section-label animate-on-scroll" use:inview>Features</div>
     <h2 class="section-title animate-on-scroll" use:inview>What is Ilm?</h2>
     <div class="feature-grid">
       <div class="feature-card animate-on-scroll stagger-1" use:inview>
-        <div class="feature-icon">⌕</div>
-        <h3>Search Quran & Hadith</h3>
-        <p>Search the primary sources by meaning, not just keywords. Hybrid search fuses BM25 keyword matching with vector similarity. Search within Tafsir Ibn Kathir too.</p>
+        <div class="feature-highlight">Semantic</div>
+        <h3>Search by Meaning</h3>
+        <p>Find verses and hadiths by <strong>what they mean</strong>, not just keywords. Hybrid search fuses <strong>BM25</strong> with <strong>384-dim vectors</strong>.</p>
       </div>
       <div class="feature-card animate-on-scroll stagger-2" use:inview>
-        <div class="feature-icon">◈</div>
+        <div class="feature-highlight">114 Surahs</div>
         <h3>Quran with Tafsir</h3>
-        <p>Browse all 114 surahs with tajweed-colored Arabic, Sahih International translation, and expandable Tafsir Ibn Kathir commentary per ayah.</p>
+        <p><strong>Tajweed-colored</strong> Arabic, Sahih International translation, and expandable <strong>Tafsir Ibn Kathir</strong> commentary per ayah.</p>
       </div>
       <div class="feature-card animate-on-scroll stagger-3" use:inview>
-        <div class="feature-icon">◎</div>
+        <div class="feature-highlight">Interactive</div>
         <h3>Narrator Graphs</h3>
-        <p>Visualize isnad chains and narrator networks as interactive graphs. See who narrated from whom, explore teacher-student relationships, and trace transmission paths.</p>
-      </div>
-    </div>
-  </section>
-
-  <!-- How It Works -->
-  <section class="section how-it-works" use:inview>
-    <h2 class="section-title animate-on-scroll" use:inview>How It Works</h2>
-    <div class="steps">
-      <div class="step animate-on-scroll stagger-1" use:inview>
-        <div class="step-num">1</div>
-        <div class="step-content">
-          <h3>Ingest</h3>
-          <p>368K+ hadiths from Sanadset 650K with isnad chains, plus 6,236 Quranic verses with translations and tafsir.</p>
-        </div>
-      </div>
-      <div class="step animate-on-scroll stagger-2" use:inview>
-        <div class="step-num">2</div>
-        <div class="step-content">
-          <h3>Embed</h3>
-          <p>FastEmbed generates 384-dim vectors for every hadith and ayah, enabling semantic understanding across languages.</p>
-        </div>
-      </div>
-      <div class="step animate-on-scroll stagger-3" use:inview>
-        <div class="step-num">3</div>
-        <div class="step-content">
-          <h3>Search</h3>
-          <p>Hybrid search fuses keyword matching (BM25) with meaning-based vectors (HNSW) for the best of both worlds.</p>
-        </div>
-      </div>
-      <div class="step animate-on-scroll stagger-4" use:inview>
-        <div class="step-num">4</div>
-        <div class="step-content">
-          <h3>Analyze</h3>
-          <p>Explore narrator networks as interactive graphs, trace isnad chains, and study transmission integrity across hadith families.</p>
-        </div>
+        <p>Visualize <strong>isnad chains</strong> as graphs. Trace <strong>transmission paths</strong> and explore <strong>teacher-student</strong> networks.</p>
       </div>
     </div>
   </section>
 
   <!-- Data Sources -->
   <section class="section data-sources" use:inview>
+    <div class="section-label animate-on-scroll" use:inview>Provenance</div>
     <h2 class="section-title animate-on-scroll" use:inview>Data Sources</h2>
     <div class="source-grid">
       <div class="source-card animate-on-scroll stagger-1" use:inview>
+        <div class="source-stat">368K</div>
         <h4>Sanadset 650K</h4>
-        <p>368K hadith records with pre-parsed narrator chains from 926 books</p>
+        <p>Hadith records with pre-parsed narrator chains from 926 books</p>
       </div>
       <div class="source-card animate-on-scroll stagger-2" use:inview>
+        <div class="source-stat">6,236</div>
         <h4>Tanzil.net</h4>
-        <p>Uthmani Arabic text + Sahih International English for all 6,236 Quranic verses</p>
+        <p>Quranic verses in Uthmani Arabic + Sahih International English</p>
       </div>
       <div class="source-card animate-on-scroll stagger-3" use:inview>
+        <div class="source-stat">114</div>
         <h4>Tafsir Ibn Kathir</h4>
-        <p>Classical Quranic commentary in English for scholarly context and AI grounding</p>
+        <p>Surahs with classical commentary for scholarly context</p>
       </div>
       <div class="source-card animate-on-scroll stagger-1" use:inview>
+        <div class="source-stat">33K</div>
         <h4>Sunnah.com</h4>
-        <p>Human-verified English translations for the 6 canonical hadith collections</p>
+        <p>Human-verified English translations across 6 canonical collections</p>
       </div>
       <div class="source-card animate-on-scroll stagger-2" use:inview>
+        <div class="source-stat">18K</div>
         <h4>AR-Sanad</h4>
-        <p>18,298 narrators with Ibn Hajar's reliability classifications from Taqrib al-Tahdhib</p>
+        <p>Narrators with Ibn Hajar's reliability classifications</p>
       </div>
       <div class="source-card animate-on-scroll stagger-3" use:inview>
+        <div class="source-stat">&#x2726;</div>
         <h4>Quran.com API</h4>
-        <p>Tajweed-annotated Arabic text with color-coded recitation rules</p>
+        <p>Tajweed-annotated Arabic with color-coded recitation rules</p>
       </div>
     </div>
   </section>
 
-  <!-- Tech Stack -->
-  <section class="section tech-stack" use:inview>
-    <h2 class="section-title animate-on-scroll" use:inview>Built With</h2>
-    <div class="tech-grid animate-on-scroll" use:inview>
-      <div class="tech-badge"><strong>Rust</strong><span>Axum backend</span></div>
-      <div class="tech-badge"><strong>SurrealDB</strong><span>Graph + vector DB</span></div>
-      <div class="tech-badge"><strong>FastEmbed</strong><span>384-dim vectors</span></div>
-      <div class="tech-badge"><strong>SvelteKit</strong><span>Frontend</span></div>
-      <div class="tech-badge"><strong>Ollama</strong><span>Local LLM</span></div>
+  <!-- Architecture & Training — dark section -->
+  <section class="hood-section" use:inview>
+    <div class="hood-glow"></div>
+    <div class="hood-inner">
+      <div class="section-label animate-on-scroll" use:inview>Technical</div>
+      <h2 class="hood-title animate-on-scroll" use:inview>Under the Hood</h2>
+
+      <div class="hood-columns">
+        <!-- Architecture Stack -->
+        <div class="hood-col">
+          <h3 class="hood-subtitle animate-on-scroll" use:inview>Architecture</h3>
+          <div class="arch-stack">
+            <div class="glass-card animate-on-scroll stagger-1" use:inview>
+              <div class="layer-label">Frontend</div>
+              <strong>SvelteKit</strong>
+              <p>Quran · Hadith · Search · Narrators · Graphs</p>
+            </div>
+            <div class="arch-line animate-on-scroll stagger-1" use:inview>
+              <div class="line-pulse"></div>
+              <span class="line-label">JSON API</span>
+            </div>
+            <div class="glass-card animate-on-scroll stagger-2" use:inview>
+              <div class="layer-label">Backend</div>
+              <strong>Rust / Axum</strong>
+              <div class="sub-cards">
+                <div class="sub-chip">Search</div>
+                <div class="sub-chip">Ingest</div>
+                <div class="sub-chip">RAG</div>
+              </div>
+            </div>
+            <div class="arch-line animate-on-scroll stagger-2" use:inview>
+              <div class="line-pulse"></div>
+            </div>
+            <div class="glass-card animate-on-scroll stagger-3" use:inview>
+              <div class="layer-label">Database</div>
+              <strong>SurrealDB</strong>
+              <p>Graph · HNSW vectors · BM25</p>
+            </div>
+            <div class="arch-line animate-on-scroll stagger-3" use:inview>
+              <div class="line-pulse"></div>
+            </div>
+            <div class="glass-card animate-on-scroll stagger-4" use:inview>
+              <div class="layer-label">Embeddings</div>
+              <strong>FastEmbed</strong>
+              <p>multilingual-e5-small · 384-dim</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Training Pipeline -->
+        <div class="hood-col">
+          <h3 class="hood-subtitle animate-on-scroll" use:inview>Training Pipeline</h3>
+          <p class="hood-desc animate-on-scroll" use:inview>Fine-tune a domain-specific LLM on hadith & Quran data</p>
+          <div class="pipeline-grid">
+            {#each [
+              { n: '1', title: 'Raw Data', desc: 'Sanadset · Tanzil · Sunnah.com' },
+              { n: '2', title: 'Parse & Enrich', desc: 'Quran + Tafsir + Narrator bios' },
+              { n: '3', title: 'Format as QA', desc: 'Question-answer pairs with isnad context' },
+              { n: '4', title: 'Fine-tune LoRA', desc: 'Qwen / Llama with domain knowledge' },
+              { n: '5', title: 'Deploy', desc: 'Ollama local serve' },
+            ] as step, i}
+              <div class="pipe-card animate-on-scroll stagger-{Math.min(i + 1, 4)}" use:inview>
+                <div class="pipe-num">{step.n}</div>
+                <div class="pipe-text">
+                  <strong>{step.title}</strong>
+                  <span>{step.desc}</span>
+                </div>
+              </div>
+              {#if i < 4}
+                <div class="pipe-line animate-on-scroll stagger-{Math.min(i + 1, 4)}" use:inview>
+                  <div class="line-pulse"></div>
+                </div>
+              {/if}
+            {/each}
+          </div>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -181,9 +222,9 @@
   /* Hero */
   .hero {
     position: relative;
-    padding: 80px 24px 60px;
+    padding: 60px 24px 40px;
     text-align: center;
-    min-height: 70vh;
+    min-height: auto;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -193,7 +234,7 @@
   .hero-bg {
     position: absolute;
     inset: 0;
-    background: radial-gradient(ellipse at 50% 0%, rgba(45,143,78,0.08) 0%, transparent 70%);
+    background: radial-gradient(ellipse at 50% 0%, rgba(214,51,132,0.08) 0%, transparent 70%);
     animation: pulse-glow 4s ease-in-out infinite alternate;
     pointer-events: none;
   }
@@ -218,14 +259,14 @@
     margin-bottom: 16px;
   }
   .title-en {
-    font-size: 4rem;
+    font-size: 5rem;
     font-weight: 700;
     color: var(--accent);
-    letter-spacing: -1px;
+    letter-spacing: -2px;
   }
   .title-ar {
     font-family: var(--font-arabic);
-    font-size: 3rem;
+    font-size: 3.5rem;
     color: var(--text-muted);
     font-weight: 400;
   }
@@ -235,6 +276,11 @@
     max-width: 600px;
     margin: 0 auto;
     line-height: 1.7;
+    font-weight: 400;
+  }
+  .hero-subtitle :global(strong) {
+    color: var(--accent);
+    font-weight: 600;
   }
 
   /* Quick Access Cards */
@@ -263,7 +309,7 @@
   }
   .access-card:hover {
     border-color: var(--accent);
-    box-shadow: 0 4px 20px rgba(45,143,78,0.08);
+    box-shadow: 0 4px 20px rgba(214,51,132,0.08);
     transform: translateY(-2px);
     color: var(--text-primary);
   }
@@ -306,14 +352,23 @@
 
   /* Sections */
   .section {
-    padding: 64px 24px;
+    padding: 48px 24px;
     max-width: 900px;
     margin: 0 auto;
+  }
+  .section-label {
+    text-align: center;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--accent);
+    font-weight: 700;
+    margin-bottom: 8px;
   }
   .section-title {
     text-align: center;
     font-size: 1.6rem;
-    margin-bottom: 40px;
+    margin-bottom: 36px;
     color: var(--text-primary);
   }
 
@@ -327,39 +382,236 @@
     background: var(--bg-surface);
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
-    padding: 28px 20px;
+    padding: 32px 24px;
     text-align: center;
+    transition: all 0.3s ease;
   }
-  .feature-icon {
+  .feature-card:hover {
+    border-color: var(--accent);
+    box-shadow: 0 6px 28px rgba(214,51,132,0.08);
+    transform: translateY(-3px);
+  }
+  .feature-highlight {
     font-size: 1.6rem;
+    font-weight: 700;
     color: var(--accent);
     margin-bottom: 12px;
+    line-height: 1;
   }
   .feature-card h3 {
     font-size: 1.05rem;
-    margin-bottom: 8px;
+    margin-bottom: 10px;
   }
   .feature-card p {
     font-size: 0.85rem;
     color: var(--text-secondary);
     line-height: 1.6;
   }
+  .feature-card p :global(strong) {
+    color: var(--text-primary);
+    font-weight: 600;
+  }
 
-  /* Steps */
-  .steps {
+  /* Under the Hood — light pink section */
+  .hood-section {
+    position: relative;
+    background: linear-gradient(180deg,
+      var(--bg-primary) 0%,
+      rgba(214,51,132,0.06) 15%,
+      rgba(214,51,132,0.10) 50%,
+      rgba(214,51,132,0.06) 85%,
+      var(--bg-primary) 100%
+    );
+    padding: 80px 24px;
+    overflow: hidden;
+  }
+  .hood-glow {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 700px;
+    height: 500px;
+    background: radial-gradient(ellipse, rgba(214,51,132,0.08) 0%, transparent 70%);
+    filter: blur(80px);
+    animation: glow-breathe 4s ease-in-out infinite alternate;
+    pointer-events: none;
+  }
+  @keyframes glow-breathe {
+    from { opacity: 0.6; transform: translate(-50%, -50%) scale(0.95); }
+    to { opacity: 1; transform: translate(-50%, -50%) scale(1.05); }
+  }
+  .hood-inner {
+    position: relative;
+    z-index: 1;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+  .hood-title {
+    text-align: center;
+    font-size: 1.6rem;
+    color: var(--text-primary);
+    margin-bottom: 48px;
+  }
+  .hood-columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 48px;
+    align-items: stretch;
+  }
+  .hood-col {
     display: flex;
     flex-direction: column;
-    gap: 24px;
   }
-  .step {
+  .hood-subtitle {
+    text-align: center;
+    font-size: 1.05rem;
+    margin-bottom: 8px;
+    color: var(--accent);
+    font-weight: 600;
+  }
+  .hood-desc {
+    text-align: center;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-bottom: 20px;
+  }
+
+  /* Architecture Stack */
+  .arch-stack {
     display: flex;
-    gap: 20px;
-    align-items: flex-start;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    flex: 1;
+    justify-content: space-between;
   }
-  .step-num {
+  .glass-card {
+    width: 100%;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 20px;
+    text-align: center;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(214,51,132,0.04);
+  }
+  .glass-card:hover {
+    border-color: var(--accent);
+    box-shadow: 0 4px 24px rgba(214,51,132,0.1);
+    transform: translateY(-2px);
+  }
+  .layer-label {
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--accent);
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .glass-card strong {
+    display: block;
+    font-size: 1rem;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+  }
+  .glass-card p {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+  }
+  .sub-cards {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .sub-chip {
+    flex: 1;
+    padding: 6px 0;
+    background: var(--accent-muted);
+    border: 1px solid rgba(214,51,132,0.15);
+    border-radius: 6px;
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    text-align: center;
+  }
+
+  /* Animated connecting lines */
+  .arch-line, .pipe-line {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 0;
+    transition: height 0.5s ease;
+    position: relative;
+    overflow: visible;
+  }
+  .arch-line.in-view, .pipe-line.in-view {
+    height: 28px;
+  }
+  .line-pulse {
+    width: 2px;
+    height: 100%;
+    background: linear-gradient(180deg, var(--accent), rgba(214,51,132,0.2));
+    position: relative;
+  }
+  .line-pulse::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -2px;
+    width: 6px;
+    height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+    box-shadow: 0 0 8px rgba(214,51,132,0.4);
+    animation: dot-travel 2s ease-in-out infinite;
+  }
+  @keyframes dot-travel {
+    0% { top: 0; opacity: 0; }
+    20% { opacity: 1; }
+    80% { opacity: 1; }
+    100% { top: calc(100% - 6px); opacity: 0; }
+  }
+  .line-label {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.6rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+
+  /* Training Pipeline */
+  .pipeline-grid {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    flex: 1;
+    justify-content: space-between;
+  }
+  .pipe-card {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 16px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(214,51,132,0.04);
+  }
+  .pipe-card:hover {
+    border-color: var(--accent);
+    box-shadow: 0 4px 20px rgba(214,51,132,0.1);
+    transform: translateY(-1px);
+  }
+  .pipe-num {
     flex-shrink: 0;
-    width: 40px;
-    height: 40px;
+    width: 30px;
+    height: 30px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -367,16 +619,18 @@
     color: white;
     border-radius: 50%;
     font-weight: 700;
-    font-size: 1rem;
+    font-size: 0.75rem;
+    box-shadow: 0 0 10px rgba(214,51,132,0.2);
   }
-  .step-content h3 {
-    font-size: 1.05rem;
-    margin-bottom: 4px;
-  }
-  .step-content p {
+  .pipe-text strong {
+    display: block;
     font-size: 0.85rem;
-    color: var(--text-secondary);
-    line-height: 1.6;
+    color: var(--text-primary);
+  }
+  .pipe-text span {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    line-height: 1.4;
   }
 
   /* Data Sources */
@@ -388,45 +642,33 @@
   .source-card {
     background: var(--bg-surface);
     border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 20px;
+    border-radius: var(--radius-lg);
+    padding: 24px 20px;
+    text-align: center;
+    transition: all 0.3s ease;
+  }
+  .source-card:hover {
+    border-color: var(--accent);
+    box-shadow: 0 4px 20px rgba(214,51,132,0.08);
+    transform: translateY(-2px);
+  }
+  .source-stat {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--accent);
+    font-family: var(--font-mono);
+    margin-bottom: 8px;
+    line-height: 1;
   }
   .source-card h4 {
-    font-size: 0.95rem;
+    font-size: 0.9rem;
     margin-bottom: 6px;
-    color: var(--accent);
-  }
-  .source-card p {
-    font-size: 0.8rem;
-    color: var(--text-secondary);
-    line-height: 1.5;
-  }
-
-  /* Tech Stack */
-  .tech-grid {
-    display: flex;
-    justify-content: center;
-    flex-wrap: wrap;
-    gap: 16px;
-  }
-  .tech-badge {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-    padding: 16px 24px;
-    background: var(--bg-surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    min-width: 120px;
-  }
-  .tech-badge strong {
-    font-size: 0.95rem;
     color: var(--text-primary);
   }
-  .tech-badge span {
-    font-size: 0.75rem;
+  .source-card p {
+    font-size: 0.78rem;
     color: var(--text-muted);
+    line-height: 1.5;
   }
 
   /* Footer */
@@ -445,5 +687,7 @@
     .source-grid { grid-template-columns: 1fr; }
     .title-en { font-size: 2.5rem; }
     .title-ar { font-size: 2rem; }
+    .sub-cards { flex-direction: column; }
+    .hood-columns { grid-template-columns: 1fr; }
   }
 </style>
