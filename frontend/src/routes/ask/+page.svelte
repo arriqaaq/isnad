@@ -117,7 +117,7 @@
                     <a href="/hadiths/{s.id}" class="source-card">
                       <span class="source-num mono">#{s.hadith_number}</span>
                       {#if s.narrator_text}<span class="source-narrator">{s.narrator_text}</span>{/if}
-                      <span class="source-text">{truncate(stripHtml(s.text_en), 120)}</span>
+                      <span class="source-text">{s.text_en ? truncate(stripHtml(s.text_en), 120) : truncate(s.text_ar, 120)}</span>
                     </a>
                   {/each}
                 </div>

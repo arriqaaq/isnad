@@ -1,4 +1,7 @@
-.PHONY: build frontend backend server dev stop ingest ingest-test ingest-full list-books analyze analyze-bio analyze-families clean
+.PHONY: build frontend backend server dev stop ingest ingest-test ingest-full list-books analyze analyze-bio analyze-families analyze-transmission pipeline-test pipeline-full clean
+
+# SurrealDB HNSW index traversal needs extra stack space
+export RUST_MIN_STACK=8388608
 
 # Build everything
 build: backend frontend

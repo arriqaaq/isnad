@@ -69,7 +69,7 @@
                 {#if h.score}<span class="score mono">{formatScore(h.score)}</span>{/if}
               </div>
               {#if h.narrator_text}<p class="narrator">{h.narrator_text}</p>{/if}
-              <p class="text">{truncate(stripHtml(h.text_en), 200)}</p>
+              <p class="text">{h.text_en ? truncate(stripHtml(h.text_en), 200) : truncate(h.text_ar, 200)}</p>
             </a>
           {/each}
         </div>
@@ -83,7 +83,7 @@
           {#each result.narrators as n}
             <a href="/narrators/{n.id}" class="result-card">
               <div class="result-header">
-                <span class="narrator-name">{n.name_en}</span>
+                <span class="narrator-name">{n.name_ar || n.name_en}</span>
                 {#if n.generation}<Badge text={n.generation} variant="accent" />{/if}
               </div>
               {#if n.name_ar}<p class="name-ar arabic" dir="rtl">{n.name_ar}</p>{/if}

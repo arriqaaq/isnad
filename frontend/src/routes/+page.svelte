@@ -47,10 +47,7 @@
           {#each books as book}
             <a href="/hadiths?book={book.book_number}" class="book-tile">
               <span class="book-num mono">{book.book_number}</span>
-              <span class="book-name">{book.name_en}</span>
-              {#if book.name_ar}
-                <span class="book-ar arabic" dir="rtl">{book.name_ar}</span>
-              {/if}
+              <span class="book-name arabic" dir="rtl">{book.name_ar || book.name_en}</span>
             </a>
           {/each}
         </div>

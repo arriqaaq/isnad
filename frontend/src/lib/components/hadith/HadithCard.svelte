@@ -4,10 +4,6 @@
   import Badge from '$lib/components/common/Badge.svelte';
 
   let { hadith }: { hadith: ApiHadith } = $props();
-
-  let displayText = $derived(
-    hadith.text_en ? stripHtml(hadith.text_en) : (hadith.text_ar || '')
-  );
 </script>
 
 <a href="/hadiths/{hadith.id}" class="hadith-card">
@@ -24,12 +20,10 @@
     <p class="narrator">{hadith.narrator_text}</p>
   {/if}
 
-  {#if displayText}
-    <p class="text-preview">{truncate(displayText, 180)}</p>
-  {/if}
-
-  {#if hadith.text_ar && hadith.text_en}
-    <p class="text-ar arabic" dir="rtl">{truncate(hadith.text_ar, 120)}</p>
+  {#if hadith.text_ar}
+    <p class="text-ar arabic" dir="rtl">{truncate(hadith.text_ar, 150)}</p>
+  {:else if hadith.text_en}
+    <p class="text-preview">{truncate(stripHtml(hadith.text_en), 180)}</p>
   {/if}
 </a>
 

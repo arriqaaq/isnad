@@ -44,25 +44,6 @@ fn slug(name: &str) -> String {
     normalize_arabic(name).replace(' ', "_")
 }
 
-/// Slug with diacritics stripped — used ONLY for comparing names in compound isnad
-/// duplicate detection. NOT for record IDs or display.
-fn slug_bare(name: &str) -> String {
-    let cleaned: String = name
-        .chars()
-        .filter(|c| {
-            let code = *c as u32;
-            let is_diacritic = (0x0610..=0x061A).contains(&code)
-                || (0x064B..=0x065F).contains(&code)
-                || code == 0x0670
-                || (0x06D6..=0x06DC).contains(&code)
-                || (0x06DF..=0x06E8).contains(&code)
-                || (0x06EA..=0x06ED).contains(&code);
-            !is_diacritic && (c.is_alphanumeric() || *c == ' ')
-        })
-        .collect();
-    cleaned.split_whitespace().collect::<Vec<_>>().join("_")
-}
-
 /// Normalize Arabic text for fuzzy matching: strip diacritics, normalize letter
 /// variants (alef, taa marbuta, alef maqsura), normalize kunya grammatical case,
 /// keep only Arabic letters + spaces.

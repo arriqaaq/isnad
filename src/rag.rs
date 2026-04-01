@@ -49,6 +49,7 @@ pub struct ChatChunkMessage {
 /// Narrator info returned from chain query.
 #[derive(Debug, SurrealValue)]
 struct ChainNarrator {
+    name_ar: Option<String>,
     name_en: String,
 }
 
@@ -92,7 +93,7 @@ impl OllamaClient {
                 let rid_str = record_id_string(hid);
                 let chain_result: Result<Option<ChainResult>, _> = db
                     .query(
-                        "SELECT <-narrates<-narrator.{name_en} AS narrators FROM type::thing($rid)",
+                        "SELECT <-narrates<-narrator.{name_ar, name_en} AS narrators FROM type::thing($rid)",
                     )
                     .bind(("rid", rid_str))
                     .await
@@ -100,8 +101,11 @@ impl OllamaClient {
 
                 match chain_result {
                     Ok(Some(cr)) if !cr.narrators.is_empty() => {
-                        let names: Vec<&str> =
-                            cr.narrators.iter().map(|n| n.name_en.as_str()).collect();
+                        let names: Vec<String> = cr
+                            .narrators
+                            .iter()
+                            .map(|n| n.name_ar.clone().unwrap_or_else(|| n.name_en.clone()))
+                            .collect();
                         format!("Chain of narration: {}", names.join(" → "))
                     }
                     _ => String::new(),

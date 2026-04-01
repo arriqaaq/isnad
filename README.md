@@ -151,6 +151,8 @@ graph LR
 - [Node.js](https://nodejs.org/) (v20+)
 - [Ollama](https://ollama.ai/) (for fallback translation and Ask feature)
 
+> **Note:** SurrealDB's HNSW vector index traversal requires extra stack space. When running `cargo run` directly (outside of `make`), set `RUST_MIN_STACK=8388608` in your environment. The Makefile handles this automatically.
+
 ### Install Ollama
 
 ```bash

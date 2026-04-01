@@ -5,7 +5,7 @@
 </script>
 
 <a href="/narrators/{narrator.id}" class="chip">
-  {narrator.name_en}
+  {narrator.name_ar || narrator.name_en || narrator.id}
 </a>
 
 <style>
@@ -19,6 +19,10 @@
     font-size: 0.8rem;
     font-weight: 500;
     transition: all var(--transition);
+    max-width: 250px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .chip:hover {

@@ -23,10 +23,7 @@
       {#each books as book (book.id)}
         <a href="/hadiths?book={book.book_number}" class="book-card">
           <span class="book-num mono">Book {book.book_number}</span>
-          <h3 class="book-name">{book.name_en}</h3>
-          {#if book.name_ar}
-            <p class="book-ar arabic" dir="rtl">{book.name_ar}</p>
-          {/if}
+          <h3 class="book-name arabic" dir="rtl">{book.name_ar || book.name_en}</h3>
         </a>
       {/each}
     </div>

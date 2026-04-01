@@ -407,7 +407,10 @@ pub async fn chain_graph_data(
             graph.nodes.push(GraphNode {
                 data: GraphNodeData {
                     id: record_id_string(id),
-                    label: narrator.name_en.clone(),
+                    label: narrator
+                        .name_ar
+                        .clone()
+                        .unwrap_or_else(|| narrator.name_en.clone()),
                     node_type: "narrator".into(),
                     generation: narrator.generation.clone(),
                 },
@@ -472,7 +475,10 @@ pub async fn narrator_graph_data(
             graph.nodes.push(GraphNode {
                 data: GraphNodeData {
                     id: nid_str.clone(),
-                    label: narrator.name_en.clone(),
+                    label: narrator
+                        .name_ar
+                        .clone()
+                        .unwrap_or_else(|| narrator.name_en.clone()),
                     node_type: "center".into(),
                     generation: narrator.generation.clone(),
                 },
@@ -484,7 +490,10 @@ pub async fn narrator_graph_data(
                     graph.nodes.push(GraphNode {
                         data: GraphNodeData {
                             id: tid_str.clone(),
-                            label: teacher.name_en.clone(),
+                            label: teacher
+                                .name_ar
+                                .clone()
+                                .unwrap_or_else(|| teacher.name_en.clone()),
                             node_type: "teacher".into(),
                             generation: teacher.generation.clone(),
                         },
@@ -506,7 +515,10 @@ pub async fn narrator_graph_data(
                     graph.nodes.push(GraphNode {
                         data: GraphNodeData {
                             id: sid_str.clone(),
-                            label: student.name_en.clone(),
+                            label: student
+                                .name_ar
+                                .clone()
+                                .unwrap_or_else(|| student.name_en.clone()),
                             node_type: "student".into(),
                             generation: student.generation.clone(),
                         },

@@ -312,38 +312,3 @@ pub struct StatsResponse {
     pub narrator_count: i64,
     pub book_count: i64,
 }
-
-// ── Helper functions ──
-
-/// Normalize a narrator name for slug generation and matching.
-/// Lowercases, removes common prefixes, strips non-alphanumeric chars.
-pub fn normalize_name(name: &str) -> String {
-    let name = name.trim();
-    // Strip common prefixes
-    let name = name
-        .strip_prefix("Narrated ")
-        .or_else(|| name.strip_prefix("narrated "))
-        .unwrap_or(name);
-    let name = name.strip_suffix(':').unwrap_or(name);
-
-    name.to_lowercase()
-        .chars()
-        .map(|c| if c.is_alphanumeric() { c } else { '_' })
-        .collect::<String>()
-        .split('_')
-        .filter(|s| !s.is_empty())
-        .collect::<Vec<_>>()
-        .join("_")
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_normalize_name() {
-        assert_eq!(normalize_name("Narrated Abu Huraira:"), "abu_huraira");
-        assert_eq!(normalize_name("Abu Hurairah"), "abu_hurairah");
-        assert_eq!(normalize_name("  Ibn 'Abbas  "), "ibn_abbas");
-    }
-}

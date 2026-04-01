@@ -7,15 +7,11 @@
 
 <a href="/narrators/{narrator.id}" class="narrator-card">
   <div class="card-header">
-    <h3 class="name">{narrator.name_en}</h3>
+    <h3 class="name arabic" dir="rtl">{narrator.name_ar || narrator.name_en}</h3>
     {#if narrator.generation}
       <Badge text={narrator.generation} variant="accent" />
     {/if}
   </div>
-
-  {#if narrator.name_ar}
-    <p class="name-ar arabic" dir="rtl">{narrator.name_ar}</p>
-  {/if}
 
   <div class="card-footer">
     <span class="hadith-count mono">{narrator.hadith_count} hadiths</span>
@@ -31,6 +27,7 @@
     border-radius: var(--radius);
     transition: all var(--transition);
     color: var(--text-primary);
+    overflow: hidden;
   }
 
   .narrator-card:hover {
@@ -43,15 +40,18 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 8px;
     margin-bottom: 4px;
   }
 
-  .name { font-size: 0.95rem; font-weight: 600; }
-
-  .name-ar {
-    color: var(--text-secondary);
-    font-size: 1rem;
-    margin-bottom: 8px;
+  .name {
+    font-size: 0.95rem;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+    min-width: 0;
   }
 
   .card-footer { margin-top: 8px; }

@@ -70,10 +70,6 @@ DEFINE FIELD IF NOT EXISTS embedding     ON hadith TYPE option<array<float>>;
 DEFINE INDEX IF NOT EXISTS hadith_vec    ON TABLE hadith FIELDS embedding HNSW DIMENSION 384 DIST COSINE;
 DEFINE INDEX IF NOT EXISTS hadith_book   ON TABLE hadith FIELDS book_id;
 
--- BM25 full-text search analyzers (indexes created after ingest via init_fulltext_indexes)
-DEFINE ANALYZER IF NOT EXISTS en_analyzer TOKENIZERS blank, class FILTERS lowercase, snowball(english);
-DEFINE ANALYZER IF NOT EXISTS ar_analyzer TOKENIZERS blank, class;
-
 DEFINE TABLE IF NOT EXISTS book SCHEMAFULL;
 DEFINE FIELD IF NOT EXISTS book_number ON book TYPE int;
 DEFINE FIELD IF NOT EXISTS name_en     ON book TYPE string;
@@ -167,6 +163,10 @@ DEFINE TABLE IF NOT EXISTS belongs_to TYPE RELATION FROM hadith TO book;
 /// Must be called after data is ingested (or at serve time).
 pub async fn init_fulltext_indexes(db: &Surreal<Db>) -> Result<()> {
     let stmts = [
+        // Analyzers first (no IF NOT EXISTS support — re-define is idempotent)
+        "DEFINE ANALYZER en_analyzer TOKENIZERS blank,class FILTERS lowercase,snowball(english)",
+        "DEFINE ANALYZER ar_analyzer TOKENIZERS blank,class",
+        // Then indexes
         "DEFINE INDEX IF NOT EXISTS hadith_text_en_search ON TABLE hadith FIELDS text_en FULLTEXT ANALYZER en_analyzer BM25 HIGHLIGHTS",
         "DEFINE INDEX IF NOT EXISTS hadith_text_ar_search ON TABLE hadith FIELDS text_ar FULLTEXT ANALYZER ar_analyzer BM25 HIGHLIGHTS",
     ];
