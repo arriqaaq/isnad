@@ -5,7 +5,7 @@ use axum::response::{IntoResponse, Json, Response};
 use futures::StreamExt;
 use serde::Deserialize;
 
-use crate::models::{ApiHadith, ApiHadithSearchResult, Hadith};
+use crate::models::{ApiHadith, ApiHadithSearchResult};
 use crate::quran::models::{
     ApiAyah, ApiAyahSearchResult, ApiSurah, Ayah, QuranSearchResponse, QuranStatsResponse, Surah,
     SurahDetailResponse,

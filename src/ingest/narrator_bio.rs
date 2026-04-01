@@ -143,11 +143,7 @@ async fn ensure_csv(csv_path: &str) -> Result<()> {
 /// Matches AR-Sanad narrators to existing DB narrators via normalized Arabic name
 /// fuzzy matching, then updates matched narrators with reliability ratings,
 /// birth/death dates, and creates evidence records.
-pub async fn ingest_narrator_bios(
-    db: &Surreal<Db>,
-    csv_path: &str,
-    _resolver: Option<&super::name_resolver::NameResolver>,
-) -> Result<BioIngestionStats> {
+pub async fn ingest_narrator_bios(db: &Surreal<Db>, csv_path: &str) -> Result<BioIngestionStats> {
     // Auto-download if missing
     ensure_csv(csv_path).await?;
 
@@ -260,30 +256,10 @@ pub async fn ingest_narrator_bios(
             }
         };
 
-        // Try to match against DB narrators.
-        //
-        // Strategy 1: If narrators were ingested with NameResolver, they have
-        // keys like "arsanad_{id}". We can get the AR-Sanad ID directly from
-        // the CSV's "id" column and check if that narrator exists in the DB.
-        let ar_sanad_id_str = record
-            .get(col("id").unwrap_or(16))
-            .unwrap_or("")
-            .trim()
-            .to_string();
-
+        // Try to match against DB narrators via fuzzy name matching.
         let mut matched_key: Option<String> = None;
 
-        // Direct match via arsanad_ key (when resolver was used during ingestion)
-        if !ar_sanad_id_str.is_empty() && ar_sanad_id_str != "-" {
-            let direct_key = format!("arsanad_{ar_sanad_id_str}");
-            if narrators_created_keys.contains(&direct_key) {
-                matched_key = Some(direct_key);
-                stats.matched_exact += 1;
-            }
-        }
-
-        // Strategy 2: Fallback to fuzzy name matching (for legacy ingestion without resolver)
-        if matched_key.is_none() {
+        {
             let shuhra_norm = normalize_arabic(if !shuhra.is_empty() {
                 shuhra
             } else {

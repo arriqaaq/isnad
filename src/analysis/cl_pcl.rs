@@ -103,7 +103,6 @@ pub(crate) struct NarratorNode {
 }
 
 pub(crate) struct Edge {
-    pub(crate) variant_id: String,
     pub(crate) chronology_conflict: bool,
 }
 
@@ -534,12 +533,6 @@ pub(crate) async fn build_family_graph(
     for e in &edges {
         let student_key = crate::models::record_id_key_string(&e.student);
         let teacher_key = crate::models::record_id_key_string(&e.teacher);
-        let variant_key = e
-            .hadith_ref
-            .as_ref()
-            .map(crate::models::record_id_key_string)
-            .unwrap_or_default();
-
         // Check chronology conflict
         let student_gen = graph.nodes.get(&student_key).and_then(|n| n.generation);
         let teacher_gen = graph.nodes.get(&teacher_key).and_then(|n| n.generation);
@@ -558,7 +551,6 @@ pub(crate) async fn build_family_graph(
 
         let edge_key = format!("{}->{}", student_key, teacher_key);
         graph.edges.entry(edge_key).or_default().push(Edge {
-            variant_id: variant_key,
             chronology_conflict,
         });
     }

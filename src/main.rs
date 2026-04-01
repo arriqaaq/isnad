@@ -230,28 +230,9 @@ async fn async_main() -> Result<()> {
             let selected = ingest::sanadset::resolve_books(&file, books.as_deref(), all)?;
             tracing::info!("Selected {} books for ingestion", selected.len());
 
-            // Load narrator name resolver for deterministic name deduplication
-            let narrator_csv = "data/ar_sanad_narrators.csv";
-            let resolver = if std::path::Path::new(narrator_csv).exists() {
-                println!("📋 Loading narrator name resolver...");
-                match ingest::name_resolver::NameResolver::load(narrator_csv) {
-                    Ok(r) => {
-                        println!("   ✓ {} narrators indexed", r.narrators.len());
-                        Some(r)
-                    }
-                    Err(e) => {
-                        tracing::warn!("Could not load name resolver: {e}, proceeding without");
-                        None
-                    }
-                }
-            } else {
-                tracing::info!("No narrator CSV at {narrator_csv}, skipping name resolution");
-                None
-            };
-
             let db = db::connect(&db_path).await?;
             db::init_schema(&db).await?;
-            ingest::sanadset::ingest(&db, &file, &selected, limit, resolver.as_ref()).await?;
+            ingest::sanadset::ingest(&db, &file, &selected, limit).await?;
 
             // Always merge human translations from sunnah.com (free, instant)
             println!("🌐 Merging human English translations from sunnah.com...");
@@ -368,14 +349,7 @@ async fn async_main() -> Result<()> {
 
             if let Some(bio_path) = narrator_bio {
                 println!("📚 Enriching narrators with AR-Sanad biographical data...");
-                // Load resolver for direct arsanad_ key matching
-                let resolver = if std::path::Path::new(&bio_path).exists() {
-                    ingest::name_resolver::NameResolver::load(&bio_path).ok()
-                } else {
-                    None
-                };
-                ingest::narrator_bio::ingest_narrator_bios(&db, &bio_path, resolver.as_ref())
-                    .await?;
+                ingest::narrator_bio::ingest_narrator_bios(&db, &bio_path).await?;
                 did_something = true;
             }
 

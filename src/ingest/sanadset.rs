@@ -4,7 +4,7 @@ use std::path::Path;
 use anyhow::Result;
 use indicatif::{ProgressBar, ProgressStyle};
 use reqwest::Client;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use surrealdb::Surreal;
 use surrealdb::types::{RecordId, SurrealValue};
 
@@ -258,26 +258,17 @@ pub async fn ingest(
     csv_path: &str,
     selected_books: &HashSet<String>,
     limit_per_book: Option<usize>,
-    resolver: Option<&super::name_resolver::NameResolver>,
 ) -> Result<()> {
     let path = Path::new(csv_path);
     if !path.exists() {
         anyhow::bail!("CSV file not found: {csv_path}");
     }
 
-    if resolver.is_some() {
-        println!(
-            "📖 Ingesting from {} ({} books selected, with name resolution)",
-            csv_path,
-            selected_books.len()
-        );
-    } else {
-        println!(
-            "📖 Ingesting from {} ({} books selected)",
-            csv_path,
-            selected_books.len()
-        );
-    }
+    println!(
+        "📖 Ingesting from {} ({} books selected)",
+        csv_path,
+        selected_books.len()
+    );
 
     // First pass: count how many hadiths we'll ingest (for progress bar)
     let total_expected = {
@@ -311,7 +302,6 @@ pub async fn ingest(
     let mut books_created: HashSet<String> = HashSet::new();
     let mut hadith_count = 0;
     let mut heard_from_count = 0;
-    let mut narrates_count = 0;
 
     let pb = make_progress(total_expected as u64, "hadiths ingested");
 
@@ -399,34 +389,8 @@ pub async fn ingest(
             .await?;
 
         // Resolve narrator names and create narrator records + edges.
-        //
-        // When a NameResolver is available, we resolve each chain name to a
-        // canonical ar_sanad_narrators ID. This deduplicates narrators that
-        // appear under different spellings (e.g. أبي هريرة vs أبو هريرة)
-        // and enables biographical enrichment later.
-
-        // Build resolved slugs for this chain
-        let resolved_chain: Vec<(String, String)> = if let Some(res) = resolver {
-            // Use full chain resolution (multi-pass with context disambiguation)
-            res.resolve_chain(&chain)
-                .into_iter()
-                .map(|(raw, resolution)| {
-                    let resolved_slug = match resolution {
-                        super::name_resolver::Resolution::Resolved(id) => {
-                            // Use canonical narrator ID as slug
-                            format!("arsanad_{id}")
-                        }
-                        _ => {
-                            // Fallback to normalized slug for unresolved names
-                            slug(&raw)
-                        }
-                    };
-                    (raw, resolved_slug)
-                })
-                .collect()
-        } else {
-            chain.iter().map(|n| (n.clone(), slug(n))).collect()
-        };
+        let resolved_chain: Vec<(String, String)> =
+            chain.iter().map(|n| (n.clone(), slug(n))).collect();
 
         for (name, nslug) in &resolved_chain {
             if nslug.is_empty() {
@@ -441,20 +405,7 @@ pub async fn ingest(
                 continue;
             }
             if !narrators_created.contains(nslug) {
-                // For resolved narrators, use canonical name from the resolver
-                let display_name = if let Some(res) = resolver {
-                    if let Some(id_str) = nslug.strip_prefix("arsanad_") {
-                        if let Ok(id) = id_str.parse::<u32>() {
-                            res.canonical_name(id).unwrap_or(name).to_string()
-                        } else {
-                            name.clone()
-                        }
-                    } else {
-                        name.clone()
-                    }
-                } else {
-                    name.clone()
-                };
+                let display_name = name.clone();
 
                 db.query(
                     "CREATE $rid CONTENT { \
@@ -480,7 +431,6 @@ pub async fn ingest(
                 .bind(("to", rid("hadith", &hslug)))
                 .await
                 .ok();
-            narrates_count += 1;
         }
 
         // heard_from edges: chain[i] heard from chain[i+1]
@@ -562,15 +512,6 @@ fn extract_narrator_en(english_text: &str) -> Option<String> {
         }
     }
     None
-}
-
-fn parse_hadith_num_from_ref(reference: &str) -> Option<i64> {
-    // "https://sunnah.com/bukhari:1" → 1
-    // "https://sunnah.com/muslim:8a" → 8
-    reference
-        .rsplit(':')
-        .next()
-        .and_then(|s| s.trim_end_matches(|c: char| c.is_alphabetic()).parse().ok())
 }
 
 pub async fn merge_human_translations(db: &Surreal<Db>) -> Result<()> {

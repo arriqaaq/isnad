@@ -110,7 +110,7 @@ pub struct CorpusJuynbollSummary {
 /// A bypass variant is one that contains both ancestors and descendants of the CL
 /// but does not contain the CL itself. A bypass is "reliable" if all narrators in
 /// the bypass path with known reliability have prior >= 0.65 (saduq or better).
-pub fn compute_reliable_bypass(graph: &FamilyGraph, cl_id: &str) -> ReliableBypassResult {
+pub(crate) fn compute_reliable_bypass(graph: &FamilyGraph, cl_id: &str) -> ReliableBypassResult {
     let total_variants = graph.variant_ids.len();
 
     let node = match graph.nodes.get(cl_id) {
@@ -211,7 +211,7 @@ pub fn compute_reliable_bypass(graph: &FamilyGraph, cl_id: &str) -> ReliableBypa
 // ── Test 2: Multiple Independent CLs ──
 
 /// Check whether CLs in a family are independent (no ancestor-descendant relationship).
-pub fn compute_independent_cls(
+pub(crate) fn compute_independent_cls(
     graph: &FamilyGraph,
     cl_ids: &[String],
     family_id: &str,
@@ -252,7 +252,7 @@ pub fn compute_independent_cls(
 // ── Test 4: Pre-CL Chain Diversity ──
 
 /// Compute pre-CL chain diversity metrics by walking upstream from the CL.
-pub fn compute_pre_cl_diversity(graph: &FamilyGraph, cl_id: &str) -> PreClDiversityResult {
+pub(crate) fn compute_pre_cl_diversity(graph: &FamilyGraph, cl_id: &str) -> PreClDiversityResult {
     let mut visited = HashSet::new();
     let mut stack: Vec<String> = graph
         .nodes
@@ -324,7 +324,7 @@ pub fn compute_pre_cl_diversity(graph: &FamilyGraph, cl_id: &str) -> PreClDivers
 // ── Orchestrator ──
 
 /// Run all per-family Juynboll falsifiability tests.
-pub fn analyze_family_juynboll(
+pub(crate) fn analyze_family_juynboll(
     graph: &FamilyGraph,
     cl_ids: &[String],
     family_id: &str,
@@ -560,7 +560,7 @@ mod tests {
         let mut graph_edges: HashMap<String, Vec<Edge>> = HashMap::new();
 
         // Build adjacency + edges
-        for (student, teacher, variant) in &edges {
+        for (student, teacher, _) in &edges {
             if let Some(node) = nodes.get_mut(*student) {
                 node.direct_teachers.insert(teacher.to_string());
             }
@@ -569,7 +569,6 @@ mod tests {
             }
             let key = format!("{}->{}", student, teacher);
             graph_edges.entry(key).or_default().push(Edge {
-                variant_id: variant.to_string(),
                 chronology_conflict: false,
             });
         }

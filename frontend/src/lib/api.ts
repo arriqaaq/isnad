@@ -3,7 +3,6 @@ import type {
   ApiHadithFamily,
   ApiMatnDiff,
   ApiSurah,
-  ApiAyah,
   AnalysisStatsResponse,
   AyahHadithResponse,
   FamilyDetailResponse,
@@ -149,18 +148,6 @@ export async function searchQuran(
   limit = 20
 ): Promise<QuranSearchResponse> {
   return get(`/quran/search?q=${encodeURIComponent(q)}&type=${type}&limit=${limit}`);
-}
-
-export async function browseAyahs(params: {
-  surah?: number;
-  page?: number;
-  limit?: number;
-}): Promise<PaginatedResponse<ApiAyah>> {
-  const sp = new URLSearchParams();
-  if (params.surah) sp.set('surah', String(params.surah));
-  if (params.page) sp.set('page', String(params.page));
-  if (params.limit) sp.set('limit', String(params.limit));
-  return get(`/quran/browse?${sp}`);
 }
 
 export async function getAyahHadiths(
