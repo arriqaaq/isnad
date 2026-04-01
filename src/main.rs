@@ -182,8 +182,17 @@ async fn download_sanadset(target_path: &str) -> Result<()> {
     Ok(())
 }
 
-#[tokio::main(flavor = "multi_thread")]
-async fn main() -> Result<()> {
+fn main() -> Result<()> {
+    let stack_size = 32 * 1024 * 1024; // 32 MB — SurrealDB HNSW traversal is deeply recursive
+    eprintln!("Starting tokio runtime with {stack_size} byte worker thread stacks");
+    tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .thread_stack_size(stack_size)
+        .build()?
+        .block_on(async_main())
+}
+
+async fn async_main() -> Result<()> {
     tracing_subscriber::fmt()
         .with_env_filter(
             tracing_subscriber::EnvFilter::try_from_default_env()

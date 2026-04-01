@@ -62,7 +62,7 @@
         <h2>Results ({result.ayahs.length})</h2>
         <div class="results-list">
           {#each result.ayahs as ayah}
-            <a href="/quran/{ayah.surah_number}" class="result-link">
+            <a href="/quran/{ayah.surah_number}#{ayah.surah_number}:{ayah.ayah_number}" class="result-link">
               <AyahCard {ayah} showScore compact />
             </a>
           {/each}

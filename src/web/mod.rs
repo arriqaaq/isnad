@@ -130,6 +130,15 @@ pub async fn serve(
             "/api/quran/surahs/{number}/hadith-counts",
             axum::routing::get(quran_handlers::surah_hadith_counts),
         )
+        // Unified Quran & Sunnah routes
+        .route(
+            "/api/unified/search",
+            axum::routing::get(handlers::unified_search),
+        )
+        .route(
+            "/api/unified/ask",
+            axum::routing::post(handlers::unified_ask),
+        )
         .with_state(state);
 
     // Serve static assets from frontend/build, with SPA fallback to index.html

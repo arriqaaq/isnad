@@ -29,6 +29,7 @@ pub struct SearchParams {
     #[serde(rename = "type")]
     pub search_type: Option<String>,
     pub limit: Option<usize>,
+    pub page: Option<usize>,
 }
 
 #[derive(Deserialize)]
@@ -1079,4 +1080,133 @@ struct StudentsResult {
 struct HeardFromEdge {
     in_id: RecordId,
     out_id: RecordId,
+}
+
+// ── Unified Quran & Sunnah endpoints ──
+
+pub async fn unified_search(
+    State(state): State<AppState>,
+    Query(params): Query<SearchParams>,
+) -> impl IntoResponse {
+    let query = params.q.unwrap_or_default();
+    let limit = params.limit.unwrap_or(20);
+    let page = params.page.unwrap_or(1).max(1);
+
+    if query.is_empty() {
+        return Json(serde_json::json!({
+            "query": query,
+            "search_type": "hybrid",
+            "results": [],
+            "quran_count": 0,
+            "hadith_count": 0,
+            "page": page,
+            "has_more": false
+        }));
+    }
+
+    match crate::unified::search_unified(&state.db, &state.embedder, &query, limit, page).await {
+        Ok(response) => Json(serde_json::to_value(response).unwrap()),
+        Err(e) => {
+            tracing::error!("Unified search failed: {e}");
+            Json(serde_json::json!({
+                "query": query,
+                "search_type": "hybrid",
+                "results": [],
+                "quran_count": 0,
+                "hadith_count": 0
+            }))
+        }
+    }
+}
+
+pub async fn unified_ask(
+    State(state): State<AppState>,
+    Json(body): Json<AskRequest>,
+) -> Result<Response, StatusCode> {
+    let question = body.question.trim().to_string();
+    if question.is_empty() {
+        return Err(StatusCode::BAD_REQUEST);
+    }
+
+    let ollama = state.ollama.as_ref().ok_or_else(|| {
+        tracing::error!("Ollama client not configured");
+        StatusCode::SERVICE_UNAVAILABLE
+    })?;
+
+    let model_name = body.model.clone();
+    let (ayah_sources, hadith_sources, byte_stream) = ollama
+        .ask_unified(&state.db, &state.embedder, &question, model_name.as_deref())
+        .await
+        .map_err(|e| {
+            tracing::error!("Unified RAG ask failed: {e}");
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    use crate::quran::models::ApiAyahSearchResult;
+
+    let quran_sources: Vec<ApiAyahSearchResult> = ayah_sources
+        .into_iter()
+        .map(ApiAyahSearchResult::from)
+        .collect();
+    let hadith_api_sources: Vec<ApiHadithSearchResult> = hadith_sources
+        .into_iter()
+        .map(ApiHadithSearchResult::from)
+        .collect();
+
+    let sources_event = format!(
+        "data: {}\n\n",
+        serde_json::to_string(&serde_json::json!({
+            "quran_sources": quran_sources,
+            "hadith_sources": hadith_api_sources,
+        }))
+        .unwrap()
+    );
+
+    let sse_stream =
+        futures::stream::once(
+            async move { Ok::<_, std::io::Error>(bytes::Bytes::from(sources_event)) },
+        )
+        .chain(byte_stream.map(|chunk| match chunk {
+            Ok(raw) => {
+                let mut sse = String::new();
+                for line in raw.split(|&b| b == b'\n') {
+                    if line.is_empty() {
+                        continue;
+                    }
+                    if let Ok(parsed) = serde_json::from_slice::<ChatChunk>(line) {
+                        if let Some(msg) = parsed.message {
+                            if !msg.content.is_empty() {
+                                sse.push_str(&format!(
+                                    "data: {}\n\n",
+                                    serde_json::to_string(
+                                        &serde_json::json!({ "text": msg.content })
+                                    )
+                                    .unwrap()
+                                ));
+                            }
+                        }
+                        if parsed.done {
+                            sse.push_str("data: {\"done\":true}\n\n");
+                        }
+                    }
+                }
+                Ok(bytes::Bytes::from(sse))
+            }
+            Err(e) => {
+                let err_event = format!(
+                    "data: {}\n\n",
+                    serde_json::to_string(&serde_json::json!({ "error": e.to_string() })).unwrap()
+                );
+                Ok(bytes::Bytes::from(err_event))
+            }
+        }));
+
+    let body = Body::from_stream(sse_stream);
+
+    Ok(Response::builder()
+        .header("Content-Type", "text/event-stream")
+        .header("Cache-Control", "no-cache")
+        .header("Connection", "keep-alive")
+        .body(body)
+        .unwrap())
 }

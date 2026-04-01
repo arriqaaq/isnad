@@ -29,8 +29,11 @@ impl Embedder {
     }
 
     pub fn embed_single(&self, text: &str) -> Result<Vec<f32>> {
+        // E5 models require "query: " prefix for search queries to separate
+        // the query embedding space from the passage embedding space.
+        let prefixed = format!("query: {text}");
         let mut model = self.model.lock().unwrap();
-        let mut embeddings = model.embed(vec![text], None)?;
+        let mut embeddings = model.embed(vec![&prefixed], None)?;
         Ok(embeddings.remove(0))
     }
 }
@@ -60,7 +63,8 @@ pub async fn embed_all_hadiths(db: &Surreal<Db>) -> Result<()> {
             .map(|h| {
                 let narrator = h.narrator_text.as_deref().unwrap_or("");
                 let text = h.text_en.as_deref().or(h.text_ar.as_deref()).unwrap_or("");
-                format!("{} {}", narrator, text)
+                // E5 models require "passage: " prefix for document embeddings
+                format!("passage: {} {}", narrator, text)
             })
             .collect();
 

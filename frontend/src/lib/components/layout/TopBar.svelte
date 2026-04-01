@@ -10,7 +10,7 @@
   function handleSearch(e: Event) {
     e.preventDefault();
     if (searchQuery.trim()) {
-      goto(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+      goto(`/explore?q=${encodeURIComponent(searchQuery.trim())}`);
     }
   }
 </script>
@@ -39,7 +39,7 @@
       <span class="search-icon">&#x2315;</span>
       <input
         type="text"
-        placeholder="Search hadiths, narrators..."
+        placeholder="Search Quran & Sunnah..."
         bind:value={searchQuery}
         class="search-input"
       />

@@ -43,7 +43,9 @@
 
     <div class="ayah-list">
       {#each data.ayahs as ayah}
-        <AyahCard {ayah} hadithCount={hadithCounts[String(ayah.ayah_number)] ?? 0} />
+        <div id="{data.surah.surah_number}:{ayah.ayah_number}">
+          <AyahCard {ayah} hadithCount={hadithCounts[String(ayah.ayah_number)] ?? 0} />
+        </div>
       {/each}
     </div>
 

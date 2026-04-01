@@ -6,4 +6,6 @@ pub mod models;
 pub mod quran;
 pub mod rag;
 pub mod search;
+pub mod unified;
+pub mod unified_rag;
 pub mod web;

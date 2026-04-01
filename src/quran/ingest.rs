@@ -190,8 +190,9 @@ async fn embed_all_ayahs(db: &Surreal<Db>) -> Result<()> {
                     .copied()
                     .unwrap_or("Unknown");
                 let text = a.text_en.as_deref().unwrap_or(&a.text_ar);
+                // E5 models require "passage: " prefix for document embeddings
                 format!(
-                    "Quran {} {}:{}: {}",
+                    "passage: Quran {} {}:{}: {}",
                     surah_name, a.surah_number, a.ayah_number, text
                 )
             })

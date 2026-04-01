@@ -1,11 +1,13 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { goto } from '$app/navigation';
   import { inview } from '$lib/actions/inview';
   import { getStats, getQuranStats } from '$lib/api';
   import type { StatsResponse, QuranStatsResponse } from '$lib/types';
 
   let hadithStats: StatsResponse | null = $state(null);
   let quranStats: QuranStatsResponse | null = $state(null);
+  let searchQuery = $state('');
 
   onMount(async () => {
     try {
@@ -14,6 +16,13 @@
       console.error('Failed to load stats:', e);
     }
   });
+
+  function handleSearch(e: Event) {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      goto(`/explore?q=${encodeURIComponent(searchQuery.trim())}&type=semantic`);
+    }
+  }
 </script>
 
 <div class="landing">
@@ -25,8 +34,21 @@
         <span class="title-en">Ilm</span>
         <span class="title-ar" dir="rtl">عِلْم</span>
       </h1>
-      <p class="hero-subtitle">Search the <strong>Quran</strong> and <strong>Hadith</strong> by meaning, explore <strong>narrator chains</strong> and <strong>transmission graphs</strong>, and study with <strong>Tafsir Ibn Kathir</strong></p>
+      <p class="hero-subtitle">Search the <strong>Quran</strong> and <strong>Sunnah</strong> by meaning</p>
     </div>
+
+    <!-- Google-style Search Bar -->
+    <form class="hero-search" onsubmit={handleSearch}>
+      <div class="hero-search-bar">
+        <span class="hero-search-icon">&#x2315;</span>
+        <input
+          type="text"
+          placeholder="Search Quran & Sunnah..."
+          bind:value={searchQuery}
+          class="hero-search-input"
+        />
+      </div>
+    </form>
 
     <!-- Quick Access Cards -->
     <div class="quick-access">
@@ -178,7 +200,6 @@
         <!-- Training Pipeline -->
         <div class="hood-col">
           <h3 class="hood-subtitle animate-on-scroll" use:inview>Training Pipeline</h3>
-          <p class="hood-desc animate-on-scroll" use:inview>Fine-tune a domain-specific LLM on hadith & Quran data</p>
           <div class="pipeline-grid">
             {#each [
               { n: '1', title: 'Raw Data', desc: 'Sanadset · Tanzil · Sunnah.com' },
@@ -283,6 +304,51 @@
     font-weight: 600;
   }
 
+  /* Hero Search Bar */
+  .hero-search {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 580px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    animation: fade-in-up 0.8s 0.2s ease both;
+  }
+  .hero-search-bar {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    background: var(--bg-surface);
+    border: 2px solid var(--border);
+    border-radius: 28px;
+    padding: 0 20px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    transition: all 0.2s ease;
+  }
+  .hero-search-bar:focus-within {
+    border-color: var(--accent);
+    box-shadow: 0 4px 20px rgba(214,51,132,0.12);
+  }
+  .hero-search-icon {
+    color: var(--text-muted);
+    font-size: 1.2rem;
+    margin-right: 12px;
+    flex-shrink: 0;
+  }
+  .hero-search-input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    padding: 16px 0;
+    font-size: 1.05rem;
+    color: var(--text-primary);
+    outline: none;
+  }
+  .hero-search-input::placeholder {
+    color: var(--text-muted);
+  }
   /* Quick Access Cards */
   .quick-access {
     position: relative;
@@ -456,7 +522,7 @@
   .hood-columns {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 48px;
+    gap: 72px;
     align-items: stretch;
   }
   .hood-col {

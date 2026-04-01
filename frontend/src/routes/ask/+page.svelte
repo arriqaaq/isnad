@@ -1,22 +1,75 @@
 <script lang="ts">
-  import type { ApiHadithSearchResult } from '$lib/types';
+  import type { ApiHadithSearchResult, ApiAyahSearchResult } from '$lib/types';
   import { truncate, stripHtml } from '$lib/utils';
   import { language } from '$lib/stores/language';
+
+  type SourceMode = 'both' | 'quran' | 'hadith';
 
   interface Message {
     role: 'user' | 'assistant';
     content: string;
-    sources?: ApiHadithSearchResult[];
+    hadith_sources?: ApiHadithSearchResult[];
+    quran_sources?: ApiAyahSearchResult[];
     streaming?: boolean;
   }
 
   let messages: Message[] = $state([]);
   let input = $state('');
   let loading = $state(false);
+  let sourceMode: SourceMode = $state('both');
   let chatContainer: HTMLDivElement = $state(null!);
 
   function scrollToBottom() {
     if (chatContainer) chatContainer.scrollTop = chatContainer.scrollHeight;
+  }
+
+  function getEndpoint(): string {
+    switch (sourceMode) {
+      case 'quran': return '/api/quran/ask';
+      case 'hadith': return '/api/ask';
+      case 'both': return '/api/unified/ask';
+    }
+  }
+
+  function getTitle(): string {
+    switch (sourceMode) {
+      case 'quran': return 'Ask about the Quran';
+      case 'hadith': return 'Ask about Hadith';
+      case 'both': return 'Ask about Quran & Sunnah';
+    }
+  }
+
+  function getPlaceholder(): string {
+    switch (sourceMode) {
+      case 'quran': return 'Ask about the Quran...';
+      case 'hadith': return 'Ask about hadiths...';
+      case 'both': return 'Ask about Quran & Sunnah...';
+    }
+  }
+
+  const suggestions: Record<SourceMode, { label: string; text: string }[]> = {
+    both: [
+      { label: 'Patience', text: 'What do the Quran and Hadith say about patience?' },
+      { label: 'Charity', text: 'What is the ruling on charity from Quran and Sunnah?' },
+      { label: 'Prayer', text: 'What do the Quran and Hadith teach about prayer?' },
+    ],
+    quran: [
+      { label: 'Patience', text: 'What does the Quran say about patience?' },
+      { label: 'Charity', text: 'What are the verses about charity and giving?' },
+      { label: 'Justice', text: 'What does the Quran say about justice?' },
+    ],
+    hadith: [
+      { label: 'Neighbors', text: 'What did the Prophet say about kindness to neighbors?' },
+      { label: 'Prayer times', text: 'What are the hadiths about prayer times?' },
+      { label: 'Fasting', text: 'What did Abu Huraira narrate about fasting?' },
+    ],
+  };
+
+  function switchMode(mode: SourceMode) {
+    if (mode !== sourceMode) {
+      sourceMode = mode;
+      messages = [];
+    }
   }
 
   async function handleSubmit(e: Event) {
@@ -31,7 +84,7 @@
     loading = true;
 
     try {
-      const res = await fetch('/api/ask', {
+      const res = await fetch(getEndpoint(), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ question }),
@@ -63,9 +116,23 @@
           if (!jsonStr) continue;
           try {
             const data = JSON.parse(jsonStr);
-            if (data.sources) {
-              messages[idx] = { ...messages[idx], sources: data.sources };
-            } else if (data.text) {
+            // Unified: {quran_sources, hadith_sources}
+            if (data.quran_sources || data.hadith_sources) {
+              messages[idx] = {
+                ...messages[idx],
+                quran_sources: data.quran_sources,
+                hadith_sources: data.hadith_sources,
+              };
+            }
+            // Hadith-only: {sources}
+            else if (data.sources && sourceMode === 'hadith') {
+              messages[idx] = { ...messages[idx], hadith_sources: data.sources };
+            }
+            // Quran-only: {sources}
+            else if (data.sources && sourceMode === 'quran') {
+              messages[idx] = { ...messages[idx], quran_sources: data.sources };
+            }
+            else if (data.text) {
               messages[idx] = { ...messages[idx], content: messages[idx].content + data.text };
               scrollToBottom();
             } else if (data.done) {
@@ -88,16 +155,24 @@
 </script>
 
 <div class="ask-page">
+  <div class="ask-header">
+    <div class="mode-toggle">
+      <button class="mode-btn" class:active={sourceMode === 'both'} onclick={() => switchMode('both')}>Both</button>
+      <button class="mode-btn" class:active={sourceMode === 'quran'} onclick={() => switchMode('quran')}>Quran</button>
+      <button class="mode-btn" class:active={sourceMode === 'hadith'} onclick={() => switchMode('hadith')}>Hadith</button>
+    </div>
+  </div>
+
   <div class="chat-container" bind:this={chatContainer}>
     {#if messages.length === 0}
       <div class="empty-state">
-        <div class="empty-icon">◆</div>
-        <h2>Ask about Sahih al-Bukhari</h2>
-        <p>Ask questions about hadiths. Answers are grounded in the actual text using semantic search.</p>
+        <div class="empty-icon">{sourceMode === 'quran' ? '◈' : sourceMode === 'hadith' ? '☰' : '✦'}</div>
+        <h2>{getTitle()}</h2>
+        <p>Answers are grounded in {sourceMode === 'both' ? 'Quranic verses, Tafsir, and Hadith' : sourceMode === 'quran' ? 'Quranic verses and Tafsir Ibn Kathir' : 'hadith texts'} using semantic search.</p>
         <div class="suggestions">
-          <button class="suggestion" onclick={() => { input = 'What did the Prophet say about kindness to neighbors?'; }}>Kindness to neighbors</button>
-          <button class="suggestion" onclick={() => { input = 'What are the hadiths about prayer times?'; }}>Prayer times</button>
-          <button class="suggestion" onclick={() => { input = 'What did Abu Huraira narrate about fasting?'; }}>Abu Huraira on fasting</button>
+          {#each suggestions[sourceMode] as s}
+            <button class="suggestion" onclick={() => { input = s.text; }}>{s.label}</button>
+          {/each}
         </div>
       </div>
     {/if}
@@ -110,15 +185,31 @@
         <div class="message-content">
           {#if msg.role === 'assistant'}
             <div class="assistant-text">{msg.content}{#if msg.streaming}<span class="cursor">|</span>{/if}</div>
-            {#if msg.sources && msg.sources.length > 0}
+
+            {#if msg.quran_sources && msg.quran_sources.length > 0}
               <details class="sources">
-                <summary>Sources ({msg.sources.length} hadiths)</summary>
+                <summary>Quran Sources ({msg.quran_sources.length} ayahs)</summary>
                 <div class="source-list">
-                  {#each msg.sources as s}
+                  {#each msg.quran_sources as s}
+                    <a href="/quran/{s.surah_number}#{s.surah_number}:{s.ayah_number}" class="source-card">
+                      <span class="source-ref mono quran-ref">{s.surah_number}:{s.ayah_number}</span>
+                      <span class="source-arabic" dir="rtl">{truncate(s.text_ar, 80)}</span>
+                      {#if s.text_en}<span class="source-text">{truncate(s.text_en, 120)}</span>{/if}
+                    </a>
+                  {/each}
+                </div>
+              </details>
+            {/if}
+
+            {#if msg.hadith_sources && msg.hadith_sources.length > 0}
+              <details class="sources">
+                <summary>Hadith Sources ({msg.hadith_sources.length} hadiths)</summary>
+                <div class="source-list">
+                  {#each msg.hadith_sources as s}
                     <a href="/hadiths/{s.id}" class="source-card">
                       <span class="source-num mono">#{s.hadith_number}</span>
                       {#if s.narrator_text}<span class="source-narrator">{s.narrator_text}</span>{/if}
-                      <span class="source-text">{$language === 'en' && s.text_en ? truncate(stripHtml(s.text_en), 120) : truncate(s.text_ar || stripHtml(s.text_en), 120)}</span>
+                      <span class="source-text">{$language === 'en' && s.text_en ? truncate(stripHtml(s.text_en), 120) : truncate(s.text_ar || stripHtml(s.text_en ?? ''), 120)}</span>
                     </a>
                   {/each}
                 </div>
@@ -133,20 +224,52 @@
   </div>
 
   <form class="input-area" onsubmit={handleSubmit}>
-    <input type="text" placeholder="Ask about hadiths..." bind:value={input} disabled={loading} class="chat-input" />
+    <input type="text" placeholder={getPlaceholder()} bind:value={input} disabled={loading} class="chat-input" />
     <button type="submit" class="send-btn" disabled={loading || !input.trim()}>{loading ? '...' : 'Send'}</button>
   </form>
 </div>
 
 <style>
   .ask-page { display: flex; flex-direction: column; height: 100%; }
+
+  .ask-header {
+    padding: 12px 24px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-secondary);
+    display: flex;
+    align-items: center;
+  }
+  .mode-toggle {
+    display: flex;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .mode-btn {
+    padding: 8px 18px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    background: var(--bg-surface);
+    color: var(--text-secondary);
+    border: none;
+    cursor: pointer;
+    transition: all var(--transition);
+  }
+  .mode-btn.active {
+    background: var(--accent);
+    color: white;
+  }
+  .mode-btn:hover:not(.active) {
+    background: var(--bg-hover);
+  }
+
   .chat-container { flex: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 16px; }
   .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; text-align: center; color: var(--text-secondary); gap: 12px; padding: 40px; }
   .empty-icon { font-size: 2.5rem; color: var(--accent); margin-bottom: 8px; }
   .empty-state h2 { color: var(--text-primary); }
   .empty-state p { max-width: 480px; line-height: 1.6; font-size: 0.9rem; }
   .suggestions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-top: 12px; }
-  .suggestion { padding: 8px 16px; background: var(--bg-surface); border: 1px solid var(--border); border-radius: 20px; color: var(--text-secondary); font-size: 0.8rem; transition: all var(--transition); }
+  .suggestion { padding: 8px 16px; background: var(--bg-surface); border: 1px solid var(--border); border-radius: 20px; color: var(--text-secondary); font-size: 0.8rem; transition: all var(--transition); cursor: pointer; }
   .suggestion:hover { border-color: var(--accent); color: var(--accent); }
   .message { max-width: 800px; }
   .message.user { align-self: flex-end; }
@@ -163,12 +286,22 @@
   .source-list { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
   .source-card { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; background: var(--bg-hover); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 0.8rem; transition: background var(--transition); }
   .source-card:hover { background: var(--bg-active); color: var(--text-primary); }
+  .source-ref { font-size: 0.75rem; font-weight: 600; }
+  .quran-ref { color: var(--success); }
   .source-num { color: var(--text-muted); font-size: 0.75rem; }
   .source-narrator { color: var(--accent); font-size: 0.8rem; }
+  .source-arabic { color: var(--text-primary); font-size: 0.95rem; }
   .source-text { color: var(--text-secondary); }
   .input-area { display: flex; gap: 8px; padding: 16px 24px; border-top: 1px solid var(--border); background: var(--bg-secondary); }
   .chat-input { flex: 1; padding: 12px 16px; font-size: 0.9rem; }
-  .send-btn { padding: 12px 24px; background: var(--accent); color: var(--bg-primary); border-radius: var(--radius); font-weight: 600; font-size: 0.85rem; transition: background var(--transition); }
+  .send-btn { padding: 12px 24px; background: var(--accent); color: white; border: none; border-radius: var(--radius); font-weight: 600; font-size: 0.85rem; cursor: pointer; transition: background var(--transition); }
   .send-btn:hover:not(:disabled) { background: var(--accent-hover); }
   .send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  @media (max-width: 640px) {
+    .ask-header { padding: 8px 12px; }
+    .mode-btn { padding: 6px 12px; font-size: 0.75rem; }
+    .chat-container { padding: 16px; }
+    .input-area { padding: 12px; }
+  }
 </style>

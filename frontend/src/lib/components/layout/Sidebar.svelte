@@ -1,20 +1,23 @@
 <script lang="ts">
   import { page } from '$app/state';
 
+  const featuredItems = [
+    { path: '/explore', label: 'Explore', icon: '✦' },
+    { path: '/ask', label: 'Ask', icon: '◇' },
+  ];
+
   const hadithItems = [
     { path: '/hadiths', label: 'Hadiths', icon: '☰' },
     { path: '/narrators', label: 'Narrators', icon: '◎' },
     { path: '/books', label: 'Books', icon: '▤' },
     { path: '/families', label: 'Families', icon: '⬢' },
     { path: '/search', label: 'Search', icon: '⌕' },
-    { path: '/ask', label: 'Ask', icon: '◇' },
     { path: '/analysis', label: 'Analysis', icon: '△' },
   ];
 
   const quranItems = [
     { path: '/quran', label: 'Quran', icon: '◈' },
     { path: '/quran/search', label: 'Quran Search', icon: '⌕' },
-    { path: '/quran/ask', label: 'Ask Quran', icon: '◇' },
   ];
 
   function isActive(path: string): boolean {
@@ -31,6 +34,19 @@
   </div>
 
   <div class="nav-items">
+    {#each featuredItems as item}
+      <a
+        href={item.path}
+        class="nav-item featured"
+        class:active={isActive(item.path)}
+      >
+        <span class="nav-icon">{item.icon}</span>
+        <span class="nav-label">{item.label}</span>
+      </a>
+    {/each}
+
+    <div class="nav-divider"></div>
+
     {#each hadithItems as item}
       <a
         href={item.path}
@@ -126,6 +142,10 @@
   .nav-item.active {
     background: var(--accent-muted);
     color: var(--accent);
+  }
+
+  .nav-item.featured {
+    font-weight: 600;
   }
 
   .nav-icon {

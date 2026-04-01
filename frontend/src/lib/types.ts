@@ -250,3 +250,42 @@ export interface AyahHadithResponse {
   curated: ApiHadith[];
   related: ApiHadithSearchResult[] | null;
 }
+
+// ── Unified Quran & Sunnah types ──
+
+export interface UnifiedSearchItemQuran {
+  source: 'quran';
+  id: string;
+  surah_number: number;
+  ayah_number: number;
+  text_ar: string;
+  text_en: string | null;
+  tafsir_en: string | null;
+  text_ar_tajweed: string | null;
+  score: number | null;
+  unified_score: number;
+}
+
+export interface UnifiedSearchItemHadith {
+  source: 'hadith';
+  id: string;
+  hadith_number: number;
+  book_id: number;
+  text_ar: string | null;
+  text_en: string | null;
+  narrator_text: string | null;
+  score: number | null;
+  unified_score: number;
+}
+
+export type UnifiedSearchItem = UnifiedSearchItemQuran | UnifiedSearchItemHadith;
+
+export interface UnifiedSearchResponse {
+  query: string;
+  search_type: string;
+  results: UnifiedSearchItem[];
+  quran_count: number;
+  hadith_count: number;
+  page: number;
+  has_more: boolean;
+}

@@ -18,6 +18,7 @@ import type {
   QuranSearchResponse,
   QuranStatsResponse,
   SurahDetailResponse,
+  UnifiedSearchResponse,
 } from './types';
 
 const BASE = '/api';
@@ -179,4 +180,15 @@ export async function getSurahHadithCounts(
   surah: number
 ): Promise<Record<string, number>> {
   return get(`/quran/surahs/${surah}/hadith-counts`);
+}
+
+// ── Unified Quran & Sunnah API ──
+
+export async function searchUnified(
+  q: string,
+  type: 'hybrid' | 'semantic' = 'hybrid',
+  limit = 20,
+  page = 1
+): Promise<UnifiedSearchResponse> {
+  return get(`/unified/search?q=${encodeURIComponent(q)}&type=${type}&limit=${limit}&page=${page}`);
 }
