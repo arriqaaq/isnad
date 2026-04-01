@@ -50,15 +50,25 @@ ingest:
 
 # === Quran ingestion ===
 
+VENV := .venv
+VENV_PYTHON := $(VENV)/bin/python3
+VENV_PIP := $(VENV)/bin/pip
+
+# Create virtual environment and install Python dependencies
+$(VENV_PYTHON):
+	python3 -m venv $(VENV)
+	$(VENV_PIP) install --upgrade pip
+	$(VENV_PIP) install datasets pandas
+
 # Prepare Quran data (download Tanzil + Tafsir Ibn Kathir, merge into CSV)
-quran-prepare:
-	python3 scripts/prepare_quran_data.py
+quran-prepare: $(VENV_PYTHON)
+	$(VENV_PYTHON) scripts/prepare_quran_data.py
 
 # Ingest Quran into SurrealDB (requires data/quran.csv from quran-prepare)
 quran-ingest:
 	cargo run -- ingest-quran
 
-# Full Quran pipeline: prepare data + ingest
+# Full Quran pipeline: create venv + prepare data + ingest
 quran: quran-prepare quran-ingest
 
 # === Analyze phase (runs on already-ingested data) ===
@@ -95,4 +105,4 @@ pipeline-full:
 
 # Clean all generated data
 clean:
-	rm -rf db_data target frontend/build frontend/node_modules
+	rm -rf db_data target frontend/build frontend/node_modules $(VENV)

@@ -1,0 +1,7 @@
+FROM ./hadith-scholar-q4km.gguf
+
+PARAMETER temperature 0.7
+PARAMETER top_p 0.9
+PARAMETER num_ctx 4096
+
+SYSTEM "You are a knowledgeable Islamic scholar assistant specializing in hadith sciences and Quranic exegesis."

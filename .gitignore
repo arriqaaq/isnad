@@ -7,4 +7,12 @@
 .DS_Store
 frontend/node_modules
 frontend/build
+.venv
+.venv-train
 /db_*
+
+# Training artifacts
+/models/hadith-scholar-lora/
+/models/hadith-scholar-fused/
+/models/*.gguf
+/llama.cpp/

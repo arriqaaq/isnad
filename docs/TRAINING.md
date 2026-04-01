@@ -17,6 +17,76 @@ A fine-tuned model simply replaces the default `llama3.2` in Ollama. The `Ollama
 
 ---
 
+## Quick Start
+
+Run these commands from the project root to go from raw data to a working model:
+
+```bash
+# 1. Create virtualenv and install dependencies
+python3 -m venv .venv-train
+source .venv-train/bin/activate
+pip install mlx-lm datasets
+
+# 2. Generate Quran CSV (downloads from Tanzil + HuggingFace tafsir)
+python3 scripts/prepare_quran_data.py
+
+# 3. Generate training data from hadith/Quran sources
+#    Requires: Ollama running with llama3.2 (ollama pull llama3.2 && ollama serve)
+#    Parses sanadset.csv (30K hadiths) → enriches with translations → generates ~1,400 Q&A examples
+python3 scripts/prepare_training_data.py
+
+# 4. Fine-tune Phi-4-mini with LoRA (~20-30 min on Apple Silicon)
+mlx_lm.lora \
+  --model mlx-community/Phi-4-mini-instruct-4bit \
+  --train \
+  --data data/ \
+  --iters 1000 \
+  --batch-size 4 \
+  --lora-layers 16 \
+  --adapter-path models/hadith-scholar-lora
+
+# 5. Fuse LoRA adapter into base model (--de-quantize required for GGUF conversion)
+mlx_lm.fuse \
+  --model mlx-community/Phi-4-mini-instruct-4bit \
+  --adapter-path models/hadith-scholar-lora \
+  --save-path models/hadith-scholar-fused \
+  --de-quantize
+
+# 6. Convert to GGUF
+git clone https://github.com/ggml-org/llama.cpp.git
+pip install -r llama.cpp/requirements.txt
+python3 llama.cpp/convert_hf_to_gguf.py models/hadith-scholar-fused \
+  --outfile models/hadith-scholar.gguf \
+  --outtype q8_0
+
+# 7. Quantize to Q4_K_M (~2GB file)
+cd llama.cpp && cmake -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build --target llama-quantize -j && cd ..
+llama.cpp/build/bin/llama-quantize models/hadith-scholar.gguf models/hadith-scholar-q4km.gguf Q4_K_M
+
+# 8. Register with Ollama and run
+deactivate
+ollama create hadith-scholar -f models/Modelfile
+ollama run hadith-scholar "What is the significance of intentions in Islam?"
+
+# 9. Use with the web app
+OLLAMA_MODEL=hadith-scholar make server
+```
+
+Alternatively, `scripts/train_mlx.sh` wraps steps 1 and 4-7 into a single script:
+
+```bash
+python3 scripts/prepare_quran_data.py          # step 2
+python3 scripts/prepare_training_data.py       # step 3
+bash scripts/train_mlx.sh                      # steps 1, 4-7
+ollama create hadith-scholar -f models/Modelfile  # step 8
+```
+
+---
+
+## How It Works
+
+The sections below explain each step in detail.
+
 ## Step 0: Prerequisites
 
 Before preparing training data, generate the Quran CSV if it doesn't already exist:

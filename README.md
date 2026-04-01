@@ -301,23 +301,28 @@ A separate Quran section with browse, search, tafsir, and RAG-powered Q&A.
 
 ### Ingest Quran
 
+The data preparation script requires Python with `datasets` and `pandas`. Use a virtual environment to avoid polluting your system Python:
+
 ```bash
-# Step 1: Prepare data (downloads Tanzil + Tafsir, merges into CSV)
-# Requires: pip install datasets pandas
-make quran-prepare
+# Step 1: Create virtual environment and install dependencies (one-time)
+python3 -m venv .venv
+source .venv/bin/activate
+pip install datasets pandas
 
-# Step 2: Ingest into SurrealDB (6,236 ayahs + 114 surahs + embeddings)
-make quran-ingest
+# Step 2: Prepare data (downloads Tanzil + Tafsir Ibn Kathir, merges into CSV)
+python3 scripts/prepare_quran_data.py        # → data/quran.csv (6,236 rows)
+deactivate
 
-# Or both in one step:
-make quran
+# Step 3: Ingest into SurrealDB (114 surahs + 6,236 ayahs + embeddings)
+cargo run -- ingest-quran
 ```
 
-Or manually:
+Or use Make (handles venv automatically):
 
 ```bash
-python3 scripts/prepare_quran_data.py        # → data/quran.csv
-cargo run -- ingest-quran                     # → SurrealDB
+make quran-prepare    # creates venv, installs deps, runs script
+make quran-ingest     # ingests CSV into SurrealDB
+make quran            # both in one step
 ```
 
 ### Quran Features
