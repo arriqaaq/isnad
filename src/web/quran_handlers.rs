@@ -329,8 +329,10 @@ pub async fn surah_hadith_counts(
         })?;
 
     // Convert i64 keys to String keys for JSON
-    let string_counts: std::collections::HashMap<String, i64> =
-        counts.into_iter().map(|(k, v)| (k.to_string(), v)).collect();
+    let string_counts: std::collections::HashMap<String, i64> = counts
+        .into_iter()
+        .map(|(k, v)| (k.to_string(), v))
+        .collect();
 
     Ok(Json(string_counts))
 }

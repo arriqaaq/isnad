@@ -123,12 +123,12 @@
     font-family: 'Georgia', 'Palatino Linotype', 'Book Antiqua', serif;
     font-size: 1.1rem;
     line-height: 1.9;
-    color: #1a5c2e;
+    color: var(--success);
     font-weight: 600;
     font-style: italic;
     padding: 20px 24px;
     border-left: 3px solid var(--accent);
-    background: rgba(45, 143, 78, 0.04);
+    background: var(--bg-hover);
     border-radius: 0 var(--radius) var(--radius) 0;
     letter-spacing: 0.01em;
   }

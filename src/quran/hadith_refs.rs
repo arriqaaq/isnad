@@ -108,10 +108,10 @@ fn surah_ayah_counts() -> Vec<i64> {
     vec![
         7, 286, 200, 176, 120, 165, 206, 75, 129, 109, 123, 111, 43, 52, 99, 128, 111, 110, 98,
         135, 112, 78, 118, 64, 77, 227, 93, 88, 69, 60, 34, 30, 73, 54, 45, 83, 182, 88, 75, 85,
-        54, 53, 89, 59, 37, 35, 38, 29, 18, 45, 60, 49, 62, 55, 78, 96, 29, 22, 24, 13, 14, 11,
-        11, 18, 12, 12, 30, 52, 52, 44, 28, 28, 20, 56, 40, 31, 50, 40, 46, 42, 29, 19, 36, 25,
-        22, 17, 19, 26, 30, 20, 15, 21, 11, 8, 8, 19, 5, 8, 8, 11, 11, 8, 3, 9, 5, 4, 7, 3, 6,
-        3, 5, 4, 5, 6,
+        54, 53, 89, 59, 37, 35, 38, 29, 18, 45, 60, 49, 62, 55, 78, 96, 29, 22, 24, 13, 14, 11, 11,
+        18, 12, 12, 30, 52, 52, 44, 28, 28, 20, 56, 40, 31, 50, 40, 46, 42, 29, 19, 36, 25, 22, 17,
+        19, 26, 30, 20, 15, 21, 11, 8, 8, 19, 5, 8, 8, 11, 11, 8, 3, 9, 5, 4, 7, 3, 6, 3, 5, 4, 5,
+        6,
     ]
 }
 
@@ -147,12 +147,20 @@ pub async fn ingest_hadith_refs(db: &Surreal<Db>) -> Result<()> {
     println!("📥 Step 2: Fetching reference metadata...");
     let all_refs = fetch_all_refs(&client, &verses_with_hadiths).await?;
     let total_refs: usize = all_refs.values().map(|v| v.len()).sum();
-    println!("   ✓ Fetched {} references across {} verses", total_refs, all_refs.len());
+    println!(
+        "   ✓ Fetched {} references across {} verses",
+        total_refs,
+        all_refs.len()
+    );
 
     // Step 3: Resolve to local hadith records & create edges
     println!("🔗 Step 3: Resolving references to local hadith records...");
     let (matched, unmatched) = resolve_and_create_edges(db, &all_refs).await?;
-    println!("   ✓ Created {} edges, {} unmatched", matched, unmatched.len());
+    println!(
+        "   ✓ Created {} edges, {} unmatched",
+        matched,
+        unmatched.len()
+    );
 
     // Step 4: Fallback text matching for unmatched refs
     if !unmatched.is_empty() {
@@ -161,7 +169,10 @@ pub async fn ingest_hadith_refs(db: &Surreal<Db>) -> Result<()> {
             unmatched.len()
         );
         let fallback_matched = fallback_text_match(db, &client, &unmatched).await?;
-        println!("   ✓ Resolved {} additional refs via text matching", fallback_matched);
+        println!(
+            "   ✓ Resolved {} additional refs via text matching",
+            fallback_matched
+        );
 
         let still_unresolved = unmatched.len() - fallback_matched;
         if still_unresolved > 0 {
@@ -275,9 +286,7 @@ async fn fetch_all_refs(
             let data = std::fs::read_to_string(&cache_path)?;
             serde_json::from_str::<Vec<HadithRef>>(&data).unwrap_or_default()
         } else {
-            let url = format!(
-                "{API_BASE}/hadith_references/by_ayah/{surah}:{ayah}?language=en"
-            );
+            let url = format!("{API_BASE}/hadith_references/by_ayah/{surah}:{ayah}?language=en");
 
             let refs = match client.get(&url).send().await {
                 Ok(resp) if resp.status().is_success() => {
@@ -567,9 +576,7 @@ pub async fn get_curated_hadiths(
     // SurrealDB graph traversal: record->edge->target returns array of target records
     // We query the edge table directly and fetch the linked hadith records
     let mut res = db
-        .query(
-            "SELECT out.* FROM references_hadith WHERE in = $ayah_id",
-        )
+        .query("SELECT out.* FROM references_hadith WHERE in = $ayah_id")
         .bind(("ayah_id", rid("ayah", &ayah_key)))
         .await?;
 
@@ -579,19 +586,13 @@ pub async fn get_curated_hadiths(
     }
 
     let rows: Vec<OutRow> = res.take(0)?;
-    let hadiths: Vec<crate::models::Hadith> = rows
-        .into_iter()
-        .filter_map(|r| r.out)
-        .collect();
+    let hadiths: Vec<crate::models::Hadith> = rows.into_iter().filter_map(|r| r.out).collect();
 
     Ok(hadiths)
 }
 
 /// Get hadith reference counts per ayah in a surah.
-pub async fn get_hadith_counts(
-    db: &Surreal<Db>,
-    surah: i64,
-) -> Result<HashMap<i64, i64>> {
+pub async fn get_hadith_counts(db: &Surreal<Db>, surah: i64) -> Result<HashMap<i64, i64>> {
     // Query the edge table directly — group by source ayah to get counts
     // The `in` field of references_hadith is the ayah record ID (e.g., ayah:5_3)
     let mut res = db

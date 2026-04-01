@@ -66,4 +66,8 @@
   .nav-link { font-size: 0.85rem; color: var(--accent); }
   .nav-link:hover { text-decoration: underline; }
   .ayah-list { display: flex; flex-direction: column; }
+  @media (max-width: 640px) {
+    .surah-page { padding: 12px; }
+    .surah-nav { padding: 8px 0; }
+  }
 </style>

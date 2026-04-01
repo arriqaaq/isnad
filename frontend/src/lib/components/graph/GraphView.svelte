@@ -18,6 +18,11 @@
   let cy: cytoscape.Core | null = null;
   let registered = false;
 
+  function getThemeColor(varName: string, fallback: string): string {
+    if (typeof document === 'undefined') return fallback;
+    return getComputedStyle(document.documentElement).getPropertyValue(varName).trim() || fallback;
+  }
+
   function initGraph() {
     if (!container || !data || data.nodes.length === 0) return;
 
@@ -33,6 +38,12 @@
       ...data.edges.map((e) => ({ data: e.data })),
     ];
 
+    const textColor = getThemeColor('--text-primary', '#1a1a2e');
+    const borderColor = getThemeColor('--border', '#e5e7eb');
+    const mutedColor = getThemeColor('--text-muted', '#9ca3af');
+    const successColor = getThemeColor('--success', '#16a34a');
+    const accentSecondary = getThemeColor('--accent-secondary', '#b8860b');
+
     cy = cytoscape({
       container,
       elements,
@@ -40,22 +51,22 @@
         {
           selector: 'node',
           style: {
-            'background-color': '#2d8f4e',
+            'background-color': successColor,
             label: 'data(label)',
-            color: '#1a1a2e',
+            color: textColor,
             'font-size': '11px',
             'text-valign': 'bottom',
             'text-margin-y': 6,
             width: 30,
             height: 30,
             'border-width': 2,
-            'border-color': '#e5e7eb',
+            'border-color': borderColor,
           },
         },
         {
           selector: 'node[type="center"]',
           style: {
-            'background-color': '#b8860b',
+            'background-color': accentSecondary,
             width: 40,
             height: 40,
             'font-weight': 'bold',
@@ -63,7 +74,7 @@
         },
         {
           selector: 'node[type="teacher"]',
-          style: { 'background-color': '#16a34a' },
+          style: { 'background-color': successColor },
         },
         {
           selector: 'node[type="student"]',
@@ -73,8 +84,8 @@
           selector: 'edge',
           style: {
             width: 2,
-            'line-color': '#d1d5db',
-            'target-arrow-color': '#9ca3af',
+            'line-color': borderColor,
+            'target-arrow-color': mutedColor,
             'target-arrow-shape': 'triangle',
             'curve-style': 'bezier',
             'arrow-scale': 0.8,
@@ -156,5 +167,9 @@
     height: 200px;
     color: var(--text-muted);
     font-size: 0.85rem;
+  }
+
+  @media (max-width: 768px) {
+    .graph-container { height: 280px; }
   }
 </style>

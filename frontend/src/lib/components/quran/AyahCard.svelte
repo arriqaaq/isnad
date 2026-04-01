@@ -2,6 +2,7 @@
   import type { ApiAyah, ApiAyahSearchResult, AyahHadithResponse } from '$lib/types';
   import { getAyahHadiths } from '$lib/api';
   import { truncate } from '$lib/utils';
+  import { preferences } from '$lib/stores/preferences';
   import AyahHadithList from './AyahHadithList.svelte';
 
   let { ayah, showScore = false, compact = false, hadithCount = 0 }: {
@@ -33,7 +34,7 @@
 </script>
 
 <div class="ayah-card" class:compact>
-  <div class="ayah-arabic" dir="rtl">
+  <div class="ayah-arabic" dir="rtl" style="font-size: {$preferences.arabicFontSize}rem">
     {#if ayah.text_ar_tajweed}
       <span class="arabic-text tajweed-text">{@html ayah.text_ar_tajweed}</span>
     {:else}
@@ -43,7 +44,7 @@
   </div>
 
   {#if ayah.text_en}
-    <div class="ayah-translation">
+    <div class="ayah-translation" style="font-size: {$preferences.englishFontSize}rem">
       {#if compact}
         {truncate(ayah.text_en, 200)}
       {:else}
@@ -99,34 +100,22 @@
     border-radius: var(--radius);
   }
   .ayah-arabic {
-    text-align: center;
+    text-align: right;
     line-height: 2.2;
     margin-bottom: 12px;
-    position: relative;
+    padding: 0 8px;
   }
   .arabic-text {
-    font-size: 1.6rem;
     color: var(--text-primary);
   }
-  .compact .arabic-text {
-    font-size: 1.2rem;
-  }
   .verse-badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 28px;
-    height: 28px;
-    border: 1.5px solid var(--accent);
-    border-radius: 50%;
-    font-size: 0.7rem;
+    display: inline;
+    font-size: 0.65em;
     color: var(--accent);
-    margin-right: 8px;
     vertical-align: middle;
     font-family: var(--font-mono);
   }
   .ayah-translation {
-    font-size: 0.9rem;
     line-height: 1.7;
     color: var(--text-secondary);
     text-align: left;
@@ -240,18 +229,20 @@
   .tajweed-text :global(tajweed.idgham_no_ghunnah) { color: #4CAF50; }
   .tajweed-text :global(tajweed.idgham_shafawi) { color: #4CAF50; }
   .tajweed-text :global(tajweed.qalpiaqpiala) { color: #B71C1C; }
+  /* Mobile responsive */
+  @media (max-width: 640px) {
+    .ayah-card { padding: 14px 0; }
+    .ayah-arabic { padding: 0 12px; }
+    .ayah-translation { padding: 0 12px; }
+    .ayah-footer { padding: 0 12px; flex-wrap: wrap; }
+    .tafsir-block, .hadith-block { margin-left: 12px; margin-right: 12px; }
+  }
+
   /* Verse end number badge from quran.com tajweed text */
   .tajweed-text :global(span.end) {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 28px;
-    height: 28px;
-    border: 1.5px solid var(--accent);
-    border-radius: 50%;
-    font-size: 0.7rem;
+    display: inline;
+    font-size: 0.65em;
     color: var(--accent);
-    margin-right: 8px;
     vertical-align: middle;
   }
 </style>

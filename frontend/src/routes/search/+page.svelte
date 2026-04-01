@@ -104,8 +104,8 @@
 <style>
   .search-page { padding: 24px; }
   h1 { margin-bottom: 20px; }
-  .search-form { display: flex; gap: 8px; margin-bottom: 24px; align-items: center; }
-  .search-input { flex: 1; max-width: 500px; }
+  .search-form { display: flex; gap: 8px; margin-bottom: 24px; align-items: center; flex-wrap: wrap; }
+  .search-input { flex: 1; max-width: 100%; min-width: 200px; }
   .type-toggle { display: flex; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
   .toggle-btn { padding: 8px 14px; font-size: 0.8rem; background: var(--bg-surface); color: var(--text-secondary); transition: all var(--transition); }
   .toggle-btn.active { background: var(--accent); color: var(--bg-primary); }

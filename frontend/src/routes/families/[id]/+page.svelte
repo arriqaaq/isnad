@@ -233,17 +233,21 @@
   .diff-panel h4 { margin-bottom: 10px; color: var(--text-secondary); font-size: 0.85rem; }
   .diff-text { line-height: 2; font-size: 1.1rem; }
   .seg-unchanged { color: var(--text-primary); }
-  .seg-missing { color: #ef4444; background: rgba(239,68,68,0.1); border-radius: 2px; padding: 1px 2px; }
-  .seg-added { color: #22c55e; background: rgba(34,197,94,0.1); border-radius: 2px; padding: 1px 2px; }
+  .seg-missing { color: var(--error); background: var(--bg-hover); border-radius: 2px; padding: 1px 2px; }
+  .seg-added { color: var(--success); background: var(--bg-hover); border-radius: 2px; padding: 1px 2px; }
 
   /* Juynboll falsifiability */
   .juynboll-section { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border); }
   .juynboll-section h3 { font-size: 0.95rem; color: var(--text-secondary); margin-bottom: 12px; }
   .juynboll-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
   .juynboll-card { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; }
-  .juynboll-card.positive { border-color: #22c55e; background: rgba(34,197,94,0.05); }
+  .juynboll-card.positive { border-color: var(--success); background: var(--bg-hover); }
   .juynboll-card .label { font-size: 0.8rem; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 4px; }
   .juynboll-card .value { font-size: 1.2rem; font-weight: 600; }
-  .juynboll-card.positive .value { color: #22c55e; }
+  .juynboll-card.positive .value { color: var(--success); }
   .juynboll-card .detail { font-size: 0.8rem; color: var(--text-muted); margin-top: 4px; }
+
+  @media (max-width: 768px) {
+    .diff-panels { grid-template-columns: 1fr; }
+  }
 </style>

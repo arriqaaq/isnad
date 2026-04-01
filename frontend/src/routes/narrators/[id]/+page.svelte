@@ -350,7 +350,7 @@
   .details-form { display: flex; flex-direction: column; gap: 20px; }
   .form-section { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
   .form-section h3 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary); margin-bottom: 16px; }
-  .form-row { display: flex; gap: 12px; margin-bottom: 12px; }
+  .form-row { display: flex; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
   .form-row label { flex: 1; }
   .form-row label.half { flex: 2; }
   .form-row label.quarter { flex: 1; }
