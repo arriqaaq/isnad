@@ -3,6 +3,7 @@
   import { getHadith, getChainGraph } from '$lib/api';
   import type { HadithDetailResponse, GraphData } from '$lib/types';
   import { stripHtml } from '$lib/utils';
+  import { language } from '$lib/stores/language';
   import NarratorChip from '$lib/components/narrator/NarratorChip.svelte';
   import Badge from '$lib/components/common/Badge.svelte';
   import ChainView from '$lib/components/graph/ChainView.svelte';
@@ -56,16 +57,22 @@
     {/if}
 
     <div class="text-section">
-      {#if data.hadith.text_en}
-        <div class="text-en">
-          {stripHtml(data.hadith.text_en)}
-        </div>
-      {/if}
-
-      {#if data.hadith.text_ar}
-        <div class="text-ar arabic" dir="rtl">
-          {@html highlightMatn(data.hadith.text_ar)}
-        </div>
+      {#if $language === 'en'}
+        {#if data.hadith.text_en}
+          <div class="text-en">
+            {stripHtml(data.hadith.text_en)}
+          </div>
+        {:else if data.hadith.text_ar}
+          <div class="text-ar arabic" dir="rtl">
+            {@html highlightMatn(data.hadith.text_ar)}
+          </div>
+        {/if}
+      {:else}
+        {#if data.hadith.text_ar}
+          <div class="text-ar arabic" dir="rtl">
+            {@html highlightMatn(data.hadith.text_ar)}
+          </div>
+        {/if}
       {/if}
     </div>
 

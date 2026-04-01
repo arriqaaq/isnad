@@ -2,6 +2,7 @@
   import type { ApiHadith } from '$lib/types';
   import { truncate, stripHtml } from '$lib/utils';
   import Badge from '$lib/components/common/Badge.svelte';
+  import { language } from '$lib/stores/language';
 
   let { hadith }: { hadith: ApiHadith } = $props();
 </script>
@@ -20,7 +21,9 @@
     <p class="narrator">{hadith.narrator_text}</p>
   {/if}
 
-  {#if hadith.text_ar}
+  {#if $language === 'en' && hadith.text_en}
+    <p class="text-preview">{truncate(stripHtml(hadith.text_en), 180)}</p>
+  {:else if hadith.text_ar}
     <p class="text-ar arabic" dir="rtl">{truncate(hadith.text_ar, 150)}</p>
   {:else if hadith.text_en}
     <p class="text-preview">{truncate(stripHtml(hadith.text_en), 180)}</p>

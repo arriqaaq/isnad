@@ -4,6 +4,7 @@
   import cytoscape from 'cytoscape';
   import dagre from 'cytoscape-dagre';
   import type { GraphData } from '$lib/types';
+  import { language } from '$lib/stores/language';
 
   let {
     data,
@@ -104,6 +105,21 @@
 
   $effect(() => {
     if (data) initGraph();
+  });
+
+  // Switch labels when language changes
+  $effect(() => {
+    const lang = $language;
+    if (!cy) return;
+    cy.nodes().forEach(node => {
+      const labelEn = node.data('label_en');
+      const labelAr = node.data('label');
+      if (lang === 'en' && labelEn && labelEn !== labelAr) {
+        node.style('label', labelEn);
+      } else {
+        node.style('label', labelAr);
+      }
+    });
   });
 
   onDestroy(() => {

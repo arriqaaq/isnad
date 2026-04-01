@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { ApiHadithSearchResult } from '$lib/types';
   import { truncate, stripHtml } from '$lib/utils';
+  import { language } from '$lib/stores/language';
 
   interface Message {
     role: 'user' | 'assistant';
@@ -117,7 +118,7 @@
                     <a href="/hadiths/{s.id}" class="source-card">
                       <span class="source-num mono">#{s.hadith_number}</span>
                       {#if s.narrator_text}<span class="source-narrator">{s.narrator_text}</span>{/if}
-                      <span class="source-text">{s.text_en ? truncate(stripHtml(s.text_en), 120) : truncate(s.text_ar, 120)}</span>
+                      <span class="source-text">{$language === 'en' && s.text_en ? truncate(stripHtml(s.text_en), 120) : truncate(s.text_ar || stripHtml(s.text_en), 120)}</span>
                     </a>
                   {/each}
                 </div>

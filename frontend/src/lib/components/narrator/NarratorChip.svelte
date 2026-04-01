@@ -1,11 +1,18 @@
 <script lang="ts">
   import type { ApiNarrator } from '$lib/types';
+  import { language } from '$lib/stores/language';
 
   let { narrator }: { narrator: ApiNarrator } = $props();
+
+  let displayName = $derived(
+    $language === 'en' && narrator.name_en && narrator.name_en !== narrator.name_ar
+      ? narrator.name_en
+      : (narrator.name_ar || narrator.name_en || narrator.id)
+  );
 </script>
 
 <a href="/narrators/{narrator.id}" class="chip">
-  {narrator.name_ar || narrator.name_en || narrator.id}
+  {displayName}
 </a>
 
 <style>

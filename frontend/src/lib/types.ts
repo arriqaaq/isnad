@@ -99,6 +99,7 @@ export interface NarratorDetailResponse {
 export interface GraphNodeData {
   id: string;
   label: string;
+  label_en: string;
   type: string;
   generation: string | null;
 }

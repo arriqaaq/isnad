@@ -114,14 +114,50 @@ fn normalize_kunya(text: &str) -> String {
     result.join(" ")
 }
 
-/// Book slug from Arabic book name.
-fn book_slug(name: &str) -> String {
-    format!("book_{}", slug(name))
+/// Mapping of Arabic book names to short English codes (sunnah.com style).
+const BOOK_CODES: &[(&str, &str)] = &[
+    ("صحيح البخاري", "bukhari"),
+    ("صحيح مسلم", "muslim"),
+    ("سنن أبي داود", "abudawud"),
+    ("سنن النسائى الصغرى", "nasai"),
+    ("سنن الترمذي", "tirmidhi"),
+    ("سنن ابن ماجه", "ibnmajah"),
+];
+
+/// Book slug: returns short English code like "bukhari", or "book_N" for unknown books.
+fn book_slug(name: &str, book_number: usize) -> String {
+    let normalized = normalize_arabic(name);
+    for (ar, code) in BOOK_CODES {
+        if normalize_arabic(ar) == normalized {
+            return code.to_string();
+        }
+    }
+    format!("book_{}", book_number)
 }
 
-/// Hadith slug from book name + hadith number (unique per book).
-fn hadith_slug(book_name: &str, num: i64) -> String {
-    format!("{}_{}", slug(book_name), num)
+/// Hadith slug: returns "bukhari:1" style ID.
+fn hadith_slug(book_code: &str, num: i64) -> String {
+    format!("{}:{}", book_code, num)
+}
+
+/// Strip all XML-style tags from text (<SANAD>, <NAR>, <MATN>, <IDF>, etc.)
+fn strip_tags(text: &str) -> String {
+    let mut result = String::with_capacity(text.len());
+    let mut in_tag = false;
+    for c in text.chars() {
+        if c == '<' {
+            in_tag = true;
+            continue;
+        }
+        if c == '>' {
+            in_tag = false;
+            continue;
+        }
+        if !in_tag {
+            result.push(c);
+        }
+    }
+    result
 }
 
 /// Parse the Sanad column: "['name1', 'name2', ...]" → Vec<String>
@@ -304,27 +340,20 @@ pub async fn ingest(
             continue;
         }
 
-        let raw_text = record.get(0).unwrap_or("");
-        // Strip XML-style narrator tags from the full hadith text
-        let arabic_text = raw_text
-            .replace("<SANAD>", "")
-            .replace("</SANAD>", "")
-            .replace("<NAR>", "")
-            .replace("</NAR>", "")
-            .replace("<MATN>", "")
-            .replace("</MATN>", "")
-            .trim()
-            .to_string();
-        let matn = record.get(3).unwrap_or("").trim().to_string(); // Matn = actual hadith content
+        let arabic_text = strip_tags(record.get(0).unwrap_or("").trim());
+        let matn = strip_tags(record.get(3).unwrap_or("").trim()); // Matn = actual hadith content
         let sanad_raw = record.get(4).unwrap_or(""); // Sanad = narrator chain
-        let chain = parse_sanad_list(sanad_raw);
+        let chain: Vec<String> = parse_sanad_list(sanad_raw)
+            .into_iter()
+            .map(|n| strip_tags(&n))
+            .collect();
 
-        let bslug = book_slug(&book_name);
-        let hslug = hadith_slug(&book_name, hadith_num);
+        let bslug = book_slug(&book_name, books_created.len() + 1);
+        let hslug = hadith_slug(&bslug, hadith_num);
 
         // Create book if new
         if !books_created.contains(&book_name) {
-            let book_num = books_created.len() as i64 + 1;
+            let book_num = (books_created.len() + 1) as i64;
             db.query(
                 "CREATE $rid CONTENT { book_number: $book_number, name_en: $name, name_ar: $name }",
             )

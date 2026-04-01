@@ -128,6 +128,7 @@ pub struct GraphNode {
 pub struct GraphNodeData {
     pub id: String,
     pub label: String,
+    pub label_en: String,
     #[serde(rename = "type")]
     pub node_type: String,
     pub generation: Option<String>,

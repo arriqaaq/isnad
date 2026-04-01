@@ -1,13 +1,21 @@
 <script lang="ts">
   import type { ApiNarratorWithCount } from '$lib/types';
   import Badge from '$lib/components/common/Badge.svelte';
+  import { language } from '$lib/stores/language';
 
   let { narrator }: { narrator: ApiNarratorWithCount } = $props();
+
+  let displayName = $derived(
+    $language === 'en' && narrator.name_en && narrator.name_en !== narrator.name_ar
+      ? narrator.name_en
+      : (narrator.name_ar || narrator.name_en)
+  );
+  let isArabic = $derived($language === 'ar' || !narrator.name_en || narrator.name_en === narrator.name_ar);
 </script>
 
 <a href="/narrators/{narrator.id}" class="narrator-card">
   <div class="card-header">
-    <h3 class="name arabic" dir="rtl">{narrator.name_ar || narrator.name_en}</h3>
+    <h3 class="name" class:arabic={isArabic} dir={isArabic ? 'rtl' : 'ltr'}>{displayName}</h3>
     {#if narrator.generation}
       <Badge text={narrator.generation} variant="accent" />
     {/if}

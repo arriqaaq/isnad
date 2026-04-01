@@ -172,7 +172,10 @@ pub async fn init_fulltext_indexes(db: &Surreal<Db>) -> Result<()> {
     ];
     for stmt in stmts {
         if let Err(e) = db.query(stmt).await.and_then(|r| r.check()) {
-            tracing::warn!("Fulltext index creation failed (non-fatal): {e}");
+            let msg = e.to_string();
+            if !msg.contains("already exists") {
+                tracing::warn!("Fulltext index creation failed (non-fatal): {e}");
+            }
         }
     }
     tracing::info!("Full-text search indexes initialized");

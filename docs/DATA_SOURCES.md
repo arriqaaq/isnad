@@ -118,3 +118,61 @@ An `evidence` record is also created linking the narrator to the specific Ibn Ha
 **License**: Various (from sunnah.com)
 
 Human-verified English translations for the 6 canonical collections. Downloaded automatically during ingestion via `merge_human_translations()`.
+
+### Available Books
+
+| Book | Arabic Name | HuggingFace File | Size |
+|---|---|---|---|
+| Sahih al-Bukhari | صحيح البخاري | `Sahih al-Bukhari.csv` | 14MB |
+| Sahih Muslim | صحيح مسلم | `Sahih Muslim.csv` | 13MB |
+| Sunan Abi Dawud | سنن أبي داود | `Sunan Abi Dawud.csv` | 8MB |
+| Sunan an-Nasa'i | سنن النسائى الصغرى | `Sunan an-Nasa%27i.csv` | 8MB |
+| Jami at-Tirmidhi | سنن الترمذي | `` Jami` at-Tirmidhi.csv `` | 8MB |
+| Sunan Ibn Majah | سنن ابن ماجه | `Sunan Ibn Majah.csv` | 6MB |
+
+### CSV Columns
+
+`Book, Chapter_Number, Chapter_Title_Arabic, Chapter_Title_English, Arabic_Text, English_Text, Grade, Reference, In-book reference`
+
+Join key: hadith number extracted from `Reference` column (e.g., `sunnah.com/bukhari:1` → hadith #1) matched to Sanadset's `Num_hadith`.
+
+---
+
+## 4. Hadith Narrators Dataset (+24K)
+
+**Source**: Kaggle - fahd09/hadith-narrators
+**URL**: https://www.kaggle.com/datasets/fahd09/hadith-narrators
+**License**: CC0 Public Domain
+
+Contains 24,000+ hadith narrator records with structured biographical and reliability information. Potential future data source for enriching narrator profiles with additional metadata not covered by AR-Sanad.
+
+### Potential Use Cases
+- Cross-reference narrator reliability ratings with AR-Sanad data
+- Fill gaps in narrator biographical information (birth/death years, locations)
+- Additional name variants for better narrator disambiguation
+
+**Status**: Not yet integrated. Available for future enrichment.
+
+---
+
+## 5. Other Potential Data Sources (Not Yet Used)
+
+### Quranic Universal Library (QUL)
+- **URL**: https://qul.tarteel.ai/
+- **Content**: Quran fonts, translations, tafsirs, morphology
+- **Relevance**: Arabic fonts (QPC, Digital Khatt) for rendering. Quran-only, no hadith data.
+
+### fawazahmed0/hadith-api
+- **URL**: https://github.com/fawazahmed0/hadith-api
+- **Content**: Free hadith API with multiple languages and grades
+- **Relevance**: Alternative source for hadith translations and grading
+
+### Multi-IsnadSet (MIS)
+- **URL**: https://www.sciencedirect.com/science/article/pii/S2352340924004086
+- **Content**: 2,092 narrator nodes, 77,797 edges for Sahih Muslim
+- **Relevance**: Pre-built graph dataset for narrator network analysis
+
+### mhashim6/Open-Hadith-Data
+- **URL**: https://github.com/mhashim6/Open-Hadith-Data
+- **Content**: 9 hadith books in CSV (with/without diacritics)
+- **Relevance**: Alternative hadith text source with diacritics control

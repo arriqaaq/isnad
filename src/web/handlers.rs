@@ -411,6 +411,7 @@ pub async fn chain_graph_data(
                         .name_ar
                         .clone()
                         .unwrap_or_else(|| narrator.name_en.clone()),
+                    label_en: narrator.name_en.clone(),
                     node_type: "narrator".into(),
                     generation: narrator.generation.clone(),
                 },
@@ -479,6 +480,7 @@ pub async fn narrator_graph_data(
                         .name_ar
                         .clone()
                         .unwrap_or_else(|| narrator.name_en.clone()),
+                    label_en: narrator.name_en.clone(),
                     node_type: "center".into(),
                     generation: narrator.generation.clone(),
                 },
@@ -494,6 +496,7 @@ pub async fn narrator_graph_data(
                                 .name_ar
                                 .clone()
                                 .unwrap_or_else(|| teacher.name_en.clone()),
+                            label_en: teacher.name_en.clone(),
                             node_type: "teacher".into(),
                             generation: teacher.generation.clone(),
                         },
@@ -519,6 +522,7 @@ pub async fn narrator_graph_data(
                                 .name_ar
                                 .clone()
                                 .unwrap_or_else(|| student.name_en.clone()),
+                            label_en: student.name_en.clone(),
                             node_type: "student".into(),
                             generation: student.generation.clone(),
                         },

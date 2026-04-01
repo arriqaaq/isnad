@@ -3,6 +3,7 @@
   import { searchAll } from '$lib/api';
   import type { SearchResponse } from '$lib/types';
   import { truncate, stripHtml, formatScore } from '$lib/utils';
+  import { language } from '$lib/stores/language';
   import Badge from '$lib/components/common/Badge.svelte';
   import LoadingSpinner from '$lib/components/common/LoadingSpinner.svelte';
 
@@ -69,7 +70,7 @@
                 {#if h.score}<span class="score mono">{formatScore(h.score)}</span>{/if}
               </div>
               {#if h.narrator_text}<p class="narrator">{h.narrator_text}</p>{/if}
-              <p class="text">{h.text_en ? truncate(stripHtml(h.text_en), 200) : truncate(h.text_ar, 200)}</p>
+              <p class="text">{$language === 'en' && h.text_en ? truncate(stripHtml(h.text_en), 200) : truncate(h.text_ar || stripHtml(h.text_en), 200)}</p>
             </a>
           {/each}
         </div>
