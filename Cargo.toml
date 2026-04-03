@@ -44,6 +44,3 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 # CLI
 clap = { version = "4", features = ["derive", "env"] }
-
-# XML parsing
-quick-xml = "0.37"

@@ -135,10 +135,6 @@ pub async fn serve(
             axum::routing::get(quran_handlers::surah_similar_counts),
         )
         .route(
-            "/api/quran/surahs/{number}/variant-counts",
-            axum::routing::get(quran_handlers::surah_variant_counts),
-        )
-        .route(
             "/api/quran/ayah/{ayah_key}/words",
             axum::routing::get(quran_handlers::ayah_words),
         )
@@ -157,19 +153,6 @@ pub async fn serve(
         .route(
             "/api/quran/phrases/{id}",
             axum::routing::get(quran_handlers::phrase_detail),
-        )
-        // Manuscript & Variant routes
-        .route(
-            "/api/quran/manuscripts",
-            axum::routing::get(quran_handlers::manuscript_list),
-        )
-        .route(
-            "/api/quran/manuscripts/{id}",
-            axum::routing::get(quran_handlers::manuscript_detail),
-        )
-        .route(
-            "/api/quran/ayah/{ayah_key}/variants",
-            axum::routing::get(quran_handlers::ayah_variants),
         )
         // Unified Quran & Sunnah routes
         .route(

@@ -1,11 +1,9 @@
 import type {
   ApiBook,
   ApiHadithFamily,
-  ApiManuscript,
   ApiMatnDiff,
   ApiReciter,
   ApiSurah,
-  ApiVariantReading,
   AnalysisStatsResponse,
   AyahHadithResponse,
   FamilyDetailResponse,
@@ -182,12 +180,6 @@ export async function getSurahSimilarCounts(
   return get(`/quran/surahs/${surah}/similar-counts`);
 }
 
-export async function getSurahVariantCounts(
-  surah: number
-): Promise<Record<string, number>> {
-  return get(`/quran/surahs/${surah}/variant-counts`);
-}
-
 // ── Unified Quran & Sunnah API ──
 
 export async function searchUnified(
@@ -215,24 +207,13 @@ export async function getReciters(): Promise<ApiReciter[]> {
   return get<ApiReciter[]>('/quran/reciters');
 }
 
-// ── Manuscript & Variant Reading API ──
+// ── Corpus Coranicum Manuscript API (browser-direct) ──
 
-export async function getManuscripts(params: {
-  page?: number;
-  limit?: number;
-}): Promise<PaginatedResponse<ApiManuscript>> {
-  const sp = new URLSearchParams();
-  if (params.page) sp.set('page', String(params.page));
-  if (params.limit) sp.set('limit', String(params.limit));
-  return get(`/quran/manuscripts?${sp}`);
-}
-
-export async function getManuscript(id: string): Promise<ApiManuscript> {
-  return get(`/quran/manuscripts/${encodeURIComponent(id)}`);
-}
-
-export async function getAyahVariants(surah: number, ayah: number): Promise<ApiVariantReading[]> {
-  return get<ApiVariantReading[]>(`/quran/ayah/${surah}:${ayah}/variants`);
+export async function getAyahManuscripts(surah: number, ayah: number): Promise<import('./types').CCManuscript[]> {
+  const res = await fetch(`https://api.corpuscoranicum.de/api/data/manuscripts/sura/${surah}/verse/${ayah}`);
+  if (!res.ok) return [];
+  const data = await res.json();
+  return data.data ?? [];
 }
 
 // ── Similar Ayahs / Mutashabihat API ──

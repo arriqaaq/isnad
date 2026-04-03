@@ -7,10 +7,10 @@ use serde::Deserialize;
 
 use crate::models::{ApiHadith, ApiHadithSearchResult};
 use crate::quran::models::{
-    ApiAyah, ApiAyahSearchResult, ApiManuscript, ApiPhraseWithAyahs, ApiQuranWord, ApiReciter,
-    ApiSimilarAyah, ApiSurah, ApiVariantReading, Ayah, AyahSimilarResponse, Manuscript,
+    ApiAyah, ApiAyahSearchResult, ApiPhraseWithAyahs, ApiQuranWord, ApiReciter,
+    ApiSimilarAyah, ApiSurah, Ayah, AyahSimilarResponse,
     QuranPhrase, QuranSearchResponse, QuranStatsResponse, QuranWord, Reciter, RootSearchResponse,
-    Surah, SurahDetailResponse, VariantReading,
+    Surah, SurahDetailResponse,
 };
 use crate::rag::ChatChunk;
 
@@ -385,37 +385,6 @@ pub async fn surah_similar_counts(
     Ok(Json(counts))
 }
 
-/// Returns { ayah_number: count } for ayahs in this surah that have variant readings.
-pub async fn surah_variant_counts(
-    State(state): State<AppState>,
-    Path(number): Path<i64>,
-) -> Result<Json<std::collections::HashMap<String, i64>>, StatusCode> {
-    #[derive(Debug, surrealdb::types::SurrealValue)]
-    struct AyahCount {
-        ayah_number: i64,
-        count: i64,
-    }
-
-    let mut res = state
-        .db
-        .query(
-            "SELECT ayah_number, count() AS count \
-             FROM variant_reading WHERE surah_number = $s \
-             GROUP BY ayah_number",
-        )
-        .bind(("s", number))
-        .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-
-    let rows: Vec<AyahCount> = res.take(0).unwrap_or_default();
-    let counts: std::collections::HashMap<String, i64> = rows
-        .into_iter()
-        .map(|r| (r.ayah_number.to_string(), r.count))
-        .collect();
-
-    Ok(Json(counts))
-}
-
 fn parse_ayah_key(key: &str) -> Option<(i64, i64)> {
     let parts: Vec<&str> = key.split(':').collect();
     if parts.len() == 2 {
@@ -683,81 +652,3 @@ pub async fn phrase_detail(
     }))
 }
 
-// ── Manuscript & Variant Reading Handlers ──
-
-#[derive(Deserialize)]
-pub struct ManuscriptListParams {
-    pub page: Option<usize>,
-    pub limit: Option<usize>,
-}
-
-pub async fn manuscript_list(
-    State(state): State<AppState>,
-    Query(params): Query<ManuscriptListParams>,
-) -> impl IntoResponse {
-    let limit = params.limit.unwrap_or(20);
-    let page = params.page.unwrap_or(1);
-    let offset = (page - 1) * limit;
-
-    let sql = format!("SELECT * FROM manuscript ORDER BY name LIMIT {limit} START {offset}");
-    let mut res = state.db.query(&sql).await.unwrap();
-    let manuscripts: Vec<Manuscript> = res.take(0).unwrap_or_default();
-    let has_more = manuscripts.len() == limit;
-
-    Json(crate::models::PaginatedResponse {
-        data: manuscripts
-            .into_iter()
-            .map(ApiManuscript::from)
-            .collect::<Vec<_>>(),
-        page,
-        has_more,
-    })
-}
-
-pub async fn manuscript_detail(
-    State(state): State<AppState>,
-    Path(id): Path<String>,
-) -> Result<Json<ApiManuscript>, StatusCode> {
-    let ms_id = RecordId::new("manuscript", id.as_str());
-    let mut res = state
-        .db
-        .query("SELECT * FROM $ms_id")
-        .bind(("ms_id", ms_id))
-        .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-
-    let ms: Option<Manuscript> = res.take(0).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let ms = ms.ok_or(StatusCode::NOT_FOUND)?;
-
-    Ok(Json(ApiManuscript::from(ms)))
-}
-
-pub async fn ayah_variants(
-    State(state): State<AppState>,
-    Path(ayah_key): Path<String>,
-) -> Result<Json<Vec<ApiVariantReading>>, (StatusCode, String)> {
-    let (surah, ayah) = parse_ayah_key(&ayah_key).ok_or_else(|| {
-        (
-            StatusCode::BAD_REQUEST,
-            "Invalid ayah key format. Use surah:ayah (e.g., 2:255)".to_string(),
-        )
-    })?;
-
-    let mut res = state
-        .db
-        .query(
-            "SELECT * FROM variant_reading WHERE surah_number = $s AND ayah_number = $a ORDER BY reader_name",
-        )
-        .bind(("s", surah))
-        .bind(("a", ayah))
-        .await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-
-    let variants: Vec<VariantReading> = res
-        .take(0)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-
-    Ok(Json(
-        variants.into_iter().map(ApiVariantReading::from).collect(),
-    ))
-}

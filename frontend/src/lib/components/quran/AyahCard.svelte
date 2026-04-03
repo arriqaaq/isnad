@@ -1,12 +1,12 @@
 <script lang="ts">
-  import type { ApiAyah, ApiAyahSearchResult, ApiQuranWord, ApiVariantReading, AyahHadithResponse, AyahSimilarResponse } from '$lib/types';
-  import { getAyahHadiths, getAyahWords, getAyahVariants, getAyahSimilar } from '$lib/api';
+  import type { ApiAyah, ApiAyahSearchResult, ApiQuranWord, CCManuscript, AyahHadithResponse, AyahSimilarResponse } from '$lib/types';
+  import { getAyahHadiths, getAyahWords, getAyahManuscripts, getAyahSimilar } from '$lib/api';
   import { truncate } from '$lib/utils';
   import { preferences } from '$lib/stores/preferences';
   import { fetchGlyphData, loadPageFont, getPageFontFamily, getVerseGlyph } from '$lib/quranFonts';
   import AyahHadithList from './AyahHadithList.svelte';
   import WordMorphology from './WordMorphology.svelte';
-  import VariantReadings from './VariantReadings.svelte';
+  import ManuscriptCard from './ManuscriptCard.svelte';
   import SimilarAyahs from './SimilarAyahs.svelte';
 
   // QCF glyph state
@@ -38,13 +38,12 @@
     });
   });
 
-  let { ayah, showScore = false, compact = false, hadithCount = 0, similarCount = 0, variantCount = 0, active = false, onplay, reciterFolder }: {
+  let { ayah, showScore = false, compact = false, hadithCount = 0, similarCount = 0, active = false, onplay, reciterFolder }: {
     ayah: ApiAyah | ApiAyahSearchResult;
     showScore?: boolean;
     compact?: boolean;
     hadithCount?: number;
     similarCount?: number;
-    variantCount?: number;
     active?: boolean;
     onplay?: (ayah: number) => void;
     reciterFolder?: string;
@@ -72,14 +71,14 @@
   let showTafsir = $state(false);
   let showHadiths = $state(false);
   let showWords = $state(false);
-  let showVariants = $state(false);
+  let showManuscripts = $state(false);
   let hadithData: AyahHadithResponse | null = $state(null);
   let hadithLoading = $state(false);
   let words: ApiQuranWord[] | null = $state(null);
   let wordsLoading = $state(false);
   let selectedWord: ApiQuranWord | null = $state(null);
-  let variantData: ApiVariantReading[] | null = $state(null);
-  let variantLoading = $state(false);
+  let manuscriptData: CCManuscript[] | null = $state(null);
+  let manuscriptLoading = $state(false);
   let showSimilar = $state(false);
   let similarData: AyahSimilarResponse | null = $state(null);
   let similarLoading = $state(false);
@@ -114,16 +113,16 @@
     }
   }
 
-  async function toggleVariants() {
-    showVariants = !showVariants;
-    if (showVariants && !variantData && !variantLoading) {
-      variantLoading = true;
+  async function toggleManuscripts() {
+    showManuscripts = !showManuscripts;
+    if (showManuscripts && !manuscriptData && !manuscriptLoading) {
+      manuscriptLoading = true;
       try {
-        variantData = await getAyahVariants(ayah.surah_number, ayah.ayah_number);
+        manuscriptData = await getAyahManuscripts(ayah.surah_number, ayah.ayah_number);
       } catch (e) {
-        console.error('Failed to load variants:', e);
+        console.error('Failed to load manuscripts:', e);
       } finally {
-        variantLoading = false;
+        manuscriptLoading = false;
       }
     }
   }
@@ -219,9 +218,9 @@
         {showTafsir ? 'Hide' : 'Show'} Tafsir
       </button>
     {/if}
-    {#if variantCount > 0}
-      <button class="readings-toggle" class:active-toggle={showVariants} onclick={toggleVariants}>
-        Readings ({variantCount})
+    {#if !compact}
+      <button class="manuscripts-toggle" class:active-toggle={showManuscripts} onclick={toggleManuscripts}>
+        Manuscripts
       </button>
     {/if}
     {#if similarCount > 0}
@@ -248,12 +247,18 @@
     </div>
   {/if}
 
-  {#if showVariants}
-    <div class="variant-block">
-      {#if variantLoading}
-        <div class="variant-loading">Loading variant readings...</div>
-      {:else if variantData}
-        <VariantReadings variants={variantData} />
+  {#if showManuscripts}
+    <div class="manuscript-block">
+      {#if manuscriptLoading}
+        <div class="manuscript-loading">Loading manuscripts...</div>
+      {:else if manuscriptData && manuscriptData.length > 0}
+        <div class="manuscript-scroll">
+          {#each manuscriptData as ms}
+            <ManuscriptCard manuscript={ms} />
+          {/each}
+        </div>
+      {:else if manuscriptData}
+        <div class="manuscript-empty">No manuscripts found for this verse.</div>
       {/if}
     </div>
   {/if}
@@ -404,7 +409,7 @@
   .download-btn {
     font-size: 0.85rem;
   }
-  .words-toggle, .tafsir-toggle, .hadith-toggle, .readings-toggle, .similar-toggle {
+  .words-toggle, .tafsir-toggle, .hadith-toggle, .manuscripts-toggle, .similar-toggle {
     font-size: 0.75rem;
     color: var(--accent);
     background: none;
@@ -414,11 +419,11 @@
     cursor: pointer;
     transition: all var(--transition);
   }
-  .words-toggle.active-toggle, .readings-toggle.active-toggle, .similar-toggle.active-toggle {
+  .words-toggle.active-toggle, .manuscripts-toggle.active-toggle, .similar-toggle.active-toggle {
     background: var(--accent);
     color: var(--bg-primary);
   }
-  .words-toggle:hover, .tafsir-toggle:hover, .hadith-toggle:hover, .readings-toggle:hover, .similar-toggle:hover {
+  .words-toggle:hover, .tafsir-toggle:hover, .hadith-toggle:hover, .manuscripts-toggle:hover, .similar-toggle:hover {
     background: var(--accent-muted);
   }
   .hadith-block {
@@ -432,14 +437,20 @@
     font-size: 0.85rem;
     color: var(--text-muted);
   }
-  .variant-block {
+  .manuscript-block {
     margin-top: 12px;
     padding: 16px;
     background: var(--bg-hover);
     border-radius: var(--radius);
-    border-left: 3px solid #e89d0d;
+    border-left: 3px solid var(--accent);
   }
-  .variant-loading {
+  .manuscript-scroll {
+    display: flex;
+    overflow-x: auto;
+    gap: 12px;
+    padding-bottom: 8px;
+  }
+  .manuscript-loading, .manuscript-empty {
     font-size: 0.85rem;
     color: var(--text-muted);
   }

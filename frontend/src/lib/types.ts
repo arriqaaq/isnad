@@ -324,27 +324,21 @@ export interface ApiReciter {
   bitrate: string | null;
 }
 
-// ── Manuscript & Variant Reading types ──
+// ── Corpus Coranicum Manuscript types ──
 
-export interface ApiManuscript {
-  id: string;
-  name: string;
-  repository: string | null;
-  location: string | null;
-  date_range: string | null;
-  material: string | null;
-  script_type: string | null;
-  description: string | null;
+export interface CCManuscriptImage {
+  image_url: string;
 }
-
-export interface ApiVariantReading {
-  id: string;
-  surah_number: number;
-  ayah_number: number;
-  reader_name: string;
-  reading_ar: string;
-  standard_ar: string | null;
-  source: string | null;
+export interface CCManuscriptPage {
+  folio: number;
+  side: string;
+  images: CCManuscriptImage[];
+}
+export interface CCManuscript {
+  manuscript_id: number;
+  title: string;
+  archive: { city: string; name: string };
+  pages: CCManuscriptPage[];
 }
 
 // ── Similar Ayahs / Mutashabihat ──

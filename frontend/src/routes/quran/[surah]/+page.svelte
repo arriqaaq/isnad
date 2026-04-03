@@ -1,6 +1,6 @@
 <script lang="ts">
   import { page } from '$app/state';
-  import { getSurah, getSurahHadithCounts, getSurahSimilarCounts, getSurahVariantCounts } from '$lib/api';
+  import { getSurah, getSurahHadithCounts, getSurahSimilarCounts } from '$lib/api';
   import type { SurahDetailResponse } from '$lib/types';
   import SurahHeader from '$lib/components/quran/SurahHeader.svelte';
   import AyahCard from '$lib/components/quran/AyahCard.svelte';
@@ -11,7 +11,6 @@
   let data: SurahDetailResponse | null = $state(null);
   let hadithCounts: Record<string, number> = $state({});
   let similarCounts: Record<string, number> = $state({});
-  let variantCounts: Record<string, number> = $state({});
   let loading = $state(true);
   let activeAyah = $state(0);
   let playerRef: ReturnType<typeof RecitationPlayer> | undefined = $state(undefined);
@@ -27,12 +26,10 @@
       getSurah(surahNum),
       getSurahHadithCounts(surahNum).catch(() => ({})),
       getSurahSimilarCounts(surahNum).catch(() => ({})),
-      getSurahVariantCounts(surahNum).catch(() => ({})),
-    ]).then(([d, hCounts, sCounts, vCounts]) => {
+    ]).then(([d, hCounts, sCounts]) => {
       data = d;
       hadithCounts = hCounts;
       similarCounts = sCounts;
-      variantCounts = vCounts;
       loading = false;
 
       // Scroll to specific ayah if ?ayah=N is in the URL
@@ -90,7 +87,6 @@
             {ayah}
             hadithCount={hadithCounts[String(ayah.ayah_number)] ?? 0}
             similarCount={similarCounts[String(ayah.ayah_number)] ?? 0}
-            variantCount={variantCounts[String(ayah.ayah_number)] ?? 0}
             active={ayah.ayah_number === activeAyah}
             onplay={handleAyahPlay}
             {reciterFolder}

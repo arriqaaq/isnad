@@ -1,7 +1,6 @@
 pub mod audio;
 pub mod hadith_refs;
 pub mod ingest;
-pub mod manuscripts;
 pub mod models;
 pub mod morphology;
 pub mod rag;

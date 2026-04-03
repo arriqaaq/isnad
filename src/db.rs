@@ -381,62 +381,6 @@ pub async fn init_quran_fulltext_indexes(db: &Surreal<Db>) -> Result<()> {
     Ok(())
 }
 
-// ── Manuscript & Variant Reading Schema ──
-
-const MANUSCRIPT_SCHEMA: &str = r#"
-DEFINE TABLE IF NOT EXISTS manuscript SCHEMAFULL;
-DEFINE FIELD IF NOT EXISTS name         ON manuscript TYPE string;
-DEFINE FIELD IF NOT EXISTS repository   ON manuscript TYPE option<string>;
-DEFINE FIELD IF NOT EXISTS location     ON manuscript TYPE option<string>;
-DEFINE FIELD IF NOT EXISTS date_range   ON manuscript TYPE option<string>;
-DEFINE FIELD IF NOT EXISTS material     ON manuscript TYPE option<string>;
-DEFINE FIELD IF NOT EXISTS script_type  ON manuscript TYPE option<string>;
-DEFINE FIELD IF NOT EXISTS description  ON manuscript TYPE option<string>;
-DEFINE FIELD IF NOT EXISTS source_url   ON manuscript TYPE option<string>;
-DEFINE FIELD IF NOT EXISTS surah_start  ON manuscript TYPE option<int>;
-DEFINE FIELD IF NOT EXISTS surah_end    ON manuscript TYPE option<int>;
-DEFINE FIELD IF NOT EXISTS ayah_start   ON manuscript TYPE option<int>;
-DEFINE FIELD IF NOT EXISTS ayah_end     ON manuscript TYPE option<int>;
-DEFINE INDEX IF NOT EXISTS manuscript_range_idx ON TABLE manuscript FIELDS surah_start, surah_end;
-
-DEFINE TABLE IF NOT EXISTS variant_reading SCHEMAFULL;
-DEFINE FIELD IF NOT EXISTS surah_number    ON variant_reading TYPE int;
-DEFINE FIELD IF NOT EXISTS ayah_number     ON variant_reading TYPE int;
-DEFINE FIELD IF NOT EXISTS word_position   ON variant_reading TYPE option<int>;
-DEFINE FIELD IF NOT EXISTS reader_name     ON variant_reading TYPE string;
-DEFINE FIELD IF NOT EXISTS reading_ar      ON variant_reading TYPE string;
-DEFINE FIELD IF NOT EXISTS standard_ar     ON variant_reading TYPE option<string>;
-DEFINE FIELD IF NOT EXISTS source          ON variant_reading TYPE option<string>;
-DEFINE FIELD IF NOT EXISTS manuscript_id   ON variant_reading TYPE option<record<manuscript>>;
-DEFINE INDEX IF NOT EXISTS variant_ayah_idx ON TABLE variant_reading FIELDS surah_number, ayah_number;
-
-DEFINE TABLE IF NOT EXISTS qira_reader SCHEMAFULL;
-DEFINE FIELD IF NOT EXISTS name_ar    ON qira_reader TYPE option<string>;
-DEFINE FIELD IF NOT EXISTS name_en    ON qira_reader TYPE string;
-DEFINE FIELD IF NOT EXISTS tradition  ON qira_reader TYPE option<string>;
-DEFINE FIELD IF NOT EXISTS region     ON qira_reader TYPE option<string>
-"#;
-
-pub async fn init_manuscript_schema(db: &Surreal<Db>) -> Result<()> {
-    for (i, stmt) in MANUSCRIPT_SCHEMA
-        .split(';')
-        .map(|s| s.trim())
-        .filter(|s| !s.is_empty() && !s.starts_with("--"))
-        .enumerate()
-    {
-        let sql = format!("{stmt};");
-        if let Err(e) = db.query(&sql).await.and_then(|r| r.check()) {
-            tracing::error!(
-                "Manuscript schema statement {i} failed: {e}\n  SQL: {}",
-                stmt.chars().take(120).collect::<String>()
-            );
-            return Err(e.into());
-        }
-    }
-    tracing::info!("Manuscript schema initialized");
-    Ok(())
-}
-
 /// Create BM25 full-text search indexes on hadith text fields.
 /// Called separately from init_schema because FULLTEXT indexes on SCHEMAFULL
 /// tables with option<string> fields block inserts when the value is NONE.

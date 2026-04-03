@@ -107,16 +107,6 @@ enum Commands {
         #[arg(long, default_value = "db_data")]
         db_path: String,
     },
-    /// Ingest manuscript descriptions and variant readings from Corpus Coranicum TEI XML
-    IngestManuscripts {
-        /// Path to cloned corpus-coranicum-tei repository
-        #[arg(long, default_value = "data/corpus-coranicum-tei")]
-        tei_dir: String,
-
-        /// Path to SurrealDB data directory
-        #[arg(long, default_value = "db_data")]
-        db_path: String,
-    },
     /// Start the web server
     Serve {
         /// Port to listen on
@@ -431,18 +421,6 @@ async fn async_main() -> Result<()> {
             quran::morphology::ingest_morphology(&db, &file, &qul_dir).await?;
             tracing::info!("Morphology ingestion complete");
         }
-        Commands::IngestManuscripts { tei_dir, db_path } => {
-            if !std::path::Path::new(&tei_dir).is_dir() {
-                anyhow::bail!(
-                    "TEI directory not found at {tei_dir}. Clone from: https://github.com/telota/corpus-coranicum-tei"
-                );
-            }
-
-            let db = db::connect(&db_path).await?;
-            db::init_manuscript_schema(&db).await?;
-            quran::manuscripts::ingest_manuscripts(&db, &tei_dir).await?;
-            tracing::info!("Manuscript ingestion complete");
-        }
         Commands::IngestQuranSimilar { qul_dir, db_path } => {
             let db = db::connect(&db_path).await?;
             db::init_quran_schema(&db).await?;
@@ -464,7 +442,6 @@ async fn async_main() -> Result<()> {
             db::init_quran_word_schema(&db).await?;
             db::init_quran_similar_schema(&db).await?;
             db::init_reciter_schema(&db).await?;
-            db::init_manuscript_schema(&db).await?;
             quran::audio::init_reciters(&db).await?;
             db::init_fulltext_indexes(&db).await?;
             db::backfill_narrator_hadith_counts(&db).await?;

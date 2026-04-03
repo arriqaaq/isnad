@@ -1,4 +1,4 @@
-.PHONY: build frontend backend server dev stop ingest ingest-test ingest-full list-books hadith-full hadith-ingest quran-prepare quran-prepare-deps quran-ingest quran-hadith-refs quran-morphology quran-similar quran-manuscripts quran quran-full quran-check analyze analyze-bio analyze-families analyze-transmission pipeline-check pipeline-test pipeline-full clean
+.PHONY: build frontend backend server dev stop ingest ingest-test ingest-full list-books hadith-full hadith-ingest quran-prepare quran-prepare-deps quran-ingest quran-hadith-refs quran-morphology quran-similar quran quran-full quran-check analyze analyze-bio analyze-families analyze-transmission pipeline-check pipeline-test pipeline-full clean
 
 # SurrealDB HNSW index traversal needs extra stack space
 export RUST_MIN_STACK=8388608
@@ -152,7 +152,6 @@ quran-check:
 	test -f qul/phrases.json                       && echo "  ✓ qul/phrases.json" || { echo "  ✗ qul/phrases.json — download from qul.tarteel.ai/resources/mutashabihat (JSON)"; ok=false; }; \
 	test -f qul/matching-ayah.json                 && echo "  ✓ qul/matching-ayah.json" || { echo "  ✗ qul/matching-ayah.json — download from qul.tarteel.ai/resources/similar-ayah (JSON)"; ok=false; }; \
 	test -f frontend/static/fonts/UthmanicHafs.woff2   && echo "  ✓ frontend/static/fonts/UthmanicHafs.woff2" || { echo "  ✗ UthmanicHafs font — cp qul/UthmanicHafs_V22.woff2 frontend/static/fonts/UthmanicHafs.woff2"; ok=false; }; \
-	test -d data/corpus-coranicum-tei                   && echo "  ✓ data/corpus-coranicum-tei/ (auto-cloned)" || echo "  ○ data/corpus-coranicum-tei/ (will auto-clone from GitHub)"; \
 	echo ""; \
 	if $$ok; then echo "All required files present. Run: make quran-full"; else echo "⚠  Download missing files above before running make quran-full"; exit 1; fi
 
@@ -167,16 +166,12 @@ quran-morphology:
 quran-similar:
 	cargo run -- ingest-quran-similar --qul-dir qul
 
-# 3. Clone Corpus Coranicum TEI (if not present) and ingest manuscripts + variant readings
-quran-manuscripts:
-	@test -d data/corpus-coranicum-tei || git clone https://github.com/telota/corpus-coranicum-tei.git data/corpus-coranicum-tei
-	cargo run -- ingest-manuscripts --tei-dir data/corpus-coranicum-tei
-
 # Base Quran pipeline: prepare data + ingest ayahs + hadith refs
 quran: quran-prepare quran-ingest quran-hadith-refs
 
-# Full Quran pipeline (ordered: check → prepare → ingest → hadith-refs → morphology → similar → manuscripts)
-quran-full: quran-check quran data/quran-morphology.txt data/morphology-terms-ar.json quran-morphology quran-similar quran-manuscripts
+# Full Quran pipeline (ordered: check → prepare → ingest → hadith-refs → morphology → similar)
+# Note: Manuscripts come from Corpus Coranicum live API (no ingestion needed)
+quran-full: quran-check quran data/quran-morphology.txt data/morphology-terms-ar.json quran-morphology quran-similar
 
 
 # === Analyze phase (runs on already-ingested data) ===
