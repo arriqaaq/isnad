@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="img/ilm.png" alt="Ilm — Islamic Knowledge Platform" width="700">
+  <img src="img/ilm.svg" alt="Ilm — Islamic Knowledge Platform" width="700">
 </p>
 
 <p align="center">

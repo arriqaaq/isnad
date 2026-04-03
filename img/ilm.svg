@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 260">
+  <defs>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="40"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="700" height="260" fill="#ffffff" rx="16"/>
+
+  <!-- Subtle pink glow behind title -->
+  <circle cx="350" cy="80" r="120" fill="rgba(214,51,132,0.06)" filter="url(#glow)"/>
+
+  <!-- Title: Ilm عِلْم (centered as one unit) -->
+  <text x="350" y="90" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="52" font-weight="800" fill="#d63384" letter-spacing="-2">Ilm <tspan font-family="'Traditional Arabic', 'Scheherazade New', 'Noto Naskh Arabic', serif" font-size="36" font-weight="400" fill="#9ca3af" letter-spacing="0">عِلْم</tspan></text>
+
+  <!-- Tagline -->
+  <text x="350" y="130" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="16" font-weight="600" fill="#1a1a2e">Search the Quran &amp; Sunnah.<tspan font-family="Georgia, 'EB Garamond', serif" font-style="italic" font-size="18" fill="#d63384"> Deeply.</tspan></text>
+
+  <!-- Description -->
+  <text x="350" y="158" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="11.5" fill="#9ca3af">
+    A semantic search platform for Islamic scholarship — Quran with tafsir, 368K+ hadiths, and interactive isnad graphs.
+  </text>
+
+  <!-- Feature pills row -->
+  <!-- Pill 1: Free & Open Source -->
+  <rect x="82" y="185" width="118" height="28" rx="14" fill="rgba(214,51,132,0.08)" stroke="rgba(214,51,132,0.15)" stroke-width="1"/>
+  <text x="141" y="203" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="10" font-weight="600" fill="#4a4a68">Free &amp; Open Source</text>
+
+  <!-- Pill 2: Semantic Search -->
+  <rect x="212" y="185" width="110" height="28" rx="14" fill="rgba(214,51,132,0.08)" stroke="rgba(214,51,132,0.15)" stroke-width="1"/>
+  <text x="267" y="203" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="10" font-weight="600" fill="#4a4a68">Semantic Search</text>
+
+  <!-- Pill 3: Bilingual -->
+  <rect x="334" y="185" width="76" height="28" rx="14" fill="rgba(214,51,132,0.08)" stroke="rgba(214,51,132,0.15)" stroke-width="1"/>
+  <text x="372" y="203" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="10" font-weight="600" fill="#4a4a68">Bilingual</text>
+
+  <!-- Pill 4: Open Data -->
+  <rect x="422" y="185" width="84" height="28" rx="14" fill="rgba(214,51,132,0.08)" stroke="rgba(214,51,132,0.15)" stroke-width="1"/>
+  <text x="464" y="203" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="10" font-weight="600" fill="#4a4a68">Open Data</text>
+
+  <!-- Pill 5: AI-Powered -->
+  <rect x="518" y="185" width="96" height="28" rx="14" fill="rgba(214,51,132,0.08)" stroke="rgba(214,51,132,0.15)" stroke-width="1"/>
+  <text x="566" y="203" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="10" font-weight="600" fill="#4a4a68">AI-Powered</text>
+
+  <!-- Subtle bottom accent line -->
+  <line x1="250" y1="240" x2="450" y2="240" stroke="#d63384" stroke-width="2" opacity="0.15" stroke-linecap="round"/>
+</svg>

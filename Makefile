@@ -1,4 +1,4 @@
-.PHONY: build frontend backend server dev stop ingest ingest-test ingest-full list-books quran-prepare quran-prepare-deps quran-ingest quran-hadith-refs quran-morphology quran-similar quran-manuscripts quran quran-full quran-check analyze analyze-bio analyze-families analyze-transmission pipeline-test pipeline-full clean
+.PHONY: build frontend backend server dev stop ingest ingest-test ingest-full list-books quran-prepare quran-prepare-deps quran-ingest quran-hadith-refs quran-morphology quran-similar quran-manuscripts quran quran-full quran-check analyze analyze-bio analyze-families analyze-transmission pipeline-check pipeline-test pipeline-full clean
 
 # SurrealDB HNSW index traversal needs extra stack space
 export RUST_MIN_STACK=8388608
@@ -149,14 +149,58 @@ pipeline-test:
 	cargo run -- analyze --narrator-bio data/ar_sanad_narrators.csv --families
 	cargo run -- analyze --juynboll
 
-# Full pipeline with all data from 6 major books
-pipeline-full:
+# === Full pipeline (everything from scratch) ===
+
+# Preflight check for entire pipeline
+pipeline-check:
+	@echo "Checking required data files..."
+	@ok=true; \
+	echo "── Hadith ──"; \
+	test -f data/sanadset.csv                           && echo "  ✓ data/sanadset.csv" || echo "  ○ data/sanadset.csv (will auto-download from Mendeley)"; \
+	echo "── Quran ──"; \
+	test -f data/quran.csv                              && echo "  ✓ data/quran.csv" || echo "  ○ data/quran.csv (will auto-generate via quran-prepare)"; \
+	test -f data/quran-morphology.txt                   && echo "  ✓ data/quran-morphology.txt" || echo "  ○ data/quran-morphology.txt (will auto-download)"; \
+	echo "── QUL (manual download from qul.tarteel.ai) ──"; \
+	test -f qul/colored-english-wbw-translation.json    && echo "  ✓ qul/colored-english-wbw-translation.json" || { echo "  ✗ qul/colored-english-wbw-translation.json — download from qul.tarteel.ai/resources/translation (Colored English wbw translation → JSON)"; ok=false; }; \
+	test -f qul/phrases.json                            && echo "  ✓ qul/phrases.json" || { echo "  ✗ qul/phrases.json — download from qul.tarteel.ai/resources/mutashabihat (JSON)"; ok=false; }; \
+	test -f qul/matching-ayah.json                      && echo "  ✓ qul/matching-ayah.json" || { echo "  ✗ qul/matching-ayah.json — download from qul.tarteel.ai/resources/similar-ayah (JSON)"; ok=false; }; \
+	echo "── Corpus Coranicum ──"; \
+	test -d data/corpus-coranicum-tei                    && echo "  ✓ data/corpus-coranicum-tei/" || echo "  ○ data/corpus-coranicum-tei/ (will auto-clone from GitHub)"; \
+	echo ""; \
+	if $$ok; then echo "All required files present. Run: make pipeline-full"; else echo "⚠  Download missing files above first"; exit 1; fi
+
+# Full pipeline: hadith + quran + analysis (everything from scratch)
+# Order: check → hadith ingest → quran full → analysis
+pipeline-full: pipeline-check
 	rm -rf db_data
+	@echo ""
+	@echo "═══════════════════════════════════════"
+	@echo "  Step 1/5: Ingesting Hadith data"
+	@echo "═══════════════════════════════════════"
 	cargo run -- ingest
-	$(MAKE) quran
-	cargo run -- analyze --narrator-bio data/ar_sanad_narrators.csv --families
+	@echo ""
+	@echo "═══════════════════════════════════════"
+	@echo "  Step 2/5: Ingesting Quran data"
+	@echo "═══════════════════════════════════════"
+	$(MAKE) quran-full
+	@echo ""
+	@echo "═══════════════════════════════════════"
+	@echo "  Step 3/5: Enriching narrator bios"
+	@echo "═══════════════════════════════════════"
+	cargo run -- analyze --narrator-bio data/ar_sanad_narrators.csv
+	@echo ""
+	@echo "═══════════════════════════════════════"
+	@echo "  Step 4/5: Computing hadith families"
+	@echo "═══════════════════════════════════════"
+	cargo run -- analyze --families
+	@echo ""
+	@echo "═══════════════════════════════════════"
+	@echo "  Step 5/5: Transmission analysis"
+	@echo "═══════════════════════════════════════"
 	cargo run -- analyze --juynboll
+	@echo ""
+	@echo "✓ Full pipeline complete. Run: make server"
 
 # Clean all generated data
 clean:
-	rm -rf db_data target frontend/build frontend/node_modules $(VENV)
+	rm -rf db_data target frontend/build frontend/node_modules .venv
