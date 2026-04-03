@@ -204,8 +204,8 @@
         </div>
         <div class="source-card animate-on-scroll stagger-2" use:inview>
           <div class="source-num">6,236</div>
-          <h4>Tanzil.net</h4>
-          <p>Quranic verses in Uthmani Arabic + Sahih International English</p>
+          <h4>QUL (Tarteel)</h4>
+          <p>QPC Hafs Arabic + Sahih International English from Quranic Universal Library</p>
         </div>
         <div class="source-card animate-on-scroll stagger-3" use:inview>
           <div class="source-num">114</div>
@@ -286,7 +286,7 @@
           <h3 class="hood-subtitle animate-on-scroll" use:inview>Training Pipeline</h3>
           <div class="pipeline-grid">
             {#each [
-              { n: '1', title: 'Raw Data', desc: 'Sanadset 368K · Tanzil · Sunnah.com' },
+              { n: '1', title: 'Raw Data', desc: 'Sanadset 368K · QUL · Sunnah.com' },
               { n: '2', title: 'Parse & Enrich', desc: 'Join translations + narrator bios + tafsir' },
               { n: '3', title: 'Generate QA', desc: 'ChatML pairs matching RAG prompt pattern' },
               { n: '4', title: 'LoRA Fine-tune', desc: 'MLX on Phi-4-mini / Qwen' },

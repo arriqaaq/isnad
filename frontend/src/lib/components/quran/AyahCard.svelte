@@ -3,10 +3,40 @@
   import { getAyahHadiths, getAyahWords, getAyahVariants, getAyahSimilar } from '$lib/api';
   import { truncate } from '$lib/utils';
   import { preferences } from '$lib/stores/preferences';
+  import { fetchGlyphData, loadPageFont, getPageFontFamily, getVerseGlyph } from '$lib/quranFonts';
   import AyahHadithList from './AyahHadithList.svelte';
   import WordMorphology from './WordMorphology.svelte';
   import VariantReadings from './VariantReadings.svelte';
   import SimilarAyahs from './SimilarAyahs.svelte';
+
+  // QCF glyph state
+  let glyphText: string | null = $state(null);
+  let glyphPage: number | null = $state(null);
+  let glyphFontFamily: string = $state('');
+  let glyphReady = $state(false);
+
+  // Load glyphs when font mode is madani/tajweed
+  $effect(() => {
+    const mode = $preferences.quranFont;
+    if (mode === 'uthmani') {
+      glyphReady = false;
+      return;
+    }
+    // Fetch glyph data + load page font
+    const chapter = ayah.surah_number;
+    const verse = ayah.ayah_number;
+    fetchGlyphData(chapter).then(async () => {
+      const glyph = getVerseGlyph(chapter, verse);
+      if (!glyph) return;
+      glyphText = glyph.code_v2;
+      glyphPage = glyph.page;
+      glyphFontFamily = getPageFontFamily(glyph.page);
+      await loadPageFont(glyph.page, mode);
+      glyphReady = true;
+    }).catch(() => {
+      glyphReady = false;
+    });
+  });
 
   let { ayah, showScore = false, compact = false, hadithCount = 0, similarCount = 0, variantCount = 0, active = false, onplay, reciterFolder }: {
     ayah: ApiAyah | ApiAyahSearchResult;
@@ -134,8 +164,8 @@
     <div class="words-loading">Loading word data...</div>
   {:else}
     <div class="ayah-arabic" dir="rtl" style="font-size: {$preferences.arabicFontSize}rem">
-      {#if ayah.text_ar_tajweed}
-        <span class="arabic-text tajweed-text">{@html ayah.text_ar_tajweed}</span>
+      {#if $preferences.quranFont !== 'uthmani' && glyphReady && glyphText}
+        <span class="arabic-text qcf-text" style="font-family: {glyphFontFamily}">{glyphText}</span>
       {:else}
         <span class="arabic-text">{ayah.text_ar}</span>
         <span class="verse-badge">{ayah.ayah_number}</span>
@@ -259,8 +289,9 @@
   .arabic-text {
     color: var(--text-primary);
   }
-  .tajweed-text {
-    font-family: 'Amiri Quran', 'Amiri', 'Noto Naskh Arabic', serif;
+  .qcf-text {
+    letter-spacing: 0;
+    word-spacing: 0.08em;
   }
   .verse-badge {
     display: inline;
@@ -473,20 +504,6 @@
   }
 
   /* Tajweed color coding */
-  .tajweed-text :global(tajweed.ham_wasl) { color: #AAAAAA; }
-  .tajweed-text :global(tajweed.laam_shamsiyah) { color: transparent; font-size: 0; }
-  .tajweed-text :global(tajweed.madda_normal) { color: #E87D0D; }
-  .tajweed-text :global(tajweed.madda_permissible) { color: #2196F3; }
-  .tajweed-text :global(tajweed.madda_necessary) { color: #D50000; }
-  .tajweed-text :global(tajweed.madda_obligatory) { color: #00BCD4; }
-  .tajweed-text :global(tajweed.ghunnah) { color: #4CAF50; }
-  .tajweed-text :global(tajweed.ikhpiaa_shafawi) { color: #4CAF50; }
-  .tajweed-text :global(tajweed.ikhfa) { color: #4CAF50; }
-  .tajweed-text :global(tajweed.iqlab) { color: #009688; }
-  .tajweed-text :global(tajweed.idgham_ghunnah) { color: #4CAF50; }
-  .tajweed-text :global(tajweed.idgham_no_ghunnah) { color: #4CAF50; }
-  .tajweed-text :global(tajweed.idgham_shafawi) { color: #4CAF50; }
-  .tajweed-text :global(tajweed.qalpiaqpiala) { color: #B71C1C; }
   /* Mobile responsive */
   @media (max-width: 640px) {
     .ayah-card { padding: 14px 0; }
@@ -496,11 +513,4 @@
     .tafsir-block, .hadith-block { margin-left: 12px; margin-right: 12px; }
   }
 
-  /* Verse end number badge from quran.com tajweed text */
-  .tajweed-text :global(span.end) {
-    display: inline;
-    font-size: 0.65em;
-    color: var(--accent);
-    vertical-align: middle;
-  }
 </style>

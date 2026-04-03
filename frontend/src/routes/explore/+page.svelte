@@ -109,7 +109,7 @@
                   text_ar: item.text_ar,
                   text_en: item.text_en,
                   tafsir_en: item.tafsir_en,
-                  text_ar_tajweed: item.text_ar_tajweed,
+
                 }} compact />
               </a>
             </div>

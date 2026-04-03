@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { preferences, stepSize, DEFAULTS, type Theme } from '$lib/stores/preferences';
+  import { preferences, stepSize, DEFAULTS, type Theme, type QuranFontMode } from '$lib/stores/preferences';
 
   let open = $state(false);
 
@@ -62,6 +62,25 @@
               onclick={() => setTheme(t.key)}
               title={t.label}
             ></button>
+          {/each}
+        </div>
+      </div>
+
+      <div class="section-label">Quran Script</div>
+
+      <div class="control-row">
+        <span class="control-label">Font</span>
+        <div class="font-row">
+          {#each [
+            { key: 'uthmani', label: 'Uthmani' },
+            { key: 'madani', label: 'Madani' },
+            { key: 'tajweed', label: 'Tajweed' },
+          ] as f}
+            <button
+              class="font-pill"
+              class:active={$preferences.quranFont === f.key}
+              onclick={() => preferences.update(p => ({ ...p, quranFont: f.key as QuranFontMode }))}
+            >{f.label}</button>
           {/each}
         </div>
       </div>
@@ -171,6 +190,31 @@
   .theme-dot.active {
     border-color: var(--accent);
     box-shadow: 0 0 0 2px var(--accent-muted);
+  }
+  .font-row {
+    display: flex;
+    gap: 4px;
+  }
+  .font-pill {
+    padding: 3px 10px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: var(--bg-hover);
+    color: var(--text-secondary);
+    font-size: 0.7rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--transition);
+  }
+  .font-pill:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .font-pill.active {
+    background: var(--accent-muted);
+    border-color: var(--accent);
+    color: var(--accent);
+    font-weight: 600;
   }
   .stepper {
     display: flex;

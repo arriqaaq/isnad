@@ -186,7 +186,7 @@ DEFINE FIELD IF NOT EXISTS text_en         ON ayah TYPE option<string>;
 DEFINE FIELD IF NOT EXISTS tafsir_en       ON ayah TYPE option<string>;
 DEFINE FIELD IF NOT EXISTS juz             ON ayah TYPE option<int>;
 DEFINE FIELD IF NOT EXISTS hizb            ON ayah TYPE option<int>;
-DEFINE FIELD IF NOT EXISTS text_ar_tajweed ON ayah TYPE option<string>;
+
 DEFINE FIELD IF NOT EXISTS embedding       ON ayah TYPE option<array<float>>;
 DEFINE INDEX IF NOT EXISTS ayah_vec        ON TABLE ayah FIELDS embedding HNSW DIMENSION 384 DIST COSINE;
 DEFINE INDEX IF NOT EXISTS ayah_surah_idx  ON TABLE ayah FIELDS surah_number;
@@ -351,18 +351,30 @@ pub async fn init_quran_fulltext_indexes(db: &Surreal<Db>) -> Result<()> {
         "DEFINE INDEX IF NOT EXISTS ayah_tafsir_en_search ON TABLE ayah FIELDS tafsir_en FULLTEXT ANALYZER en_analyzer BM25 HIGHLIGHTS",
     ];
     for (i, stmt) in stmts.iter().enumerate() {
-        if let Err(e) = db.query(*stmt).await.and_then(|r| r.check()) {
-            let msg = e.to_string();
-            if msg.contains("already exists") {
-                continue;
+        let mut attempts = 0;
+        loop {
+            match db.query(*stmt).await.and_then(|r| r.check()) {
+                Ok(_) => break,
+                Err(e) => {
+                    let msg = e.to_string();
+                    if msg.contains("already exists") {
+                        break;
+                    }
+                    attempts += 1;
+                    if attempts >= 5 {
+                        tracing::error!("Quran fulltext index {i} failed after {attempts} attempts: {e}");
+                        return Err(e.into());
+                    }
+                    let delay = 500 * attempts;
+                    tracing::warn!("Quran fulltext index {i} retry {attempts}/5 (waiting {delay}ms): {e}");
+                    tokio::time::sleep(std::time::Duration::from_millis(delay)).await;
+                }
             }
-            tracing::error!("Quran fulltext index {i} failed: {e}");
-            return Err(e.into());
         }
         // Pause between FULLTEXT index definitions — SurrealDB builds indexes in the
         // background and concurrent builds on the same table cause memtable conflicts.
         if i >= 2 {
-            tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+            tokio::time::sleep(std::time::Duration::from_millis(500)).await;
         }
     }
     tracing::info!("Quran full-text search indexes initialized");

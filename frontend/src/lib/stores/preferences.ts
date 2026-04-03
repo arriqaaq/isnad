@@ -1,12 +1,14 @@
 import { writable } from 'svelte/store';
 
 export type Theme = 'light' | 'dark' | 'brown' | 'pink';
+export type QuranFontMode = 'uthmani' | 'madani' | 'tajweed';
 
 export interface QuranPreferences {
   arabicFontSize: number;
   englishFontSize: number;
   theme: Theme;
   selectedReciter: string | null;
+  quranFont: QuranFontMode;
 }
 
 export const FONT_STEPS = [0.6, 0.8, 0.9, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.4, 2.8];
@@ -16,6 +18,7 @@ export const DEFAULTS: QuranPreferences = {
   englishFontSize: 0.9,
   theme: 'light',
   selectedReciter: null,
+  quranFont: 'uthmani',
 };
 
 const STORAGE_KEY = 'quran-preferences';

@@ -25,7 +25,7 @@ pub struct Ayah {
     pub text_ar_simple: Option<String>,
     pub text_en: Option<String>,
     pub tafsir_en: Option<String>,
-    pub text_ar_tajweed: Option<String>,
+
     pub juz: Option<i64>,
     pub hizb: Option<i64>,
 }
@@ -38,7 +38,7 @@ pub struct AyahSearchResult {
     pub text_ar: String,
     pub text_en: Option<String>,
     pub tafsir_en: Option<String>,
-    pub text_ar_tajweed: Option<String>,
+
     pub score: Option<f64>,
 }
 
@@ -77,7 +77,7 @@ pub struct ApiAyah {
     pub text_ar: String,
     pub text_en: Option<String>,
     pub tafsir_en: Option<String>,
-    pub text_ar_tajweed: Option<String>,
+
 }
 
 impl From<Ayah> for ApiAyah {
@@ -89,7 +89,7 @@ impl From<Ayah> for ApiAyah {
             text_ar: a.text_ar,
             text_en: a.text_en,
             tafsir_en: a.tafsir_en,
-            text_ar_tajweed: a.text_ar_tajweed,
+
         }
     }
 }
@@ -102,7 +102,7 @@ pub struct ApiAyahSearchResult {
     pub text_ar: String,
     pub text_en: Option<String>,
     pub tafsir_en: Option<String>,
-    pub text_ar_tajweed: Option<String>,
+
     pub score: Option<f64>,
 }
 
@@ -115,7 +115,7 @@ impl From<AyahSearchResult> for ApiAyahSearchResult {
             text_ar: a.text_ar,
             text_en: a.text_en,
             tafsir_en: a.tafsir_en,
-            text_ar_tajweed: a.text_ar_tajweed,
+
             score: a.score,
         }
     }

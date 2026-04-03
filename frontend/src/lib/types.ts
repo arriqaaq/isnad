@@ -218,7 +218,7 @@ export interface ApiAyah {
   text_ar: string;
   text_en: string | null;
   tafsir_en: string | null;
-  text_ar_tajweed: string | null;
+
 }
 
 export interface ApiAyahSearchResult {
@@ -228,7 +228,7 @@ export interface ApiAyahSearchResult {
   text_ar: string;
   text_en: string | null;
   tafsir_en: string | null;
-  text_ar_tajweed: string | null;
+
   score: number | null;
 }
 
@@ -263,7 +263,7 @@ export interface UnifiedSearchItemQuran {
   text_ar: string;
   text_en: string | null;
   tafsir_en: string | null;
-  text_ar_tajweed: string | null;
+
   score: number | null;
   unified_score: number;
 }

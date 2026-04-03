@@ -89,13 +89,38 @@ endif
 .venv/bin/python3:
 	python3 -m venv .venv
 	.venv/bin/pip install --upgrade pip
-	.venv/bin/pip install datasets pandas
+	.venv/bin/pip install pandas
 
 # Ensure required packages are installed in the active venv
 quran-prepare-deps:
-	@$(VENV_PIP) install -q datasets pandas 2>/dev/null || true
+	@echo "No Python dependencies needed (QUL data is local JSON)"
 
-# Prepare Quran data (download Tanzil + Tafsir Ibn Kathir, merge into CSV)
+# ── QUL Data Sources (download manually from https://qul.tarteel.ai/resources) ──
+#
+# Text & Translations:
+#   qul/qpc-hafs.json                        — QPC Hafs Arabic (ayah-by-ayah)       → resources/quran-script/86  (Simple JSON)
+#   qul/en-sahih-international-simple.json    — Sahih International English           → resources/translation/193  (Simple JSON)
+#   qul/qpc-hafs-word-by-word.json            — QPC Hafs Arabic (word-by-word)       → resources/quran-script/312 (JSON)
+#   qul/en-tafisr-ibn-kathir.json              — Tafsir Ibn Kathir (English HTML)      → resources/tafsir/35        (JSON)
+#   qul/colored-english-wbw-translation.json  — Colored English word-by-word          → resources/translation      (JSON)
+#   qul/phrases.json                          — Mutashabihat ul Quran                → resources/mutashabihat     (JSON)
+#   qul/matching-ayah.json                    — Similar ayahs                        → resources/similar-ayah     (JSON)
+#
+# Glyph Data (for Madani/Tajweed font modes):
+#   qul/qpc-v2.json                           — QPC V2 glyph codes (word-by-word)   → resources/quran-script/61  (JSON)
+#   qul/qpc-v4.json                           — QPC V4 tajweed glyphs (word-by-word) → resources/quran-script/47  (JSON)
+#
+# Fonts:
+#   qul/UthmanicHafs_V22.woff2               — QPC Hafs Unicode font                → resources/font/245         (woff2)
+#   ~/Downloads/"QPC V2 Font.woff2"/          — 604 per-page V2 fonts (Madani)       → resources/font/249         (woff2)
+#   ~/Downloads/woff2/                        — 604 per-page V4 fonts (Tajweed)      → resources/font/240         (woff2)
+#
+# Font install (after downloading):
+#   cp qul/UthmanicHafs_V22.woff2 frontend/static/fonts/UthmanicHafs.woff2
+#   cp -r ~/Downloads/"QPC V2 Font.woff2"/ frontend/static/fonts/quran/v2/
+#   cp -r ~/Downloads/woff2/ frontend/static/fonts/quran/v4/
+
+# Prepare Quran data (QUL QPC Hafs + Tafsir Ibn Kathir, merge into CSV)
 quran-prepare: $(if $(VIRTUAL_ENV),,$(VENV_PYTHON)) quran-prepare-deps
 	$(VENV_PYTHON) scripts/prepare_quran_data.py
 
@@ -118,11 +143,15 @@ data/morphology-terms-ar.json:
 quran-check:
 	@echo "Checking required data files..."
 	@ok=true; \
+	test -f qul/qpc-hafs.json                          && echo "  ✓ qul/qpc-hafs.json" || { echo "  ✗ qul/qpc-hafs.json — download from qul.tarteel.ai/resources/quran-script/86 (Simple JSON)"; ok=false; }; \
+	test -f qul/en-sahih-international-simple.json     && echo "  ✓ qul/en-sahih-international-simple.json" || { echo "  ✗ qul/en-sahih-international-simple.json — download from qul.tarteel.ai/resources/translation/193 (Simple JSON)"; ok=false; }; \
+	test -f qul/en-tafisr-ibn-kathir.json              && echo "  ✓ qul/en-tafisr-ibn-kathir.json" || { echo "  ✗ qul/en-tafisr-ibn-kathir.json — download from qul.tarteel.ai/resources/tafsir/35 (JSON)"; ok=false; }; \
 	test -f data/quran.csv                              && echo "  ✓ data/quran.csv" || { echo "  ✗ data/quran.csv (run: make quran-prepare)"; ok=false; }; \
 	test -f data/quran-morphology.txt                   && echo "  ✓ data/quran-morphology.txt (auto-downloaded)" || echo "  ○ data/quran-morphology.txt (will auto-download)"; \
 	test -f qul/colored-english-wbw-translation.json   && echo "  ✓ qul/colored-english-wbw-translation.json" || { echo "  ✗ qul/colored-english-wbw-translation.json — download from qul.tarteel.ai/resources/translation (Colored English wbw translation → JSON)"; ok=false; }; \
 	test -f qul/phrases.json                       && echo "  ✓ qul/phrases.json" || { echo "  ✗ qul/phrases.json — download from qul.tarteel.ai/resources/mutashabihat (JSON)"; ok=false; }; \
 	test -f qul/matching-ayah.json                 && echo "  ✓ qul/matching-ayah.json" || { echo "  ✗ qul/matching-ayah.json — download from qul.tarteel.ai/resources/similar-ayah (JSON)"; ok=false; }; \
+	test -f frontend/static/fonts/UthmanicHafs.woff2   && echo "  ✓ frontend/static/fonts/UthmanicHafs.woff2" || { echo "  ✗ UthmanicHafs font — cp qul/UthmanicHafs_V22.woff2 frontend/static/fonts/UthmanicHafs.woff2"; ok=false; }; \
 	test -d data/corpus-coranicum-tei                   && echo "  ✓ data/corpus-coranicum-tei/ (auto-cloned)" || echo "  ○ data/corpus-coranicum-tei/ (will auto-clone from GitHub)"; \
 	echo ""; \
 	if $$ok; then echo "All required files present. Run: make quran-full"; else echo "⚠  Download missing files above before running make quran-full"; exit 1; fi

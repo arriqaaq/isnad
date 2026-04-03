@@ -56,8 +56,8 @@ make dev                      # start server at localhost:3000
 |---|---|---|
 | [Sanadset 650K](https://data.mendeley.com/datasets/5xth87zwb5/4) | 368K hadiths | Arabic text + pre-parsed narrator chains from 926 books |
 | [Sunnah.com](https://huggingface.co/datasets/meeAtif/hadith_datasets) | 33K translations | Human English for 6 canonical collections |
-| [Tanzil.net](https://tanzil.net/) | 6,236 ayahs | Uthmani Arabic + Sahih International English |
-| [Tafsir Ibn Kathir](https://huggingface.co/datasets/M-AI-C/en-tafsir-ibn-kathir) | 114 surahs | Classical exegesis in English |
+| [QUL (Tarteel)](https://qul.tarteel.ai/) | 6,236 ayahs | QPC Hafs Arabic + Sahih International English |
+| [Tafsir Ibn Kathir](https://qul.tarteel.ai/resources/tafsir/35) | 6,236 ayahs | Classical exegesis in English (HTML) |
 | [AR-Sanad](https://github.com/somaia02/Narrator-Disambiguation) | 18K narrators | Ibn Hajar reliability classifications (Taqrib al-Tahdhib) |
 
 All datasets are auto-downloaded on first run. See [DATA_SOURCES.md](docs/DATA_SOURCES.md) for details.

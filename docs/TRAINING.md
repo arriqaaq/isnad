@@ -27,7 +27,7 @@ python3 -m venv .venv-train
 source .venv-train/bin/activate
 pip install mlx-lm datasets
 
-# 2. Generate Quran CSV (downloads from Tanzil + HuggingFace tafsir)
+# 2. Generate Quran CSV (loads QUL QPC Hafs + QUL Tafsir Ibn Kathir)
 python3 scripts/prepare_quran_data.py
 
 # 3. Generate training data from hadith/Quran sources
@@ -92,7 +92,7 @@ The sections below explain each step in detail.
 Before preparing training data, generate the Quran CSV if it doesn't already exist:
 
 ```bash
-# quran.csv must be generated first (downloads from Tanzil + HuggingFace tafsir)
+# quran.csv must be generated first (loads QUL QPC Hafs + QUL Tafsir Ibn Kathir)
 python3 scripts/prepare_quran_data.py
 # Verify: data/quran.csv should have 6,236 rows
 ```

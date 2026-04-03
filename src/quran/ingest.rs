@@ -51,7 +51,7 @@ struct CsvAyah {
     text_ar: String,
     text_en: String,
     tafsir_en: String,
-    text_ar_tajweed: String,
+
 }
 
 pub async fn ingest(db: &Surreal<Db>, csv_path: &str) -> Result<()> {
@@ -86,18 +86,11 @@ pub async fn ingest(db: &Surreal<Db>, csv_path: &str) -> Result<()> {
             Some(ayah.tafsir_en.clone())
         };
 
-        let text_ar_tajweed: Option<String> = if ayah.text_ar_tajweed.is_empty() {
-            None
-        } else {
-            Some(ayah.text_ar_tajweed.clone())
-        };
-
         db.query(
             "CREATE $rid CONTENT { \
              surah_number: $surah, ayah_number: $ayah, \
              text_ar: $text_ar, text_ar_simple: $text_ar_simple, \
-             text_en: $text_en, tafsir_en: $tafsir_en, \
-             text_ar_tajweed: $text_ar_tajweed }",
+             text_en: $text_en, tafsir_en: $tafsir_en }",
         )
         .bind(("rid", rid("ayah", &key)))
         .bind(("surah", ayah.surah))
@@ -106,7 +99,6 @@ pub async fn ingest(db: &Surreal<Db>, csv_path: &str) -> Result<()> {
         .bind(("text_ar_simple", text_ar_simple))
         .bind(("text_en", text_en))
         .bind(("tafsir_en", tafsir_en))
-        .bind(("text_ar_tajweed", text_ar_tajweed))
         .await?
         .check()?;
 
@@ -133,15 +125,12 @@ fn parse_csv(path: &str) -> Result<Vec<CsvAyah>> {
         let text_ar = record.get(2).unwrap_or("").to_string();
         let text_en = record.get(3).unwrap_or("").to_string();
         let tafsir_en = record.get(4).unwrap_or("").to_string();
-        let text_ar_tajweed = record.get(5).unwrap_or("").to_string();
-
         ayahs.push(CsvAyah {
             surah,
             ayah,
             text_ar,
             text_en,
             tafsir_en,
-            text_ar_tajweed,
         });
     }
 
