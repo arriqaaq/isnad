@@ -1,14 +1,16 @@
 <script lang="ts">
   import { page } from '$app/state';
-  import { searchQuran } from '$lib/api';
-  import type { QuranSearchResponse } from '$lib/types';
+  import { goto } from '$app/navigation';
+  import { searchQuran, searchByRoot } from '$lib/api';
+  import type { QuranSearchResponse, RootSearchResponse } from '$lib/types';
   import AyahCard from '$lib/components/quran/AyahCard.svelte';
   import LoadingSpinner from '$lib/components/common/LoadingSpinner.svelte';
 
   let result: QuranSearchResponse | null = $state(null);
+  let rootResult: RootSearchResponse | null = $state(null);
   let loading = $state(false);
   let query = $state('');
-  let searchType: 'text' | 'semantic' | 'hybrid' | 'tafsir' = $state('text');
+  let searchType: 'text' | 'semantic' | 'hybrid' | 'tafsir' | 'root' = $state('text');
 
   let urlQuery = $derived(page.url.searchParams.get('q') || '');
   let urlType = $derived((page.url.searchParams.get('type') as typeof searchType) || 'text');
@@ -24,8 +26,14 @@
   async function doSearch() {
     if (!query.trim()) return;
     loading = true;
+    result = null;
+    rootResult = null;
     try {
-      result = await searchQuran(query, searchType);
+      if (searchType === 'root') {
+        rootResult = await searchByRoot(query);
+      } else {
+        result = await searchQuran(query, searchType as 'text' | 'semantic' | 'hybrid' | 'tafsir');
+      }
     } catch (e) {
       console.error('Quran search failed:', e);
     } finally {
@@ -50,12 +58,22 @@
       <button type="button" class="toggle-btn" class:active={searchType === 'semantic'} onclick={() => searchType = 'semantic'}>Semantic</button>
       <button type="button" class="toggle-btn" class:active={searchType === 'hybrid'} onclick={() => searchType = 'hybrid'}>Hybrid</button>
       <button type="button" class="toggle-btn" class:active={searchType === 'tafsir'} onclick={() => searchType = 'tafsir'}>Tafsir</button>
+      <button type="button" class="toggle-btn" class:active={searchType === 'root'} onclick={() => searchType = 'root'}>Root</button>
     </div>
     <button type="submit" class="search-btn">Search</button>
   </form>
 
   {#if loading}
     <LoadingSpinner />
+  {:else if rootResult}
+    {#if rootResult.occurrences.length > 0}
+      <section class="results-section">
+        <h2 dir="rtl">{rootResult.root} - {rootResult.occurrences.length} words in {rootResult.ayah_count} ayahs</h2>
+        <a href="/quran/root/{encodeURIComponent(rootResult.root)}" class="view-all">View detailed root page</a>
+      </section>
+    {:else}
+      <div class="empty">No words found for root "{query}".</div>
+    {/if}
   {:else if result}
     {#if result.ayahs.length > 0}
       <section class="results-section">
@@ -90,4 +108,5 @@
   .result-link { color: var(--text-primary); }
   .result-link:hover { color: var(--text-primary); }
   .empty { text-align: center; color: var(--text-muted); padding: 40px; }
+  .view-all { font-size: 0.85rem; color: var(--accent); }
 </style>

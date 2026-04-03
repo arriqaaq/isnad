@@ -1,4 +1,4 @@
-.PHONY: build frontend backend server dev stop ingest ingest-test ingest-full list-books quran-prepare quran-ingest quran-hadith-refs quran analyze analyze-bio analyze-families analyze-transmission pipeline-test pipeline-full clean
+.PHONY: build frontend backend server dev stop ingest ingest-test ingest-full list-books quran-prepare quran-ingest quran-hadith-refs quran-morphology quran-similar quran-manuscripts quran quran-full analyze analyze-bio analyze-families analyze-transmission pipeline-test pipeline-full clean
 
 # SurrealDB HNSW index traversal needs extra stack space
 export RUST_MIN_STACK=8388608
@@ -72,8 +72,31 @@ quran-ingest:
 quran-hadith-refs:
 	cargo run -- ingest-quran-hadith-refs
 
-# Full Quran pipeline: create venv + prepare data + ingest + hadith refs
+# Download morphology data (if not present)
+data/quran-morphology.txt:
+	curl -sL https://raw.githubusercontent.com/mustafa0x/quran-morphology/master/quran-morphology.txt -o data/quran-morphology.txt
+
+# 1. Ingest word morphology (must run before quran-similar so phrase text can be extracted)
+#    Requires: data/quran-morphology.txt (auto-downloaded)
+#    Optional: data/colored-english-wbw-translation.json (download "Colored English wbw translation" JSON from qul.tarteel.ai/resources/translation)
+quran-morphology:
+	cargo run -- ingest-morphology
+
+# 2. Ingest mutashabihat + similar ayahs from QUL JSON (must run after morphology)
+#    Requires: data/qul/phrases.json + data/qul/matching-ayah.json (download from qul.tarteel.ai/resources)
+quran-similar:
+	cargo run -- ingest-quran-similar --qul-dir data/qul
+
+# 3. Clone Corpus Coranicum TEI (if not present) and ingest manuscripts + variant readings
+quran-manuscripts:
+	@test -d data/corpus-coranicum-tei || git clone https://github.com/telota/corpus-coranicum-tei.git data/corpus-coranicum-tei
+	cargo run -- ingest-manuscripts --tei-dir data/corpus-coranicum-tei
+
+# Base Quran pipeline: prepare data + ingest ayahs + hadith refs
 quran: quran-prepare quran-ingest quran-hadith-refs
+
+# Full Quran pipeline (ordered: base → morphology → similar → manuscripts)
+quran-full: quran data/quran-morphology.txt quran-morphology quran-similar quran-manuscripts
 
 # === Analyze phase (runs on already-ingested data) ===
 

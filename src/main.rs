@@ -83,6 +83,40 @@ enum Commands {
         #[arg(long, default_value = "db_data")]
         db_path: String,
     },
+    /// Ingest word morphology data (corpus.quran.com + QUL translations)
+    IngestMorphology {
+        /// Path to quran-morphology.txt
+        #[arg(long, default_value = "data/quran-morphology.txt")]
+        file: String,
+
+        /// Directory with QUL JSON files (word_translation.json, transliteration.json)
+        #[arg(long, default_value = "data/qul")]
+        qul_dir: String,
+
+        /// Path to SurrealDB data directory
+        #[arg(long, default_value = "db_data")]
+        db_path: String,
+    },
+    /// Ingest shared phrases (mutashabihat) and similar ayahs from QUL JSON
+    IngestQuranSimilar {
+        /// Directory with QUL JSON files (phrases.json, similar_ayahs.json)
+        #[arg(long, default_value = "data/qul")]
+        qul_dir: String,
+
+        /// Path to SurrealDB data directory
+        #[arg(long, default_value = "db_data")]
+        db_path: String,
+    },
+    /// Ingest manuscript descriptions and variant readings from Corpus Coranicum TEI XML
+    IngestManuscripts {
+        /// Path to cloned corpus-coranicum-tei repository
+        #[arg(long, default_value = "data/corpus-coranicum-tei")]
+        tei_dir: String,
+
+        /// Path to SurrealDB data directory
+        #[arg(long, default_value = "db_data")]
+        db_path: String,
+    },
     /// Start the web server
     Serve {
         /// Port to listen on
@@ -183,7 +217,7 @@ async fn download_sanadset(target_path: &str) -> Result<()> {
 }
 
 fn main() -> Result<()> {
-    let stack_size = 32 * 1024 * 1024; // 32 MB — SurrealDB HNSW traversal is deeply recursive
+    let stack_size = 128 * 1024 * 1024; // 128 MB — SurrealDB recursive operations need deep stacks
     eprintln!("Starting tokio runtime with {stack_size} byte worker thread stacks");
     tokio::runtime::Builder::new_multi_thread()
         .enable_all()
@@ -381,6 +415,43 @@ async fn async_main() -> Result<()> {
             quran::hadith_refs::ingest_hadith_refs(&db).await?;
             tracing::info!("Quran-Hadith reference ingestion complete");
         }
+        Commands::IngestMorphology {
+            file,
+            qul_dir,
+            db_path,
+        } => {
+            if !std::path::Path::new(&file).exists() {
+                anyhow::bail!(
+                    "Morphology data not found at {file}. Download from: https://github.com/mustafa0x/quran-morphology"
+                );
+            }
+
+            let db = db::connect(&db_path).await?;
+            db::init_quran_word_schema(&db).await?;
+            quran::morphology::ingest_morphology(&db, &file, &qul_dir).await?;
+            tracing::info!("Morphology ingestion complete");
+        }
+        Commands::IngestManuscripts { tei_dir, db_path } => {
+            if !std::path::Path::new(&tei_dir).is_dir() {
+                anyhow::bail!(
+                    "TEI directory not found at {tei_dir}. Clone from: https://github.com/telota/corpus-coranicum-tei"
+                );
+            }
+
+            let db = db::connect(&db_path).await?;
+            db::init_manuscript_schema(&db).await?;
+            quran::manuscripts::ingest_manuscripts(&db, &tei_dir).await?;
+            tracing::info!("Manuscript ingestion complete");
+        }
+        Commands::IngestQuranSimilar { qul_dir, db_path } => {
+            let db = db::connect(&db_path).await?;
+            db::init_quran_schema(&db).await?;
+            db::init_quran_word_schema(&db).await?;
+            db::init_quran_similar_schema(&db).await?;
+            println!("Ingesting shared phrases and similar ayahs from {qul_dir}...");
+            quran::similar::ingest_similar(&db, &qul_dir).await?;
+            tracing::info!("Quran similar/mutashabihat ingestion complete");
+        }
         Commands::Serve {
             port,
             db_path,
@@ -390,6 +461,11 @@ async fn async_main() -> Result<()> {
             let db = db::connect(&db_path).await?;
             db::init_schema(&db).await?;
             db::init_quran_schema(&db).await?;
+            db::init_quran_word_schema(&db).await?;
+            db::init_quran_similar_schema(&db).await?;
+            db::init_reciter_schema(&db).await?;
+            db::init_manuscript_schema(&db).await?;
+            quran::audio::init_reciters(&db).await?;
             db::init_fulltext_indexes(&db).await?;
             // Quran fulltext indexes are created during ingest-quran, not here.
             // Creating them on an empty table with option<string> fields causes errors.

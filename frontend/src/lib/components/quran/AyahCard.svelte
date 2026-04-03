@@ -1,21 +1,62 @@
 <script lang="ts">
-  import type { ApiAyah, ApiAyahSearchResult, AyahHadithResponse } from '$lib/types';
-  import { getAyahHadiths } from '$lib/api';
+  import type { ApiAyah, ApiAyahSearchResult, ApiQuranWord, ApiVariantReading, AyahHadithResponse, AyahSimilarResponse } from '$lib/types';
+  import { getAyahHadiths, getAyahWords, getAyahVariants, getAyahSimilar } from '$lib/api';
   import { truncate } from '$lib/utils';
   import { preferences } from '$lib/stores/preferences';
   import AyahHadithList from './AyahHadithList.svelte';
+  import WordMorphology from './WordMorphology.svelte';
+  import VariantReadings from './VariantReadings.svelte';
+  import SimilarAyahs from './SimilarAyahs.svelte';
 
-  let { ayah, showScore = false, compact = false, hadithCount = 0 }: {
+  let { ayah, showScore = false, compact = false, hadithCount = 0, active = false, onplay, reciterFolder }: {
     ayah: ApiAyah | ApiAyahSearchResult;
     showScore?: boolean;
     compact?: boolean;
     hadithCount?: number;
+    active?: boolean;
+    onplay?: (ayah: number) => void;
+    reciterFolder?: string;
   } = $props();
+
+  function pad3(n: number): string {
+    return String(n).padStart(3, '0');
+  }
+
+  let downloadUrl = $derived(
+    reciterFolder
+      ? `https://everyayah.com/data/${reciterFolder}/${pad3(ayah.surah_number)}${pad3(ayah.ayah_number)}.mp3`
+      : `https://everyayah.com/data/Alafasy_128kbps/${pad3(ayah.surah_number)}${pad3(ayah.ayah_number)}.mp3`
+  );
+
+  let wordAudio: HTMLAudioElement | null = $state(null);
+
+  function playWordAudio(word: ApiQuranWord) {
+    const url = `https://audio.qurancdn.com/wbw/${pad3(word.surah_number)}_${pad3(word.ayah_number)}_${pad3(word.word_position)}.mp3`;
+    if (wordAudio) { wordAudio.pause(); }
+    wordAudio = new Audio(url);
+    wordAudio.play().catch(() => {});
+  }
 
   let showTafsir = $state(false);
   let showHadiths = $state(false);
+  let showWords = $state(false);
+  let showVariants = $state(false);
   let hadithData: AyahHadithResponse | null = $state(null);
   let hadithLoading = $state(false);
+  let words: ApiQuranWord[] | null = $state(null);
+  let wordsLoading = $state(false);
+  let selectedWord: ApiQuranWord | null = $state(null);
+  let variantData: ApiVariantReading[] | null = $state(null);
+  let variantLoading = $state(false);
+  let showSimilar = $state(false);
+  let similarData: AyahSimilarResponse | null = $state(null);
+  let similarLoading = $state(false);
+
+  // Hide buttons once we know there's no data
+  let variantEmpty = $derived(variantData !== null && variantData.length === 0);
+  let similarEmpty = $derived(
+    similarData !== null && similarData.similar.length === 0 && similarData.phrases.length === 0
+  );
   let score = $derived('score' in ayah ? (ayah as ApiAyahSearchResult).score : null);
 
   async function toggleHadiths() {
@@ -31,17 +72,89 @@
       }
     }
   }
+
+  async function toggleWords() {
+    showWords = !showWords;
+    if (showWords && !words && !wordsLoading) {
+      wordsLoading = true;
+      try {
+        words = await getAyahWords(ayah.surah_number, ayah.ayah_number);
+      } catch (e) {
+        console.error('Failed to load words:', e);
+      } finally {
+        wordsLoading = false;
+      }
+    }
+  }
+
+  async function toggleVariants() {
+    showVariants = !showVariants;
+    if (showVariants && !variantData && !variantLoading) {
+      variantLoading = true;
+      try {
+        variantData = await getAyahVariants(ayah.surah_number, ayah.ayah_number);
+        if (variantData.length === 0) showVariants = false;
+      } catch (e) {
+        console.error('Failed to load variants:', e);
+      } finally {
+        variantLoading = false;
+      }
+    }
+  }
+
+  async function toggleSimilar() {
+    showSimilar = !showSimilar;
+    if (showSimilar && !similarData && !similarLoading) {
+      similarLoading = true;
+      try {
+        similarData = await getAyahSimilar(ayah.surah_number, ayah.ayah_number);
+        if (similarData.similar.length === 0 && similarData.phrases.length === 0) showSimilar = false;
+      } catch (e) {
+        console.error('Failed to load similar ayahs:', e);
+      } finally {
+        similarLoading = false;
+      }
+    }
+  }
 </script>
 
-<div class="ayah-card" class:compact>
-  <div class="ayah-arabic" dir="rtl" style="font-size: {$preferences.arabicFontSize}rem">
-    {#if ayah.text_ar_tajweed}
-      <span class="arabic-text tajweed-text">{@html ayah.text_ar_tajweed}</span>
-    {:else}
-      <span class="arabic-text">{ayah.text_ar}</span>
-      <span class="verse-badge">{ayah.ayah_number}</span>
-    {/if}
-  </div>
+<div class="ayah-card" class:compact class:active>
+  {#if showWords && words}
+    <div class="word-grid" dir="rtl">
+      {#each words as word}
+        <button
+          class="word-token"
+          title={word.translation ?? ''}
+          onclick={() => { playWordAudio(word); selectedWord = word; }}
+        >
+          <span class="word-ar" style="font-size: {$preferences.arabicFontSize * 0.85}rem">{word.text_ar}</span>
+          {#if word.translation}
+            <span class="word-en">{word.translation}</span>
+          {/if}
+          <span class="word-pos">{word.pos}</span>
+        </button>
+      {/each}
+    </div>
+  {:else if showWords && wordsLoading}
+    <div class="words-loading">Loading word data...</div>
+  {:else}
+    <div class="ayah-arabic" dir="rtl" style="font-size: {$preferences.arabicFontSize}rem">
+      {#if ayah.text_ar_tajweed}
+        <span class="arabic-text tajweed-text">{@html ayah.text_ar_tajweed}</span>
+      {:else}
+        <span class="arabic-text">{ayah.text_ar}</span>
+        <span class="verse-badge">{ayah.ayah_number}</span>
+      {/if}
+    </div>
+  {/if}
+
+  {#if showWords && words && words[0]?.transliteration}
+    <div class="transliteration-line">{words[0].transliteration}</div>
+  {/if}
+
+  {#if selectedWord}
+    <WordMorphology word={selectedWord} onclose={() => selectedWord = null} />
+  {/if}
 
   {#if ayah.text_en}
     <div class="ayah-translation" style="font-size: {$preferences.englishFontSize}rem">
@@ -58,6 +171,19 @@
     {#if showScore && score}
       <span class="score mono">{score.toFixed(3)}</span>
     {/if}
+    {#if onplay}
+      <button class="audio-btn" onclick={() => onplay(ayah.ayah_number)} aria-label="Play ayah">
+        &#9654;
+      </button>
+    {/if}
+    <a class="audio-btn download-btn" href={downloadUrl} download aria-label="Download MP3">
+      &#8595;
+    </a>
+    {#if !compact}
+      <button class="words-toggle" class:active-toggle={showWords} onclick={toggleWords}>
+        Words
+      </button>
+    {/if}
     {#if hadithCount > 0}
       <button class="hadith-toggle" onclick={toggleHadiths}>
         {showHadiths ? 'Hide' : 'Show'} Hadith ({hadithCount})
@@ -66,6 +192,16 @@
     {#if ayah.tafsir_en}
       <button class="tafsir-toggle" onclick={() => showTafsir = !showTafsir}>
         {showTafsir ? 'Hide' : 'Show'} Tafsir
+      </button>
+    {/if}
+    {#if !compact && !variantEmpty}
+      <button class="readings-toggle" class:active-toggle={showVariants} onclick={toggleVariants}>
+        Readings
+      </button>
+    {/if}
+    {#if !compact && !similarEmpty}
+      <button class="similar-toggle" class:active-toggle={showSimilar} onclick={toggleSimilar}>
+        Similar
       </button>
     {/if}
   </div>
@@ -84,6 +220,26 @@
     <div class="tafsir-block">
       <div class="tafsir-label">Tafsir Ibn Kathir</div>
       <div class="tafsir-text">{@html ayah.tafsir_en}</div>
+    </div>
+  {/if}
+
+  {#if showVariants}
+    <div class="variant-block">
+      {#if variantLoading}
+        <div class="variant-loading">Loading variant readings...</div>
+      {:else if variantData}
+        <VariantReadings variants={variantData} />
+      {/if}
+    </div>
+  {/if}
+
+  {#if showSimilar}
+    <div class="similar-block">
+      {#if similarLoading}
+        <div class="similar-loading">Loading similar ayahs...</div>
+      {:else if similarData}
+        <SimilarAyahs data={similarData} />
+      {/if}
     </div>
   {/if}
 </div>
@@ -137,8 +293,89 @@
     font-size: 0.75rem;
     color: var(--success);
   }
-  .tafsir-toggle, .hadith-toggle {
-    margin-left: auto;
+  .ayah-card.active {
+    border-left: 3px solid var(--accent);
+    background: var(--accent-muted);
+  }
+  .word-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px;
+    justify-content: flex-start;
+    margin-bottom: 12px;
+  }
+  .word-token {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 8px 12px;
+    background: var(--bg-hover);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all var(--transition);
+    min-width: 50px;
+  }
+  .word-token:hover {
+    border-color: var(--accent);
+    background: var(--accent-muted);
+  }
+  .word-ar {
+    color: var(--text-primary);
+    line-height: 1.6;
+  }
+  .word-en {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    max-width: 80px;
+    text-align: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .word-pos {
+    font-size: 0.55rem;
+    color: var(--accent);
+    font-family: var(--font-mono);
+    font-weight: 600;
+  }
+  .words-loading {
+    padding: 16px 8px;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+  }
+  .transliteration-line {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    font-style: italic;
+    padding: 0 8px;
+    margin-bottom: 8px;
+    direction: ltr;
+    text-align: left;
+  }
+  .audio-btn {
+    font-size: 0.75rem;
+    color: var(--accent);
+    background: none;
+    border: 1px solid var(--accent);
+    border-radius: var(--radius-sm);
+    padding: 2px 8px;
+    cursor: pointer;
+    transition: all var(--transition);
+    text-decoration: none;
+    line-height: 1.4;
+    display: inline-flex;
+    align-items: center;
+  }
+  .audio-btn:hover {
+    background: var(--accent-muted);
+  }
+  .download-btn {
+    font-size: 0.85rem;
+  }
+  .words-toggle, .tafsir-toggle, .hadith-toggle, .readings-toggle, .similar-toggle {
     font-size: 0.75rem;
     color: var(--accent);
     background: none;
@@ -148,10 +385,11 @@
     cursor: pointer;
     transition: all var(--transition);
   }
-  .hadith-toggle {
-    margin-left: 0;
+  .words-toggle.active-toggle, .readings-toggle.active-toggle, .similar-toggle.active-toggle {
+    background: var(--accent);
+    color: var(--bg-primary);
   }
-  .tafsir-toggle:hover, .hadith-toggle:hover {
+  .words-toggle:hover, .tafsir-toggle:hover, .hadith-toggle:hover, .readings-toggle:hover, .similar-toggle:hover {
     background: var(--accent-muted);
   }
   .hadith-block {
@@ -162,6 +400,28 @@
     border-left: 3px solid var(--success);
   }
   .hadith-loading {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+  }
+  .variant-block {
+    margin-top: 12px;
+    padding: 16px;
+    background: var(--bg-hover);
+    border-radius: var(--radius);
+    border-left: 3px solid #e89d0d;
+  }
+  .variant-loading {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+  }
+  .similar-block {
+    margin-top: 12px;
+    padding: 16px;
+    background: var(--bg-hover);
+    border-radius: var(--radius);
+    border-left: 3px solid #2196F3;
+  }
+  .similar-loading {
     font-size: 0.85rem;
     color: var(--text-muted);
   }

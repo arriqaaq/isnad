@@ -113,10 +113,42 @@
       <h2>Everything you need to study</h2>
     </div>
 
-    <!-- Intelligent Search — full width hero feature -->
+    <!-- Intelligent Search -->
     <div class="feat animate-on-scroll" use:inview>
       <div class="feat-visual">
-        <img src="/img/feature-search.png" alt="Unified search across Quran and Hadith" />
+        <svg viewBox="0 0 400 300" fill="none" xmlns="http://www.w3.org/2000/svg" class="feat-svg">
+          <!-- Background glow -->
+          <circle cx="200" cy="130" r="100" fill="var(--accent)" opacity="0.04"/>
+          <!-- Quran result card -->
+          <rect x="60" y="120" width="180" height="130" rx="16" fill="var(--bg-surface)" stroke="var(--border)" stroke-width="1.2"/>
+          <rect x="76" y="138" width="50" height="14" rx="7" fill="var(--accent)" opacity="0.15"/>
+          <rect x="76" y="164" width="140" height="6" rx="3" fill="var(--border)" opacity="0.5"/>
+          <rect x="76" y="180" width="110" height="6" rx="3" fill="var(--border)" opacity="0.35"/>
+          <rect x="76" y="196" width="130" height="6" rx="3" fill="var(--border)" opacity="0.25"/>
+          <circle cx="212" cy="228" r="8" fill="var(--accent)" opacity="0.1"/>
+          <!-- Hadith result card (overlapping) -->
+          <rect x="160" y="80" width="180" height="130" rx="16" fill="var(--bg-surface)" stroke="var(--border)" stroke-width="1.2"/>
+          <rect x="176" y="98" width="60" height="14" rx="7" fill="var(--accent-secondary)" opacity="0.15"/>
+          <rect x="176" y="124" width="140" height="6" rx="3" fill="var(--border)" opacity="0.5"/>
+          <rect x="176" y="140" width="100" height="6" rx="3" fill="var(--border)" opacity="0.35"/>
+          <rect x="176" y="156" width="120" height="6" rx="3" fill="var(--border)" opacity="0.25"/>
+          <circle cx="312" cy="188" r="8" fill="var(--accent-secondary)" opacity="0.1"/>
+          <!-- Semantic connection dots -->
+          <circle cx="180" cy="170" r="3" fill="var(--accent)" opacity="0.4"/>
+          <circle cx="210" cy="155" r="2.5" fill="var(--accent)" opacity="0.3"/>
+          <circle cx="195" cy="145" r="2" fill="var(--accent)" opacity="0.25"/>
+          <line x1="180" y1="170" x2="210" y2="155" stroke="var(--accent)" stroke-width="0.8" opacity="0.2"/>
+          <line x1="210" y1="155" x2="195" y2="145" stroke="var(--accent)" stroke-width="0.8" opacity="0.2"/>
+          <!-- Magnifying glass -->
+          <circle cx="200" cy="58" r="32" fill="var(--accent)" opacity="0.08"/>
+          <circle cx="200" cy="58" r="22" stroke="var(--accent)" stroke-width="3" fill="none" opacity="0.6"/>
+          <line x1="216" y1="74" x2="230" y2="88" stroke="var(--accent)" stroke-width="3" stroke-linecap="round" opacity="0.6"/>
+          <!-- Floating vector dots -->
+          <circle cx="155" cy="45" r="4" fill="var(--accent)" opacity="0.15"/>
+          <circle cx="248" cy="40" r="3" fill="var(--accent)" opacity="0.12"/>
+          <circle cx="165" cy="75" r="2.5" fill="var(--accent)" opacity="0.1"/>
+          <circle cx="240" cy="70" r="3.5" fill="var(--accent)" opacity="0.1"/>
+        </svg>
       </div>
       <div class="feat-text">
         <h3>Intelligent Search</h3>
@@ -128,7 +160,40 @@
     <!-- Quran Reader -->
     <div class="feat feat-reverse animate-on-scroll" use:inview>
       <div class="feat-visual">
-        <img src="/img/feature-quran.png" alt="Quran reader with tajweed and tafsir" />
+        <svg viewBox="0 0 400 300" fill="none" xmlns="http://www.w3.org/2000/svg" class="feat-svg">
+          <!-- Background glow -->
+          <circle cx="200" cy="150" r="110" fill="var(--accent)" opacity="0.03"/>
+          <!-- Book spine -->
+          <rect x="196" y="40" width="8" height="220" rx="4" fill="var(--accent)" opacity="0.12"/>
+          <!-- Left page (Arabic / tajweed) -->
+          <rect x="40" y="40" width="160" height="220" rx="12" fill="var(--bg-surface)" stroke="var(--border)" stroke-width="1.2"/>
+          <rect x="60" y="68" width="110" height="7" rx="3.5" fill="var(--accent)" opacity="0.35"/>
+          <rect x="70" y="88" width="100" height="7" rx="3.5" fill="#16a34a" opacity="0.3"/>
+          <rect x="55" y="108" width="120" height="7" rx="3.5" fill="var(--text-muted)" opacity="0.2"/>
+          <rect x="65" y="128" width="95" height="7" rx="3.5" fill="var(--accent)" opacity="0.25"/>
+          <rect x="75" y="148" width="85" height="7" rx="3.5" fill="#16a34a" opacity="0.25"/>
+          <rect x="60" y="168" width="110" height="7" rx="3.5" fill="var(--accent)" opacity="0.3"/>
+          <rect x="70" y="188" width="90" height="7" rx="3.5" fill="var(--text-muted)" opacity="0.15"/>
+          <!-- Ayah markers on left page -->
+          <circle cx="168" cy="71" r="9" fill="var(--accent)" opacity="0.1"/>
+          <circle cx="168" cy="131" r="9" fill="var(--accent)" opacity="0.1"/>
+          <circle cx="168" cy="171" r="9" fill="var(--accent)" opacity="0.1"/>
+          <!-- Right page (translation) -->
+          <rect x="200" y="40" width="160" height="220" rx="12" fill="var(--bg-surface)" stroke="var(--border)" stroke-width="1.2"/>
+          <rect x="220" y="68" width="120" height="5" rx="2.5" fill="var(--border)" opacity="0.4"/>
+          <rect x="220" y="84" width="100" height="5" rx="2.5" fill="var(--border)" opacity="0.3"/>
+          <rect x="220" y="100" width="110" height="5" rx="2.5" fill="var(--border)" opacity="0.25"/>
+          <rect x="220" y="126" width="115" height="5" rx="2.5" fill="var(--border)" opacity="0.4"/>
+          <rect x="220" y="142" width="90" height="5" rx="2.5" fill="var(--border)" opacity="0.3"/>
+          <rect x="220" y="168" width="120" height="5" rx="2.5" fill="var(--border)" opacity="0.4"/>
+          <rect x="220" y="184" width="95" height="5" rx="2.5" fill="var(--border)" opacity="0.25"/>
+          <!-- Tafsir expandable hint -->
+          <rect x="220" y="210" width="70" height="22" rx="11" fill="var(--accent)" opacity="0.08"/>
+          <rect x="232" y="218" width="46" height="6" rx="3" fill="var(--accent)" opacity="0.3"/>
+          <!-- Decorative top ornament -->
+          <circle cx="200" cy="26" r="10" fill="var(--accent)" opacity="0.08"/>
+          <circle cx="200" cy="26" r="5" fill="var(--accent)" opacity="0.12"/>
+        </svg>
       </div>
       <div class="feat-text">
         <h3>Quran Reader</h3>
@@ -140,7 +205,41 @@
     <!-- Hadith Explorer -->
     <div class="feat animate-on-scroll" use:inview>
       <div class="feat-visual">
-        <img src="/img/feature-hadith.png" alt="Hadith browsing with narrator chains" />
+        <svg viewBox="0 0 400 300" fill="none" xmlns="http://www.w3.org/2000/svg" class="feat-svg">
+          <!-- Background glow -->
+          <circle cx="200" cy="160" r="100" fill="var(--accent-secondary)" opacity="0.04"/>
+          <!-- Isnad chain at top -->
+          <line x1="80" y1="50" x2="153" y2="50" stroke="var(--border)" stroke-width="1.5"/>
+          <line x1="187" y1="50" x2="253" y2="50" stroke="var(--border)" stroke-width="1.5"/>
+          <line x1="287" y1="50" x2="340" y2="50" stroke="var(--border)" stroke-width="1.5"/>
+          <circle cx="60" cy="50" r="18" fill="var(--accent)" opacity="0.12"/>
+          <circle cx="60" cy="50" r="12" fill="var(--accent)" opacity="0.18"/>
+          <circle cx="170" cy="50" r="18" fill="#16a34a" opacity="0.12"/>
+          <circle cx="170" cy="50" r="12" fill="#16a34a" opacity="0.18"/>
+          <circle cx="270" cy="50" r="18" fill="var(--accent-secondary)" opacity="0.12"/>
+          <circle cx="270" cy="50" r="12" fill="var(--accent-secondary)" opacity="0.18"/>
+          <circle cx="355" cy="50" r="14" fill="var(--text-muted)" opacity="0.1"/>
+          <circle cx="355" cy="50" r="9" fill="var(--text-muted)" opacity="0.15"/>
+          <!-- Arrow hints -->
+          <path d="M93 50 L100 46 L100 54 Z" fill="var(--border)" opacity="0.5"/>
+          <path d="M200 50 L207 46 L207 54 Z" fill="var(--border)" opacity="0.5"/>
+          <path d="M300 50 L307 46 L307 54 Z" fill="var(--border)" opacity="0.5"/>
+          <!-- Document -->
+          <rect x="70" y="90" width="260" height="180" rx="16" fill="var(--bg-surface)" stroke="var(--border)" stroke-width="1.2"/>
+          <!-- Collection badge -->
+          <rect x="90" y="110" width="56" height="20" rx="10" fill="var(--accent)" opacity="0.1"/>
+          <rect x="100" y="117" width="36" height="6" rx="3" fill="var(--accent)" opacity="0.4"/>
+          <rect x="156" y="114" width="40" height="12" rx="6" fill="var(--border)" opacity="0.2"/>
+          <!-- Content lines -->
+          <rect x="90" y="148" width="220" height="6" rx="3" fill="var(--border)" opacity="0.4"/>
+          <rect x="90" y="166" width="180" height="6" rx="3" fill="var(--border)" opacity="0.3"/>
+          <rect x="90" y="184" width="200" height="6" rx="3" fill="var(--border)" opacity="0.25"/>
+          <!-- Separator -->
+          <line x1="90" y1="208" x2="310" y2="208" stroke="var(--border)" stroke-width="0.8" opacity="0.3"/>
+          <!-- Second content block hint -->
+          <rect x="90" y="224" width="190" height="6" rx="3" fill="var(--border)" opacity="0.2"/>
+          <rect x="90" y="242" width="150" height="6" rx="3" fill="var(--border)" opacity="0.15"/>
+        </svg>
       </div>
       <div class="feat-text">
         <h3>Hadith Explorer</h3>
@@ -152,7 +251,45 @@
     <!-- Narrator Networks -->
     <div class="feat feat-reverse animate-on-scroll" use:inview>
       <div class="feat-visual">
-        <img src="/img/feature-narrators.png" alt="Interactive narrator graph visualization" />
+        <svg viewBox="0 0 400 300" fill="none" xmlns="http://www.w3.org/2000/svg" class="feat-svg">
+          <!-- Glow behind center -->
+          <circle cx="200" cy="110" r="60" fill="var(--accent)" opacity="0.04"/>
+          <!-- Edges — tier 1 to tier 2 -->
+          <line x1="200" y1="110" x2="100" y2="190" stroke="var(--border)" stroke-width="1.5" opacity="0.35"/>
+          <line x1="200" y1="110" x2="200" y2="200" stroke="var(--border)" stroke-width="1.5" opacity="0.35"/>
+          <line x1="200" y1="110" x2="300" y2="190" stroke="var(--border)" stroke-width="1.5" opacity="0.35"/>
+          <!-- Edges — tier 2 to tier 3 -->
+          <line x1="100" y1="190" x2="60" y2="265" stroke="var(--border)" stroke-width="1" opacity="0.2"/>
+          <line x1="100" y1="190" x2="140" y2="265" stroke="var(--border)" stroke-width="1" opacity="0.2"/>
+          <line x1="200" y1="200" x2="200" y2="265" stroke="var(--border)" stroke-width="1" opacity="0.2"/>
+          <line x1="300" y1="190" x2="260" y2="265" stroke="var(--border)" stroke-width="1" opacity="0.2"/>
+          <line x1="300" y1="190" x2="340" y2="265" stroke="var(--border)" stroke-width="1" opacity="0.2"/>
+          <!-- Central node -->
+          <circle cx="200" cy="110" r="34" fill="var(--accent)" opacity="0.08"/>
+          <circle cx="200" cy="110" r="24" fill="var(--accent)" opacity="0.15"/>
+          <circle cx="200" cy="110" r="16" fill="var(--accent)" opacity="0.25"/>
+          <!-- Tier 2 nodes -->
+          <circle cx="100" cy="190" r="26" fill="#16a34a" opacity="0.06"/>
+          <circle cx="100" cy="190" r="18" fill="#16a34a" opacity="0.12"/>
+          <circle cx="100" cy="190" r="11" fill="#16a34a" opacity="0.2"/>
+          <circle cx="200" cy="200" r="22" fill="#16a34a" opacity="0.06"/>
+          <circle cx="200" cy="200" r="15" fill="#16a34a" opacity="0.12"/>
+          <circle cx="200" cy="200" r="9" fill="#16a34a" opacity="0.2"/>
+          <circle cx="300" cy="190" r="26" fill="#16a34a" opacity="0.06"/>
+          <circle cx="300" cy="190" r="18" fill="#16a34a" opacity="0.12"/>
+          <circle cx="300" cy="190" r="11" fill="#16a34a" opacity="0.2"/>
+          <!-- Tier 3 nodes -->
+          <circle cx="60" cy="265" r="16" fill="var(--accent-secondary)" opacity="0.08"/>
+          <circle cx="60" cy="265" r="10" fill="var(--accent-secondary)" opacity="0.15"/>
+          <circle cx="140" cy="265" r="14" fill="var(--accent-secondary)" opacity="0.08"/>
+          <circle cx="140" cy="265" r="9" fill="var(--accent-secondary)" opacity="0.15"/>
+          <circle cx="200" cy="265" r="12" fill="var(--accent-secondary)" opacity="0.08"/>
+          <circle cx="200" cy="265" r="7" fill="var(--accent-secondary)" opacity="0.15"/>
+          <circle cx="260" cy="265" r="14" fill="var(--accent-secondary)" opacity="0.08"/>
+          <circle cx="260" cy="265" r="9" fill="var(--accent-secondary)" opacity="0.15"/>
+          <circle cx="340" cy="265" r="16" fill="var(--accent-secondary)" opacity="0.08"/>
+          <circle cx="340" cy="265" r="10" fill="var(--accent-secondary)" opacity="0.15"/>
+        </svg>
       </div>
       <div class="feat-text">
         <h3>Narrator Networks</h3>
@@ -696,16 +833,18 @@
   .feat-visual {
     background: var(--bg-secondary);
     border-radius: 20px;
-    overflow: hidden;
-    aspect-ratio: 4 / 3;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    border: 1px solid var(--border);
+    padding: 8px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+    transition: box-shadow 0.3s ease, transform 0.3s ease;
   }
-  .feat-visual img {
+  .feat:hover .feat-visual {
+    box-shadow: 0 8px 40px rgba(0,0,0,0.1);
+    transform: translateY(-2px);
+  }
+  .feat-svg {
     width: 100%;
-    height: 100%;
-    object-fit: cover;
+    height: auto;
     display: block;
   }
 

@@ -26,12 +26,6 @@
         </svg>
       </button>
     {/if}
-    <a href="/" class="home-btn" title="Home">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-        <polyline points="9 22 9 12 15 12 15 22"/>
-      </svg>
-    </a>
   </div>
 
   <div class="topbar-right">
@@ -87,21 +81,6 @@
     background: var(--accent-muted);
   }
 
-  .home-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 34px;
-    height: 34px;
-    border-radius: 50%;
-    color: var(--text-secondary);
-    transition: all var(--transition);
-  }
-  .home-btn:hover {
-    color: var(--accent);
-    background: var(--accent-muted);
-  }
-
   .topbar-right {
     display: flex;
     align-items: center;
@@ -151,7 +130,6 @@
   @media (max-width: 768px) {
     .topbar { padding: 0 12px; }
     .hamburger { display: flex; }
-    .home-btn { display: none; }
     .search-form { display: none; }
   }
 </style>

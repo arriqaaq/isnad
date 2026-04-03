@@ -5,15 +5,21 @@
   import SurahHeader from '$lib/components/quran/SurahHeader.svelte';
   import AyahCard from '$lib/components/quran/AyahCard.svelte';
   import LoadingSpinner from '$lib/components/common/LoadingSpinner.svelte';
+  import RecitationPlayer from '$lib/components/quran/RecitationPlayer.svelte';
+  import { preferences } from '$lib/stores/preferences';
 
   let data: SurahDetailResponse | null = $state(null);
   let hadithCounts: Record<string, number> = $state({});
   let loading = $state(true);
+  let activeAyah = $state(0);
+  let playerRef: ReturnType<typeof RecitationPlayer> | undefined = $state(undefined);
 
   let surahNum = $derived(Number(page.params.surah));
+  let reciterFolder = $derived($preferences.selectedReciter ?? 'Alafasy_128kbps');
 
   $effect(() => {
     loading = true;
+    activeAyah = 0;
     Promise.all([
       getSurah(surahNum),
       getSurahHadithCounts(surahNum).catch(() => ({}))
@@ -23,6 +29,22 @@
       loading = false;
     });
   });
+
+  function handleAyahChange(ayah: number) {
+    activeAyah = ayah;
+    // Scroll the active ayah into view
+    const el = document.getElementById(`${surahNum}:${ayah}`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }
+
+  function handleAyahPlay(ayah: number) {
+    activeAyah = ayah;
+    if (playerRef) {
+      playerRef.playAyah(ayah);
+    }
+  }
 </script>
 
 <div class="surah-page">
@@ -44,7 +66,13 @@
     <div class="ayah-list">
       {#each data.ayahs as ayah}
         <div id="{data.surah.surah_number}:{ayah.ayah_number}">
-          <AyahCard {ayah} hadithCount={hadithCounts[String(ayah.ayah_number)] ?? 0} />
+          <AyahCard
+            {ayah}
+            hadithCount={hadithCounts[String(ayah.ayah_number)] ?? 0}
+            active={ayah.ayah_number === activeAyah}
+            onplay={handleAyahPlay}
+            {reciterFolder}
+          />
         </div>
       {/each}
     </div>
@@ -61,15 +89,24 @@
   {/if}
 </div>
 
+{#if data}
+  <RecitationPlayer
+    bind:this={playerRef}
+    surahNumber={data.surah.surah_number}
+    ayahCount={data.surah.ayah_count}
+    onayahchange={handleAyahChange}
+  />
+{/if}
+
 <style>
-  .surah-page { padding: 24px; max-width: 800px; margin: 0 auto; }
+  .surah-page { padding: 24px; max-width: 800px; margin: 0 auto; padding-bottom: 72px; }
   .surah-nav { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; margin-bottom: 8px; }
   .surah-nav.bottom { margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--border); }
   .nav-link { font-size: 0.85rem; color: var(--accent); }
   .nav-link:hover { text-decoration: underline; }
   .ayah-list { display: flex; flex-direction: column; }
   @media (max-width: 640px) {
-    .surah-page { padding: 12px; }
+    .surah-page { padding: 12px; padding-bottom: 72px; }
     .surah-nav { padding: 8px 0; }
   }
 </style>

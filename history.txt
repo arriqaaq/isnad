@@ -1,0 +1,6 @@
+#V2
+SELECT count() AS total FROM heard_from GROUP ALL;
+SELECT ->heard_from->narrator.* AS teachers FROM narrator:⟨ابو_سلمه⟩;
+SELECT <-heard_from<-narrator.* AS students FROM narrator:⟨ابو_سلمه⟩;
+SELECT ->heard_from->narrator.* AS teachers FROM narrator:⟨ابو_سلمه⟩;
+SELECT <-heard_from<-narrator.* AS students FROM narrator:⟨ابو_سلمه⟩;

@@ -28,10 +28,10 @@
 </script>
 
 <nav class="sidebar">
-  <div class="sidebar-header">
+  <a href="/" class="sidebar-header">
     <span class="logo">◆</span>
     <span class="logo-text">Ilm</span>
-  </div>
+  </a>
 
   <div class="nav-items">
     {#each featuredItems as item}
@@ -95,6 +95,13 @@
     align-items: center;
     gap: 10px;
     height: var(--topbar-height);
+    text-decoration: none;
+    color: inherit;
+    transition: opacity var(--transition);
+  }
+  .sidebar-header:hover {
+    opacity: 0.8;
+    color: inherit;
   }
 
   .logo {

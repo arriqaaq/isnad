@@ -117,6 +117,10 @@ pub struct NarratorSearchResult {
 pub struct GraphData {
     pub nodes: Vec<GraphNode>,
     pub edges: Vec<GraphEdge>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub total_teachers: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub total_students: Option<usize>,
 }
 
 #[derive(Debug, Serialize)]

@@ -1,8 +1,12 @@
+pub mod audio;
 pub mod hadith_refs;
 pub mod ingest;
+pub mod manuscripts;
 pub mod models;
+pub mod morphology;
 pub mod rag;
 pub mod search;
+pub mod similar;
 
 /// Surah transliteration names indexed by number (1-based).
 pub fn surah_name(n: i64) -> &'static str {

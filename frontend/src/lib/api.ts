@@ -1,8 +1,11 @@
 import type {
   ApiBook,
   ApiHadithFamily,
+  ApiManuscript,
   ApiMatnDiff,
+  ApiReciter,
   ApiSurah,
+  ApiVariantReading,
   AnalysisStatsResponse,
   AyahHadithResponse,
   FamilyDetailResponse,
@@ -18,6 +21,10 @@ import type {
   QuranStatsResponse,
   SurahDetailResponse,
   UnifiedSearchResponse,
+  ApiQuranWord,
+  RootSearchResponse,
+  AyahSimilarResponse,
+  ApiPhraseWithAyahs,
 } from './types';
 
 const BASE = '/api';
@@ -178,4 +185,50 @@ export async function searchUnified(
   page = 1
 ): Promise<UnifiedSearchResponse> {
   return get(`/unified/search?q=${encodeURIComponent(q)}&type=${type}&limit=${limit}&page=${page}`);
+}
+
+// ── Quran Word Morphology API ──
+
+export async function getAyahWords(surah: number, ayah: number): Promise<ApiQuranWord[]> {
+  return get<ApiQuranWord[]>(`/quran/ayah/${surah}:${ayah}/words`);
+}
+
+export async function searchByRoot(root: string): Promise<RootSearchResponse> {
+  return get<RootSearchResponse>(`/quran/search/root/${encodeURIComponent(root)}`);
+}
+
+// ── Quran Recitation API ──
+
+export async function getReciters(): Promise<ApiReciter[]> {
+  return get<ApiReciter[]>('/quran/reciters');
+}
+
+// ── Manuscript & Variant Reading API ──
+
+export async function getManuscripts(params: {
+  page?: number;
+  limit?: number;
+}): Promise<PaginatedResponse<ApiManuscript>> {
+  const sp = new URLSearchParams();
+  if (params.page) sp.set('page', String(params.page));
+  if (params.limit) sp.set('limit', String(params.limit));
+  return get(`/quran/manuscripts?${sp}`);
+}
+
+export async function getManuscript(id: string): Promise<ApiManuscript> {
+  return get(`/quran/manuscripts/${encodeURIComponent(id)}`);
+}
+
+export async function getAyahVariants(surah: number, ayah: number): Promise<ApiVariantReading[]> {
+  return get<ApiVariantReading[]>(`/quran/ayah/${surah}:${ayah}/variants`);
+}
+
+// ── Similar Ayahs / Mutashabihat API ──
+
+export async function getAyahSimilar(surah: number, ayah: number): Promise<AyahSimilarResponse> {
+  return get<AyahSimilarResponse>(`/quran/ayah/${surah}:${ayah}/similar`);
+}
+
+export async function getPhraseDetail(id: string): Promise<ApiPhraseWithAyahs> {
+  return get<ApiPhraseWithAyahs>(`/quran/phrases/${encodeURIComponent(id)}`);
 }

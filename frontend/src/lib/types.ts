@@ -114,6 +114,8 @@ export interface GraphEdgeData {
 export interface GraphData {
   nodes: { data: GraphNodeData }[];
   edges: { data: GraphEdgeData }[];
+  total_teachers?: number;
+  total_students?: number;
 }
 
 // ── Analysis types ──
@@ -288,4 +290,80 @@ export interface UnifiedSearchResponse {
   hadith_count: number;
   page: number;
   has_more: boolean;
+}
+
+// ── Quran Word Morphology ──
+
+export interface ApiQuranWord {
+  id: string;
+  surah_number: number;
+  ayah_number: number;
+  word_position: number;
+  text_ar: string;
+  pos: string;
+  root: string | null;
+  lemma: string | null;
+  translation: string | null;
+  transliteration: string | null;
+  features: Record<string, string> | null;
+  segments: { pos: string; text?: string; features?: string }[] | null;
+}
+
+export interface RootSearchResponse {
+  root: string;
+  occurrences: ApiQuranWord[];
+  ayah_count: number;
+}
+
+export interface ApiReciter {
+  id: string;
+  name_en: string;
+  name_ar: string | null;
+  style: string | null;
+  folder_name: string;
+  bitrate: string | null;
+}
+
+// ── Manuscript & Variant Reading types ──
+
+export interface ApiManuscript {
+  id: string;
+  name: string;
+  repository: string | null;
+  location: string | null;
+  date_range: string | null;
+  material: string | null;
+  script_type: string | null;
+  description: string | null;
+}
+
+export interface ApiVariantReading {
+  id: string;
+  surah_number: number;
+  ayah_number: number;
+  reader_name: string;
+  reading_ar: string;
+  standard_ar: string | null;
+  source: string | null;
+}
+
+// ── Similar Ayahs / Mutashabihat ──
+
+export interface ApiSimilarAyah {
+  ayah_key: string;
+  score: number;
+  coverage: number;
+  matched_positions: number[][] | null;
+}
+
+export interface ApiPhraseWithAyahs {
+  id: string;
+  text_ar: string;
+  occurrence: number;
+  ayah_keys: string[];
+}
+
+export interface AyahSimilarResponse {
+  similar: ApiSimilarAyah[];
+  phrases: ApiPhraseWithAyahs[];
 }

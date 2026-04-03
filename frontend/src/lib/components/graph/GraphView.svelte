@@ -49,30 +49,14 @@
     const shadowTeacher = getThemeColor('--graph-shadow-teacher', 'rgba(22, 163, 74, 0.3)');
     const shadowStudent = getThemeColor('--graph-shadow-student', 'rgba(184, 134, 11, 0.3)');
 
-    // Choose layout based on graph shape: use cose (force-directed) for wide/hub
-    // graphs so nodes spread naturally; dagre for linear chains
     const nodeCount = data.nodes.length;
-    const edgeCount = data.edges.length;
-    const isLinearChain = nodeCount <= 6 && edgeCount <= nodeCount;
-    const chosenLayout = isLinearChain
-      ? {
-          name: 'dagre',
-          rankDir: 'BT',
-          nodeSep: 80,
-          rankSep: 100,
-          animate: false,
-        }
-      : {
-          name: 'cose',
-          animate: false,
-          nodeRepulsion: () => 8000,
-          idealEdgeLength: () => 120,
-          edgeElasticity: () => 100,
-          gravity: 0.3,
-          numIter: 500,
-          fit: true,
-          padding: 40,
-        };
+    const chosenLayout = {
+      name: 'dagre',
+      rankDir: 'BT',
+      nodeSep: nodeCount > 20 ? 40 : 80,
+      rankSep: nodeCount > 20 ? 60 : 100,
+      animate: false,
+    };
 
     cy = cytoscape({
       container,
@@ -272,6 +256,22 @@
     <div class="empty">No graph data available</div>
   {:else}
     <div bind:this={container} class="graph-container"></div>
+    <div class="graph-footer">
+      <div class="graph-legend">
+        <span class="legend-item"><span class="dot dot-center"></span> This narrator</span>
+        <span class="legend-item"><span class="dot dot-teacher"></span> Teachers</span>
+        <span class="legend-item"><span class="dot dot-student"></span> Students</span>
+      </div>
+      {#if data.total_teachers != null || data.total_students != null}
+        {@const shownTeachers = data.nodes.filter(n => n.data.type === 'teacher').length}
+        {@const shownStudents = data.nodes.filter(n => n.data.type === 'student').length}
+        {#if (data.total_teachers && shownTeachers < data.total_teachers) || (data.total_students && shownStudents < data.total_students)}
+          <div class="graph-truncated">
+            Showing {shownTeachers} of {data.total_teachers} teachers, {shownStudents} of {data.total_students} students
+          </div>
+        {/if}
+      {/if}
+    </div>
   {/if}
 </div>
 
@@ -300,6 +300,47 @@
     height: 200px;
     color: var(--text-muted);
     font-size: 0.85rem;
+  }
+
+  .graph-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 16px;
+    border-top: 1px solid var(--border);
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .graph-legend {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+  }
+
+  .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+
+  .dot-center { background: var(--graph-center, #d63384); }
+  .dot-teacher { background: var(--graph-teacher, #16a34a); }
+  .dot-student { background: var(--graph-student, #b8860b); }
+
+  .graph-truncated {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-style: italic;
   }
 
   @media (max-width: 768px) {

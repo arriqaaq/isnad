@@ -7,8 +7,10 @@ use serde::Deserialize;
 
 use crate::models::{ApiHadith, ApiHadithSearchResult};
 use crate::quran::models::{
-    ApiAyah, ApiAyahSearchResult, ApiSurah, Ayah, QuranSearchResponse, QuranStatsResponse, Surah,
-    SurahDetailResponse,
+    ApiAyah, ApiAyahSearchResult, ApiManuscript, ApiPhraseWithAyahs, ApiQuranWord, ApiReciter,
+    ApiSimilarAyah, ApiSurah, ApiVariantReading, Ayah, AyahSimilarResponse, Manuscript,
+    QuranPhrase, QuranSearchResponse, QuranStatsResponse, QuranWord, Reciter, RootSearchResponse,
+    Surah, SurahDetailResponse, VariantReading,
 };
 use crate::rag::ChatChunk;
 
@@ -71,6 +73,17 @@ use surrealdb::types::SurrealValue;
 #[derive(Debug, SurrealValue)]
 struct CountResult {
     count: i64,
+}
+
+pub async fn reciters(State(state): State<AppState>) -> impl IntoResponse {
+    let mut res = state
+        .db
+        .query("SELECT * FROM reciter ORDER BY name_en ASC")
+        .await
+        .unwrap();
+    let reciters: Vec<Reciter> = res.take(0).unwrap_or_default();
+    let api_reciters: Vec<ApiReciter> = reciters.into_iter().map(ApiReciter::from).collect();
+    Json(api_reciters)
 }
 
 pub async fn surah_list(State(state): State<AppState>) -> impl IntoResponse {
@@ -346,4 +359,316 @@ fn parse_ayah_key(key: &str) -> Option<(i64, i64)> {
     } else {
         None
     }
+}
+
+// ── Word Morphology Handlers ──
+
+pub async fn ayah_words(
+    State(state): State<AppState>,
+    Path(ayah_key): Path<String>,
+) -> Result<Json<Vec<ApiQuranWord>>, (StatusCode, String)> {
+    let (surah, ayah) = parse_ayah_key(&ayah_key).ok_or_else(|| {
+        (
+            StatusCode::BAD_REQUEST,
+            "Invalid ayah key format. Use surah:ayah (e.g., 1:1)".to_string(),
+        )
+    })?;
+
+    let mut res = state
+        .db
+        .query(
+            "SELECT * FROM quran_word WHERE surah_number = $s AND ayah_number = $a ORDER BY word_position",
+        )
+        .bind(("s", surah))
+        .bind(("a", ayah))
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    let words: Vec<QuranWord> = res
+        .take(0)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    Ok(Json(words.into_iter().map(ApiQuranWord::from).collect()))
+}
+
+pub async fn root_search(
+    State(state): State<AppState>,
+    Path(root): Path<String>,
+) -> Result<Json<RootSearchResponse>, (StatusCode, String)> {
+    let mut res = state
+        .db
+        .query(
+            "SELECT * FROM quran_word WHERE root = $root ORDER BY surah_number, ayah_number, word_position",
+        )
+        .bind(("root", root.clone()))
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    let words: Vec<QuranWord> = res
+        .take(0)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    // Count unique ayahs
+    let ayah_count = words
+        .iter()
+        .map(|w| (w.surah_number, w.ayah_number))
+        .collect::<std::collections::HashSet<_>>()
+        .len();
+
+    Ok(Json(RootSearchResponse {
+        root,
+        occurrences: words.into_iter().map(ApiQuranWord::from).collect(),
+        ayah_count,
+    }))
+}
+
+// ── Similar Ayahs / Mutashabihat Handlers ──
+
+use crate::models::record_id_key_string;
+use surrealdb::types::RecordId;
+
+#[derive(Debug, SurrealValue)]
+struct SimilarEdgeRow {
+    score: i64,
+    coverage: i64,
+    matched_positions: Option<String>,
+    surah_number: i64,
+    ayah_number: i64,
+}
+
+#[derive(Debug, SurrealValue)]
+struct PhraseEdgeRow {
+    id: Option<RecordId>,
+    text_ar: String,
+    occurrence: i64,
+    verses_count: i64,
+    chapters_count: i64,
+}
+
+#[derive(Debug, SurrealValue)]
+struct AyahKeyRow {
+    surah_number: i64,
+    ayah_number: i64,
+}
+
+pub async fn ayah_similar(
+    State(state): State<AppState>,
+    Path(ayah_key): Path<String>,
+) -> Result<Json<AyahSimilarResponse>, (StatusCode, String)> {
+    let (surah, ayah) = parse_ayah_key(&ayah_key).ok_or_else(|| {
+        (
+            StatusCode::BAD_REQUEST,
+            "Invalid ayah key format. Use surah:ayah (e.g., 2:255)".to_string(),
+        )
+    })?;
+
+    let ayah_id = RecordId::new("ayah", format!("{surah}_{ayah}"));
+
+    // 1. Query similar ayahs
+    let mut res = state
+        .db
+        .query(
+            "SELECT score, coverage, matched_positions, out.surah_number AS surah_number, out.ayah_number AS ayah_number \
+             FROM similar_to WHERE in = $ayah_id ORDER BY score DESC LIMIT 20",
+        )
+        .bind(("ayah_id", ayah_id.clone()))
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    let similar_rows: Vec<SimilarEdgeRow> = res
+        .take(0)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    let similar: Vec<ApiSimilarAyah> = similar_rows
+        .into_iter()
+        .map(|r| ApiSimilarAyah {
+            ayah_key: format!("{}:{}", r.surah_number, r.ayah_number),
+            score: r.score,
+            coverage: r.coverage,
+            matched_positions: r
+                .matched_positions
+                .and_then(|s| serde_json::from_str(&s).ok()),
+        })
+        .collect();
+
+    // 2. Query shared phrases for this ayah
+    let mut res2 = state
+        .db
+        .query(
+            "SELECT out.id AS id, out.text_ar AS text_ar, out.occurrence AS occurrence, \
+             out.verses_count AS verses_count, out.chapters_count AS chapters_count \
+             FROM shares_phrase WHERE in = $ayah_id",
+        )
+        .bind(("ayah_id", ayah_id.clone()))
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    let phrase_rows: Vec<PhraseEdgeRow> = res2
+        .take(0)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    // For each phrase, get the other ayahs that share it
+    let mut phrases: Vec<ApiPhraseWithAyahs> = Vec::new();
+    for p in phrase_rows {
+        let phrase_id = match &p.id {
+            Some(rid) => rid.clone(),
+            None => continue,
+        };
+        let phrase_id_str = record_id_key_string(&phrase_id);
+
+        let mut res3 = state
+            .db
+            .query(
+                "SELECT in.surah_number AS surah_number, in.ayah_number AS ayah_number \
+                 FROM shares_phrase WHERE out = $phrase_id AND in != $ayah_id",
+            )
+            .bind(("phrase_id", phrase_id))
+            .bind(("ayah_id", ayah_id.clone()))
+            .await
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+        let ayah_rows: Vec<AyahKeyRow> = res3
+            .take(0)
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+        let ayah_keys: Vec<String> = ayah_rows
+            .into_iter()
+            .map(|r| format!("{}:{}", r.surah_number, r.ayah_number))
+            .collect();
+
+        phrases.push(ApiPhraseWithAyahs {
+            id: phrase_id_str,
+            text_ar: p.text_ar,
+            occurrence: p.occurrence,
+            ayah_keys,
+        });
+    }
+
+    Ok(Json(AyahSimilarResponse { similar, phrases }))
+}
+
+pub async fn phrase_detail(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+) -> Result<Json<ApiPhraseWithAyahs>, (StatusCode, String)> {
+    let phrase_id = RecordId::new("quran_phrase", id.clone());
+
+    // Get phrase record
+    let mut res = state
+        .db
+        .query("SELECT * FROM $phrase_id")
+        .bind(("phrase_id", phrase_id.clone()))
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    let phrase: Option<QuranPhrase> = res
+        .take(0)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    let phrase = phrase.ok_or_else(|| (StatusCode::NOT_FOUND, format!("Phrase {id} not found")))?;
+
+    // Get all ayahs sharing this phrase
+    let mut res2 = state
+        .db
+        .query(
+            "SELECT in.surah_number AS surah_number, in.ayah_number AS ayah_number \
+             FROM shares_phrase WHERE out = $phrase_id",
+        )
+        .bind(("phrase_id", phrase_id))
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    let ayah_rows: Vec<AyahKeyRow> = res2
+        .take(0)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    let ayah_keys: Vec<String> = ayah_rows
+        .into_iter()
+        .map(|r| format!("{}:{}", r.surah_number, r.ayah_number))
+        .collect();
+
+    Ok(Json(ApiPhraseWithAyahs {
+        id: phrase.id.as_ref().map(record_id_key_string).unwrap_or(id),
+        text_ar: phrase.text_ar,
+        occurrence: phrase.occurrence,
+        ayah_keys,
+    }))
+}
+
+// ── Manuscript & Variant Reading Handlers ──
+
+#[derive(Deserialize)]
+pub struct ManuscriptListParams {
+    pub page: Option<usize>,
+    pub limit: Option<usize>,
+}
+
+pub async fn manuscript_list(
+    State(state): State<AppState>,
+    Query(params): Query<ManuscriptListParams>,
+) -> impl IntoResponse {
+    let limit = params.limit.unwrap_or(20);
+    let page = params.page.unwrap_or(1);
+    let offset = (page - 1) * limit;
+
+    let sql = format!("SELECT * FROM manuscript ORDER BY name LIMIT {limit} START {offset}");
+    let mut res = state.db.query(&sql).await.unwrap();
+    let manuscripts: Vec<Manuscript> = res.take(0).unwrap_or_default();
+    let has_more = manuscripts.len() == limit;
+
+    Json(crate::models::PaginatedResponse {
+        data: manuscripts
+            .into_iter()
+            .map(ApiManuscript::from)
+            .collect::<Vec<_>>(),
+        page,
+        has_more,
+    })
+}
+
+pub async fn manuscript_detail(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+) -> Result<Json<ApiManuscript>, StatusCode> {
+    let ms_id = RecordId::new("manuscript", id.as_str());
+    let mut res = state
+        .db
+        .query("SELECT * FROM $ms_id")
+        .bind(("ms_id", ms_id))
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    let ms: Option<Manuscript> = res.take(0).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let ms = ms.ok_or(StatusCode::NOT_FOUND)?;
+
+    Ok(Json(ApiManuscript::from(ms)))
+}
+
+pub async fn ayah_variants(
+    State(state): State<AppState>,
+    Path(ayah_key): Path<String>,
+) -> Result<Json<Vec<ApiVariantReading>>, (StatusCode, String)> {
+    let (surah, ayah) = parse_ayah_key(&ayah_key).ok_or_else(|| {
+        (
+            StatusCode::BAD_REQUEST,
+            "Invalid ayah key format. Use surah:ayah (e.g., 2:255)".to_string(),
+        )
+    })?;
+
+    let mut res = state
+        .db
+        .query(
+            "SELECT * FROM variant_reading WHERE surah_number = $s AND ayah_number = $a ORDER BY reader_name",
+        )
+        .bind(("s", surah))
+        .bind(("a", ayah))
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    let variants: Vec<VariantReading> = res
+        .take(0)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    Ok(Json(
+        variants.into_iter().map(ApiVariantReading::from).collect(),
+    ))
 }

@@ -4,6 +4,7 @@ use axum::http::StatusCode;
 use axum::response::{IntoResponse, Json, Response};
 use futures::StreamExt;
 use serde::Deserialize;
+use std::collections::HashSet;
 use surrealdb::types::{RecordId, SurrealValue};
 
 use crate::analysis;
@@ -325,7 +326,9 @@ pub async fn narrator_detail(
 
     let teachers = match state
         .db
-        .query("SELECT ->heard_from->narrator.* AS teachers FROM $rid")
+        .query(
+            "SELECT array::distinct(array::filter(->heard_from->narrator.*, |$v| $v IS NOT NONE)) AS teachers FROM $rid",
+        )
         .bind(("rid", nrid.clone()))
         .await
     {
@@ -341,7 +344,9 @@ pub async fn narrator_detail(
 
     let students = match state
         .db
-        .query("SELECT <-heard_from<-narrator.* AS students FROM $rid")
+        .query(
+            "SELECT array::distinct(array::filter(<-heard_from<-narrator.*, |$v| $v IS NOT NONE)) AS students FROM $rid",
+        )
         .bind(("rid", nrid))
         .await
     {
@@ -354,6 +359,21 @@ pub async fn narrator_detail(
             vec![]
         }
     };
+
+    // Deduplicate by narrator ID
+    let dedup_narrators = |narrators: Vec<Narrator>| -> Vec<Narrator> {
+        let mut seen = HashSet::new();
+        narrators
+            .into_iter()
+            .filter(|n| {
+                n.id.as_ref()
+                    .map(|id| seen.insert(record_id_string(id)))
+                    .unwrap_or(false)
+            })
+            .collect()
+    };
+    let teachers = dedup_narrators(teachers);
+    let students = dedup_narrators(students);
 
     Ok(Json(serde_json::json!({
         "narrator": ApiNarrator::from(narrator),
@@ -401,6 +421,8 @@ pub async fn chain_graph_data(
     let mut graph = GraphData {
         nodes: Vec::new(),
         edges: Vec::new(),
+        total_teachers: None,
+        total_students: None,
     };
 
     for narrator in &narrators {
@@ -444,8 +466,8 @@ pub async fn narrator_graph_data(
         .db
         .query(
             "SELECT * FROM $rid; \
-             SELECT ->heard_from->narrator.* AS teachers FROM $rid; \
-             SELECT <-heard_from<-narrator.* AS students FROM $rid;",
+             SELECT array::distinct(array::filter(->heard_from->narrator.*, |$v| $v IS NOT NONE)) AS teachers FROM $rid; \
+             SELECT array::distinct(array::filter(<-heard_from<-narrator.*, |$v| $v IS NOT NONE)) AS students FROM $rid;",
         )
         .bind(("rid", nrid))
         .await
@@ -466,9 +488,33 @@ pub async fn narrator_graph_data(
         }
     };
 
+    // Deduplicate by narrator ID
+    let dedup = |narrators: Vec<Narrator>| -> Vec<Narrator> {
+        let mut seen = HashSet::new();
+        narrators
+            .into_iter()
+            .filter(|n| {
+                n.id.as_ref()
+                    .map(|id| seen.insert(record_id_string(id)))
+                    .unwrap_or(false)
+            })
+            .collect()
+    };
+    let teachers = dedup(teachers);
+    let students = dedup(students);
+    let total_teachers = teachers.len();
+    let total_students = students.len();
+
+    // Cap for graph rendering performance
+    const MAX_GRAPH_NODES: usize = 25;
+    let teachers: Vec<_> = teachers.into_iter().take(MAX_GRAPH_NODES).collect();
+    let students: Vec<_> = students.into_iter().take(MAX_GRAPH_NODES).collect();
+
     let mut graph = GraphData {
         nodes: Vec::new(),
         edges: Vec::new(),
+        total_teachers: Some(total_teachers),
+        total_students: Some(total_students),
     };
 
     if let Some(narrator) = &narrator {

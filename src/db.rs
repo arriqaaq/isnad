@@ -191,6 +191,124 @@ DEFINE FIELD IF NOT EXISTS hadith_number  ON references_hadith TYPE string;
 DEFINE FIELD IF NOT EXISTS source         ON references_hadith TYPE string DEFAULT 'qurancom'
 "#;
 
+// ── Quran Word Morphology Schema ──
+
+const QURAN_WORD_SCHEMA: &str = r#"
+DEFINE TABLE IF NOT EXISTS quran_word SCHEMAFULL;
+DEFINE FIELD IF NOT EXISTS surah_number    ON quran_word TYPE int;
+DEFINE FIELD IF NOT EXISTS ayah_number     ON quran_word TYPE int;
+DEFINE FIELD IF NOT EXISTS word_position   ON quran_word TYPE int;
+DEFINE FIELD IF NOT EXISTS text_ar         ON quran_word TYPE string;
+DEFINE FIELD IF NOT EXISTS text_ar_simple  ON quran_word TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS translation     ON quran_word TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS transliteration ON quran_word TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS pos             ON quran_word TYPE string;
+DEFINE FIELD IF NOT EXISTS root            ON quran_word TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS lemma           ON quran_word TYPE option<string>;
+REMOVE FIELD IF EXISTS features ON quran_word;
+DEFINE FIELD features ON quran_word TYPE option<object> FLEXIBLE;
+REMOVE FIELD IF EXISTS segments ON quran_word;
+DEFINE FIELD segments ON quran_word TYPE option<string>;
+DEFINE INDEX IF NOT EXISTS quran_word_ayah_idx ON TABLE quran_word FIELDS surah_number, ayah_number;
+DEFINE INDEX IF NOT EXISTS quran_word_root_idx ON TABLE quran_word FIELDS root;
+DEFINE INDEX IF NOT EXISTS quran_word_pos_idx ON TABLE quran_word FIELDS pos
+"#;
+
+// ── Reciter Schema ──
+
+const RECITER_SCHEMA: &str = r#"
+DEFINE TABLE IF NOT EXISTS reciter SCHEMAFULL;
+DEFINE FIELD IF NOT EXISTS name_en      ON reciter TYPE string;
+DEFINE FIELD IF NOT EXISTS name_ar      ON reciter TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS style        ON reciter TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS folder_name  ON reciter TYPE string;
+DEFINE FIELD IF NOT EXISTS bitrate      ON reciter TYPE option<string>
+"#;
+
+pub async fn init_reciter_schema(db: &Surreal<Db>) -> Result<()> {
+    for (i, stmt) in RECITER_SCHEMA
+        .split(';')
+        .map(|s| s.trim())
+        .filter(|s| !s.is_empty() && !s.starts_with("--"))
+        .enumerate()
+    {
+        let sql = format!("{stmt};");
+        if let Err(e) = db.query(&sql).await.and_then(|r| r.check()) {
+            tracing::error!(
+                "Reciter schema statement {i} failed: {e}\n  SQL: {}",
+                stmt.chars().take(120).collect::<String>()
+            );
+            return Err(e.into());
+        }
+    }
+    tracing::info!("Reciter schema initialized");
+    Ok(())
+}
+
+pub async fn init_quran_word_schema(db: &Surreal<Db>) -> Result<()> {
+    for (i, stmt) in QURAN_WORD_SCHEMA
+        .split(';')
+        .map(|s| s.trim())
+        .filter(|s| !s.is_empty() && !s.starts_with("--"))
+        .enumerate()
+    {
+        let sql = format!("{stmt};");
+        if let Err(e) = db.query(&sql).await.and_then(|r| r.check()) {
+            tracing::error!(
+                "Quran word schema statement {i} failed: {e}\n  SQL: {}",
+                stmt.chars().take(120).collect::<String>()
+            );
+            return Err(e.into());
+        }
+    }
+    tracing::info!("Quran word schema initialized");
+    Ok(())
+}
+
+// ── Quran Similar / Mutashabihat Schema ──
+
+const QURAN_SIMILAR_SCHEMA: &str = r#"
+-- Shared phrases (mutashabihat hub nodes)
+DEFINE TABLE IF NOT EXISTS quran_phrase SCHEMAFULL;
+DEFINE FIELD IF NOT EXISTS text_ar        ON quran_phrase TYPE string;
+DEFINE FIELD IF NOT EXISTS text_ar_simple  ON quran_phrase TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS occurrence     ON quran_phrase TYPE int;
+DEFINE FIELD IF NOT EXISTS verses_count   ON quran_phrase TYPE int;
+DEFINE FIELD IF NOT EXISTS chapters_count ON quran_phrase TYPE int;
+
+-- Edge: ayah -> shares_phrase -> quran_phrase
+DEFINE TABLE IF NOT EXISTS shares_phrase SCHEMAFULL TYPE RELATION IN ayah OUT quran_phrase;
+DEFINE FIELD IF NOT EXISTS word_from       ON shares_phrase TYPE int;
+DEFINE FIELD IF NOT EXISTS word_to         ON shares_phrase TYPE int;
+DEFINE FIELD IF NOT EXISTS matched_count   ON shares_phrase TYPE option<int>;
+
+-- Edge: ayah -> similar_to -> ayah
+DEFINE TABLE IF NOT EXISTS similar_to SCHEMAFULL TYPE RELATION IN ayah OUT ayah;
+DEFINE FIELD IF NOT EXISTS score           ON similar_to TYPE int;
+DEFINE FIELD IF NOT EXISTS coverage        ON similar_to TYPE int;
+DEFINE FIELD IF NOT EXISTS matched_positions ON similar_to TYPE option<string>
+"#;
+
+pub async fn init_quran_similar_schema(db: &Surreal<Db>) -> Result<()> {
+    for (i, stmt) in QURAN_SIMILAR_SCHEMA
+        .split(';')
+        .map(|s| s.trim())
+        .filter(|s| !s.is_empty() && !s.starts_with("--"))
+        .enumerate()
+    {
+        let sql = format!("{stmt};");
+        if let Err(e) = db.query(&sql).await.and_then(|r| r.check()) {
+            tracing::error!(
+                "Quran similar schema statement {i} failed: {e}\n  SQL: {}",
+                stmt.chars().take(120).collect::<String>()
+            );
+            return Err(e.into());
+        }
+    }
+    tracing::info!("Quran similar/mutashabihat schema initialized");
+    Ok(())
+}
+
 pub async fn init_quran_schema(db: &Surreal<Db>) -> Result<()> {
     for (i, stmt) in QURAN_SCHEMA
         .split(';')
@@ -235,6 +353,62 @@ pub async fn init_quran_fulltext_indexes(db: &Surreal<Db>) -> Result<()> {
         }
     }
     tracing::info!("Quran full-text search indexes initialized");
+    Ok(())
+}
+
+// ── Manuscript & Variant Reading Schema ──
+
+const MANUSCRIPT_SCHEMA: &str = r#"
+DEFINE TABLE IF NOT EXISTS manuscript SCHEMAFULL;
+DEFINE FIELD IF NOT EXISTS name         ON manuscript TYPE string;
+DEFINE FIELD IF NOT EXISTS repository   ON manuscript TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS location     ON manuscript TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS date_range   ON manuscript TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS material     ON manuscript TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS script_type  ON manuscript TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS description  ON manuscript TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS source_url   ON manuscript TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS surah_start  ON manuscript TYPE option<int>;
+DEFINE FIELD IF NOT EXISTS surah_end    ON manuscript TYPE option<int>;
+DEFINE FIELD IF NOT EXISTS ayah_start   ON manuscript TYPE option<int>;
+DEFINE FIELD IF NOT EXISTS ayah_end     ON manuscript TYPE option<int>;
+DEFINE INDEX IF NOT EXISTS manuscript_range_idx ON TABLE manuscript FIELDS surah_start, surah_end;
+
+DEFINE TABLE IF NOT EXISTS variant_reading SCHEMAFULL;
+DEFINE FIELD IF NOT EXISTS surah_number    ON variant_reading TYPE int;
+DEFINE FIELD IF NOT EXISTS ayah_number     ON variant_reading TYPE int;
+DEFINE FIELD IF NOT EXISTS word_position   ON variant_reading TYPE option<int>;
+DEFINE FIELD IF NOT EXISTS reader_name     ON variant_reading TYPE string;
+DEFINE FIELD IF NOT EXISTS reading_ar      ON variant_reading TYPE string;
+DEFINE FIELD IF NOT EXISTS standard_ar     ON variant_reading TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS source          ON variant_reading TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS manuscript_id   ON variant_reading TYPE option<record<manuscript>>;
+DEFINE INDEX IF NOT EXISTS variant_ayah_idx ON TABLE variant_reading FIELDS surah_number, ayah_number;
+
+DEFINE TABLE IF NOT EXISTS qira_reader SCHEMAFULL;
+DEFINE FIELD IF NOT EXISTS name_ar    ON qira_reader TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS name_en    ON qira_reader TYPE string;
+DEFINE FIELD IF NOT EXISTS tradition  ON qira_reader TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS region     ON qira_reader TYPE option<string>
+"#;
+
+pub async fn init_manuscript_schema(db: &Surreal<Db>) -> Result<()> {
+    for (i, stmt) in MANUSCRIPT_SCHEMA
+        .split(';')
+        .map(|s| s.trim())
+        .filter(|s| !s.is_empty() && !s.starts_with("--"))
+        .enumerate()
+    {
+        let sql = format!("{stmt};");
+        if let Err(e) = db.query(&sql).await.and_then(|r| r.check()) {
+            tracing::error!(
+                "Manuscript schema statement {i} failed: {e}\n  SQL: {}",
+                stmt.chars().take(120).collect::<String>()
+            );
+            return Err(e.into());
+        }
+    }
+    tracing::info!("Manuscript schema initialized");
     Ok(())
 }
 
