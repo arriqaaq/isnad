@@ -94,6 +94,14 @@ Ask questions in natural language. The system retrieves the 6 most relevant hadi
 
 SurrealDB stores narrators, hadiths, and books as documents connected by `heard_from`, `narrates`, and `belongs_to` graph edges — enabling isnad reconstruction and network analysis.
 
+## Training Pipeline
+
+<p align="center">
+  <img src="img/training-pipeline.svg" alt="Training pipeline" width="700">
+</p>
+
+Fine-tune a domain-specific LLM on hadith and Quran data, then deploy it through the existing Ollama-based ask loop with zero backend changes. The pipeline generates ~1,400 ChatML Q&A pairs matching the exact RAG prompt pattern from `rag.rs`, fine-tunes via LoRA (MLX locally or Unsloth on Colab), and exports to GGUF for Ollama. See [TRAINING.md](docs/TRAINING.md) for the full guide.
+
 ## Tech Stack
 
 | Layer | Technology | Purpose |

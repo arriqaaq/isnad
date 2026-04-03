@@ -286,11 +286,11 @@
           <h3 class="hood-subtitle animate-on-scroll" use:inview>Training Pipeline</h3>
           <div class="pipeline-grid">
             {#each [
-              { n: '1', title: 'Raw Data', desc: 'Sanadset · Tanzil · Sunnah.com' },
-              { n: '2', title: 'Parse & Enrich', desc: 'Quran + Tafsir + Narrator bios' },
-              { n: '3', title: 'Format as QA', desc: 'Question-answer pairs with isnad context' },
-              { n: '4', title: 'Fine-tune LoRA', desc: 'Qwen / Llama with domain knowledge' },
-              { n: '5', title: 'Deploy', desc: 'Ollama local serve' },
+              { n: '1', title: 'Raw Data', desc: 'Sanadset 368K · Tanzil · Sunnah.com' },
+              { n: '2', title: 'Parse & Enrich', desc: 'Join translations + narrator bios + tafsir' },
+              { n: '3', title: 'Generate QA', desc: 'ChatML pairs matching RAG prompt pattern' },
+              { n: '4', title: 'LoRA Fine-tune', desc: 'MLX on Phi-4-mini / Qwen' },
+              { n: '5', title: 'GGUF → Ollama', desc: 'Quantize Q4_K_M · ollama create · serve' },
             ] as step, i}
               <div class="pipe-card animate-on-scroll stagger-{Math.min(i + 1, 4)}" use:inview>
                 <div class="pipe-num">{step.n}</div>

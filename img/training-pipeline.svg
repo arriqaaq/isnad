@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 440">
+  <defs>
+    <filter id="shadow" x="-4%" y="-4%" width="108%" height="112%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#000" flood-opacity="0.06"/>
+    </filter>
+  </defs>
+
+  <!-- Step 1 -->
+  <rect x="20" y="10" width="660" height="52" rx="12" fill="#ffffff" stroke="#e5e7eb" stroke-width="1" filter="url(#shadow)"/>
+  <circle cx="56" cy="36" r="15" fill="#d63384"/>
+  <text x="56" y="41" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="12" font-weight="700" fill="#ffffff">1</text>
+  <text x="84" y="32" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="13" font-weight="700" fill="#1a1a2e">Raw Data</text>
+  <text x="84" y="48" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="11" fill="#9ca3af">Sanadset 368K hadiths · Tanzil 6,236 ayahs · Sunnah.com 33K translations · AR-Sanad 18K narrators</text>
+
+  <!-- Connector -->
+  <line x1="350" y1="62" x2="350" y2="80" stroke="#d63384" stroke-width="2" opacity="0.4"/>
+  <circle cx="350" cy="71" r="2.5" fill="#d63384" opacity="0.6"/>
+
+  <!-- Step 2 -->
+  <rect x="20" y="80" width="660" height="52" rx="12" fill="#ffffff" stroke="#e5e7eb" stroke-width="1" filter="url(#shadow)"/>
+  <circle cx="56" cy="106" r="15" fill="#d63384"/>
+  <text x="56" y="111" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="12" font-weight="700" fill="#ffffff">2</text>
+  <text x="84" y="102" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="13" font-weight="700" fill="#1a1a2e">Parse &amp; Enrich</text>
+  <text x="84" y="118" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="11" fill="#9ca3af">Join translations + narrator bios + Tafsir Ibn Kathir — build unified hadith records with isnad chains</text>
+
+  <!-- Connector -->
+  <line x1="350" y1="132" x2="350" y2="150" stroke="#d63384" stroke-width="2" opacity="0.4"/>
+  <circle cx="350" cy="141" r="2.5" fill="#d63384" opacity="0.6"/>
+
+  <!-- Step 3 -->
+  <rect x="20" y="150" width="660" height="70" rx="12" fill="#ffffff" stroke="#e5e7eb" stroke-width="1" filter="url(#shadow)"/>
+  <circle cx="56" cy="176" r="15" fill="#d63384"/>
+  <text x="56" y="181" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="12" font-weight="700" fill="#ffffff">3</text>
+  <text x="84" y="172" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="13" font-weight="700" fill="#1a1a2e">Generate ChatML QA Pairs</text>
+  <text x="84" y="188" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="11" fill="#9ca3af">~1,400 training examples matching the RAG prompt pattern from rag.rs</text>
+  <!-- Category chips -->
+  <rect x="84" y="198" width="110" height="18" rx="9" fill="rgba(214,51,132,0.08)" stroke="rgba(214,51,132,0.15)" stroke-width="1"/>
+  <text x="139" y="211" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="9" font-weight="600" fill="#4a4a68">Hadith RAG Q&amp;A</text>
+  <rect x="204" y="198" width="100" height="18" rx="9" fill="rgba(214,51,132,0.08)" stroke="rgba(214,51,132,0.15)" stroke-width="1"/>
+  <text x="254" y="211" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="9" font-weight="600" fill="#4a4a68">Quran Tafsir Q&amp;A</text>
+  <rect x="314" y="198" width="112" height="18" rx="9" fill="rgba(214,51,132,0.08)" stroke="rgba(214,51,132,0.15)" stroke-width="1"/>
+  <text x="370" y="211" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="9" font-weight="600" fill="#4a4a68">Chain Analysis</text>
+
+  <!-- Connector -->
+  <line x1="350" y1="220" x2="350" y2="238" stroke="#d63384" stroke-width="2" opacity="0.4"/>
+  <circle cx="350" cy="229" r="2.5" fill="#d63384" opacity="0.6"/>
+
+  <!-- Step 4 -->
+  <rect x="20" y="238" width="660" height="70" rx="12" fill="#ffffff" stroke="#e5e7eb" stroke-width="1" filter="url(#shadow)"/>
+  <circle cx="56" cy="264" r="15" fill="#d63384"/>
+  <text x="56" y="269" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="12" font-weight="700" fill="#ffffff">4</text>
+  <text x="84" y="260" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="13" font-weight="700" fill="#1a1a2e">LoRA Fine-tune</text>
+  <text x="84" y="276" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="11" fill="#9ca3af">MLX LoRA on Phi-4-mini-instruct (3.8B) or Qwen2.5-3B — 1,000 iterations, 16 LoRA layers</text>
+  <!-- Path chips -->
+  <rect x="84" y="286" width="100" height="18" rx="9" fill="rgba(214,51,132,0.08)" stroke="rgba(214,51,132,0.15)" stroke-width="1"/>
+  <text x="134" y="299" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="9" font-weight="600" fill="#4a4a68">Path A: MLX local</text>
+  <rect x="194" y="286" width="120" height="18" rx="9" fill="rgba(214,51,132,0.08)" stroke="rgba(214,51,132,0.15)" stroke-width="1"/>
+  <text x="254" y="299" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="9" font-weight="600" fill="#4a4a68">Path B: Unsloth Colab</text>
+
+  <!-- Connector -->
+  <line x1="350" y1="308" x2="350" y2="326" stroke="#d63384" stroke-width="2" opacity="0.4"/>
+  <circle cx="350" cy="317" r="2.5" fill="#d63384" opacity="0.6"/>
+
+  <!-- Step 5 -->
+  <rect x="20" y="326" width="660" height="52" rx="12" fill="#ffffff" stroke="#e5e7eb" stroke-width="1" filter="url(#shadow)"/>
+  <circle cx="56" cy="352" r="15" fill="#d63384"/>
+  <text x="56" y="357" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="12" font-weight="700" fill="#ffffff">5</text>
+  <text x="84" y="348" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="13" font-weight="700" fill="#1a1a2e">Convert &amp; Deploy</text>
+  <text x="84" y="364" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="11" fill="#9ca3af">Fuse LoRA → GGUF Q4_K_M (~2GB) → ollama create hadith-scholar → OLLAMA_MODEL=hadith-scholar make server</text>
+
+  <!-- Bottom note -->
+  <text x="350" y="410" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="10" fill="#9ca3af">Zero backend changes — the existing OllamaClient in rag.rs supports model override via env var, CLI flag, or per-request</text>
+  <text x="350" y="428" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="10" font-weight="600" fill="#d63384">See docs/TRAINING.md for full guide</text>
+</svg>
