@@ -89,8 +89,8 @@ enum Commands {
         #[arg(long, default_value = "data/quran-morphology.txt")]
         file: String,
 
-        /// Directory with QUL JSON files (word_translation.json, transliteration.json)
-        #[arg(long, default_value = "data/qul")]
+        /// Directory with QUL JSON files (colored-english-wbw-translation.json, etc.)
+        #[arg(long, default_value = "qul")]
         qul_dir: String,
 
         /// Path to SurrealDB data directory
@@ -99,8 +99,8 @@ enum Commands {
     },
     /// Ingest shared phrases (mutashabihat) and similar ayahs from QUL JSON
     IngestQuranSimilar {
-        /// Directory with QUL JSON files (phrases.json, similar_ayahs.json)
-        #[arg(long, default_value = "data/qul")]
+        /// Directory with QUL JSON files (phrases.json, matching-ayah.json)
+        #[arg(long, default_value = "qul")]
         qul_dir: String,
 
         /// Path to SurrealDB data directory

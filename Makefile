@@ -1,4 +1,4 @@
-.PHONY: build frontend backend server dev stop ingest ingest-test ingest-full list-books quran-prepare quran-ingest quran-hadith-refs quran-morphology quran-similar quran-manuscripts quran quran-full analyze analyze-bio analyze-families analyze-transmission pipeline-test pipeline-full clean
+.PHONY: build frontend backend server dev stop ingest ingest-test ingest-full list-books quran-prepare quran-prepare-deps quran-ingest quran-hadith-refs quran-morphology quran-similar quran-manuscripts quran quran-full quran-check analyze analyze-bio analyze-families analyze-transmission pipeline-test pipeline-full clean
 
 # SurrealDB HNSW index traversal needs extra stack space
 export RUST_MIN_STACK=8388608
@@ -50,18 +50,27 @@ ingest:
 
 # === Quran ingestion ===
 
-VENV := .venv
-VENV_PYTHON := $(VENV)/bin/python3
-VENV_PIP := $(VENV)/bin/pip
+# Use existing virtualenv if VIRTUAL_ENV is set, otherwise create .venv
+ifdef VIRTUAL_ENV
+VENV_PYTHON := $(VIRTUAL_ENV)/bin/python3
+VENV_PIP := $(VIRTUAL_ENV)/bin/pip
+else
+VENV_PYTHON := .venv/bin/python3
+VENV_PIP := .venv/bin/pip
+endif
 
-# Create virtual environment and install Python dependencies
-$(VENV_PYTHON):
-	python3 -m venv $(VENV)
-	$(VENV_PIP) install --upgrade pip
-	$(VENV_PIP) install datasets pandas
+# Create virtual environment only if no venv is active and .venv doesn't exist
+.venv/bin/python3:
+	python3 -m venv .venv
+	.venv/bin/pip install --upgrade pip
+	.venv/bin/pip install datasets pandas
+
+# Ensure required packages are installed in the active venv
+quran-prepare-deps:
+	@$(VENV_PIP) install -q datasets pandas 2>/dev/null || true
 
 # Prepare Quran data (download Tanzil + Tafsir Ibn Kathir, merge into CSV)
-quran-prepare: $(VENV_PYTHON)
+quran-prepare: $(if $(VIRTUAL_ENV),,$(VENV_PYTHON)) quran-prepare-deps
 	$(VENV_PYTHON) scripts/prepare_quran_data.py
 
 # Ingest Quran into SurrealDB (requires data/quran.csv from quran-prepare)
@@ -76,16 +85,32 @@ quran-hadith-refs:
 data/quran-morphology.txt:
 	curl -sL https://raw.githubusercontent.com/mustafa0x/quran-morphology/master/quran-morphology.txt -o data/quran-morphology.txt
 
+data/morphology-terms-ar.json:
+	curl -sL https://raw.githubusercontent.com/mustafa0x/quran-morphology/master/morphology-terms-ar.json -o data/morphology-terms-ar.json
+
+# Preflight check: verify all required data files exist before running pipeline
+quran-check:
+	@echo "Checking required data files..."
+	@ok=true; \
+	test -f data/quran.csv                              && echo "  ✓ data/quran.csv" || { echo "  ✗ data/quran.csv (run: make quran-prepare)"; ok=false; }; \
+	test -f data/quran-morphology.txt                   && echo "  ✓ data/quran-morphology.txt (auto-downloaded)" || echo "  ○ data/quran-morphology.txt (will auto-download)"; \
+	test -f qul/colored-english-wbw-translation.json   && echo "  ✓ qul/colored-english-wbw-translation.json" || { echo "  ✗ qul/colored-english-wbw-translation.json — download from qul.tarteel.ai/resources/translation (Colored English wbw translation → JSON)"; ok=false; }; \
+	test -f qul/phrases.json                       && echo "  ✓ qul/phrases.json" || { echo "  ✗ qul/phrases.json — download from qul.tarteel.ai/resources/mutashabihat (JSON)"; ok=false; }; \
+	test -f qul/matching-ayah.json                 && echo "  ✓ qul/matching-ayah.json" || { echo "  ✗ qul/matching-ayah.json — download from qul.tarteel.ai/resources/similar-ayah (JSON)"; ok=false; }; \
+	test -d data/corpus-coranicum-tei                   && echo "  ✓ data/corpus-coranicum-tei/ (auto-cloned)" || echo "  ○ data/corpus-coranicum-tei/ (will auto-clone from GitHub)"; \
+	echo ""; \
+	if $$ok; then echo "All required files present. Run: make quran-full"; else echo "⚠  Download missing files above before running make quran-full"; exit 1; fi
+
 # 1. Ingest word morphology (must run before quran-similar so phrase text can be extracted)
 #    Requires: data/quran-morphology.txt (auto-downloaded)
-#    Optional: data/colored-english-wbw-translation.json (download "Colored English wbw translation" JSON from qul.tarteel.ai/resources/translation)
+#    Optional: qul/colored-english-wbw-translation.json (download "Colored English wbw translation" JSON from qul.tarteel.ai/resources/translation)
 quran-morphology:
 	cargo run -- ingest-morphology
 
 # 2. Ingest mutashabihat + similar ayahs from QUL JSON (must run after morphology)
-#    Requires: data/qul/phrases.json + data/qul/matching-ayah.json (download from qul.tarteel.ai/resources)
+#    Requires: qul/phrases.json + qul/matching-ayah.json (download from qul.tarteel.ai/resources)
 quran-similar:
-	cargo run -- ingest-quran-similar --qul-dir data/qul
+	cargo run -- ingest-quran-similar --qul-dir qul
 
 # 3. Clone Corpus Coranicum TEI (if not present) and ingest manuscripts + variant readings
 quran-manuscripts:
@@ -95,8 +120,9 @@ quran-manuscripts:
 # Base Quran pipeline: prepare data + ingest ayahs + hadith refs
 quran: quran-prepare quran-ingest quran-hadith-refs
 
-# Full Quran pipeline (ordered: base → morphology → similar → manuscripts)
-quran-full: quran data/quran-morphology.txt quran-morphology quran-similar quran-manuscripts
+# Full Quran pipeline (ordered: check → prepare → ingest → hadith-refs → morphology → similar → manuscripts)
+quran-full: quran-check quran data/quran-morphology.txt data/morphology-terms-ar.json quran-morphology quran-similar quran-manuscripts
+
 
 # === Analyze phase (runs on already-ingested data) ===
 

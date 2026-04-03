@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 220">
+  <defs>
+    <filter id="shadow" x="-4%" y="-4%" width="108%" height="112%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#000" flood-opacity="0.06"/>
+    </filter>
+    <marker id="arrow-green" viewBox="0 0 10 7" refX="10" refY="3.5" markerWidth="8" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 3.5 L 0 7 z" fill="#16a34a" opacity="0.7"/>
+    </marker>
+    <marker id="arrow-pink" viewBox="0 0 10 7" refX="10" refY="3.5" markerWidth="8" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 3.5 L 0 7 z" fill="#d63384" opacity="0.7"/>
+    </marker>
+    <marker id="arrow-gold" viewBox="0 0 10 7" refX="10" refY="3.5" markerWidth="8" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 3.5 L 0 7 z" fill="#b8860b" opacity="0.7"/>
+    </marker>
+  </defs>
+
+  <!-- Narrator A -->
+  <rect x="15" y="30" width="120" height="50" rx="25" fill="rgba(22,163,74,0.08)" stroke="#16a34a" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="75" y="60" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="12" font-weight="700" fill="#16a34a">Narrator A</text>
+
+  <!-- Narrator B -->
+  <rect x="215" y="30" width="120" height="50" rx="25" fill="rgba(22,163,74,0.08)" stroke="#16a34a" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="275" y="60" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="12" font-weight="700" fill="#16a34a">Narrator B</text>
+
+  <!-- Narrator C -->
+  <rect x="415" y="30" width="120" height="50" rx="25" fill="rgba(22,163,74,0.08)" stroke="#16a34a" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="475" y="60" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="12" font-weight="700" fill="#16a34a">Narrator C</text>
+
+  <!-- heard_from edges (A→B, B→C) -->
+  <line x1="135" y1="55" x2="210" y2="55" stroke="#16a34a" stroke-width="1.5" marker-end="url(#arrow-green)"/>
+  <text x="172" y="47" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="9" font-style="italic" fill="#16a34a">heard_from</text>
+
+  <line x1="335" y1="55" x2="410" y2="55" stroke="#16a34a" stroke-width="1.5" marker-end="url(#arrow-green)"/>
+  <text x="372" y="47" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="9" font-style="italic" fill="#16a34a">heard_from</text>
+
+  <!-- Hadith node -->
+  <rect x="240" y="140" width="120" height="50" rx="12" fill="rgba(214,51,132,0.08)" stroke="#d63384" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="300" y="170" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="12" font-weight="700" fill="#d63384">Hadith</text>
+
+  <!-- narrates edges (A→H, B→H, C→H) -->
+  <line x1="75" y1="80" x2="245" y2="145" stroke="#d63384" stroke-width="1.5" opacity="0.6" marker-end="url(#arrow-pink)"/>
+  <line x1="275" y1="80" x2="295" y2="135" stroke="#d63384" stroke-width="1.5" opacity="0.6" marker-end="url(#arrow-pink)"/>
+  <line x1="475" y1="80" x2="355" y2="145" stroke="#d63384" stroke-width="1.5" opacity="0.6" marker-end="url(#arrow-pink)"/>
+
+  <!-- narrates label (centered) -->
+  <text x="155" y="110" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="9" font-style="italic" fill="#d63384">narrates</text>
+  <text x="445" y="110" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="9" font-style="italic" fill="#d63384">narrates</text>
+
+  <!-- Book node -->
+  <rect x="560" y="140" width="120" height="50" rx="12" fill="rgba(184,134,11,0.08)" stroke="#b8860b" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="620" y="170" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="12" font-weight="700" fill="#b8860b">Book</text>
+
+  <!-- belongs_to edge (H→B) -->
+  <line x1="360" y1="165" x2="555" y2="165" stroke="#b8860b" stroke-width="1.5" marker-end="url(#arrow-gold)"/>
+  <text x="457" y="158" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="9" font-style="italic" fill="#b8860b">belongs_to</text>
+</svg>

@@ -368,6 +368,8 @@ pub struct ApiSimilarAyah {
     pub score: i64,
     pub coverage: i64,
     pub matched_positions: Option<serde_json::Value>,
+    pub text_ar: Option<String>,
+    pub text_en: Option<String>,
 }
 
 #[derive(Debug, Serialize)]

@@ -131,6 +131,14 @@ pub async fn serve(
             axum::routing::get(quran_handlers::surah_hadith_counts),
         )
         .route(
+            "/api/quran/surahs/{number}/similar-counts",
+            axum::routing::get(quran_handlers::surah_similar_counts),
+        )
+        .route(
+            "/api/quran/surahs/{number}/variant-counts",
+            axum::routing::get(quran_handlers::surah_variant_counts),
+        )
+        .route(
             "/api/quran/ayah/{ayah_key}/words",
             axum::routing::get(quran_handlers::ayah_words),
         )

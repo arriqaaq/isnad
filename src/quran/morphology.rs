@@ -308,8 +308,7 @@ pub async fn ingest_morphology(db: &Surreal<Db>, morph_path: &str, qul_dir: &str
 
     // 2. Load QUL word translations if available
     // Try colored version first (in data/ root), then plain version in qul_dir
-    let word_translations = load_qul_json("data/colored-english-wbw-translation.json")
-        .or_else(|| load_qul_json(&format!("{qul_dir}/word_translation.json")));
+    let word_translations = load_qul_json(&format!("{qul_dir}/colored-english-wbw-translation.json"));
     if word_translations.is_some() {
         println!("   ✓ Loaded QUL word translations");
     }

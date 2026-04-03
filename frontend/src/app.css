@@ -1,5 +1,14 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Naskh+Arabic:wght@400;500;600;700&family=Amiri:wght@400;700&family=Amiri+Quran&family=Scheherazade+New:wght@400;700&family=EB+Garamond:ital,wght@0,400;0,600;1,400;1,600&display=swap');
 
+/* KFGQPC Uthmanic Hafs — same font used by quran.com */
+@font-face {
+  font-family: 'UthmanicHafs';
+  src: url('/fonts/UthmanicHafs.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   --bg-primary: #ffffff;
   --bg-secondary: #f8f9fa;
@@ -19,7 +28,7 @@
   --warning: #d97706;
   --error: #dc2626;
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-arabic: 'Noto Naskh Arabic', 'Traditional Arabic', serif;
+  --font-arabic: 'UthmanicHafs', 'Noto Naskh Arabic', 'Traditional Arabic', serif;
   --font-body: Georgia, 'Times New Roman', serif;
   --font-mono: 'Menlo', 'Consolas', monospace;
   --radius: 8px;

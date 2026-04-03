@@ -44,13 +44,19 @@
   <div class="section">
     <div class="section-label">Similar Verses</div>
     {#each data.similar as sim}
-      <div class="similar-item">
-        <a href="/quran/{sim.ayah_key.split(':')[0]}?ayah={sim.ayah_key.split(':')[1]}" class="similar-link">
-          {sim.ayah_key}
-        </a>
-        <span class="score-badge">{sim.score}</span>
-        <span class="coverage-pct">{sim.coverage}%</span>
-      </div>
+      <a href="/quran/{sim.ayah_key.split(':')[0]}?ayah={sim.ayah_key.split(':')[1]}" class="similar-card">
+        <div class="similar-header">
+          <span class="similar-ref">{sim.ayah_key}</span>
+          <span class="score-badge">Score {sim.score}</span>
+          <span class="coverage-pct">{sim.coverage}% match</span>
+        </div>
+        {#if sim.text_ar}
+          <div class="similar-ar" dir="rtl">{sim.text_ar}</div>
+        {/if}
+        {#if sim.text_en}
+          <div class="similar-en">{sim.text_en.length > 150 ? sim.text_en.slice(0, 150) + '...' : sim.text_en}</div>
+        {/if}
+      </a>
     {/each}
   </div>
 {/if}
@@ -136,38 +142,56 @@
     text-decoration: underline;
     padding: 2px 8px;
   }
-  .similar-item {
+  .similar-card {
+    display: block;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    text-decoration: none;
+    transition: all var(--transition);
+  }
+  .similar-card:hover {
+    border-color: var(--accent);
+    background: var(--accent-muted);
+  }
+  .similar-header {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 6px 10px;
-    border-bottom: 1px solid var(--border);
+    gap: 8px;
+    margin-bottom: 6px;
   }
-  .similar-item:last-child {
-    border-bottom: none;
-  }
-  .similar-link {
+  .similar-ref {
     font-size: 0.8rem;
     font-family: var(--font-mono);
+    font-weight: 600;
     color: var(--accent);
-    text-decoration: none;
-  }
-  .similar-link:hover {
-    text-decoration: underline;
   }
   .score-badge {
-    font-size: 0.7rem;
+    font-size: 0.65rem;
     font-family: var(--font-mono);
     font-weight: 600;
     color: var(--success);
     padding: 1px 6px;
-    background: var(--bg-surface);
+    background: var(--bg-hover);
     border-radius: 8px;
   }
   .coverage-pct {
-    font-size: 0.7rem;
+    font-size: 0.65rem;
     color: var(--text-muted);
     font-family: var(--font-mono);
+  }
+  .similar-ar {
+    font-size: 0.95rem;
+    color: var(--text-primary);
+    line-height: 1.8;
+    margin-bottom: 4px;
+  }
+  .similar-en {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
   }
   .empty {
     font-size: 0.8rem;

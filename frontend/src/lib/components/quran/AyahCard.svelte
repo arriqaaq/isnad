@@ -8,11 +8,13 @@
   import VariantReadings from './VariantReadings.svelte';
   import SimilarAyahs from './SimilarAyahs.svelte';
 
-  let { ayah, showScore = false, compact = false, hadithCount = 0, active = false, onplay, reciterFolder }: {
+  let { ayah, showScore = false, compact = false, hadithCount = 0, similarCount = 0, variantCount = 0, active = false, onplay, reciterFolder }: {
     ayah: ApiAyah | ApiAyahSearchResult;
     showScore?: boolean;
     compact?: boolean;
     hadithCount?: number;
+    similarCount?: number;
+    variantCount?: number;
     active?: boolean;
     onplay?: (ayah: number) => void;
     reciterFolder?: string;
@@ -52,11 +54,6 @@
   let similarData: AyahSimilarResponse | null = $state(null);
   let similarLoading = $state(false);
 
-  // Hide buttons once we know there's no data
-  let variantEmpty = $derived(variantData !== null && variantData.length === 0);
-  let similarEmpty = $derived(
-    similarData !== null && similarData.similar.length === 0 && similarData.phrases.length === 0
-  );
   let score = $derived('score' in ayah ? (ayah as ApiAyahSearchResult).score : null);
 
   async function toggleHadiths() {
@@ -93,7 +90,6 @@
       variantLoading = true;
       try {
         variantData = await getAyahVariants(ayah.surah_number, ayah.ayah_number);
-        if (variantData.length === 0) showVariants = false;
       } catch (e) {
         console.error('Failed to load variants:', e);
       } finally {
@@ -108,7 +104,6 @@
       similarLoading = true;
       try {
         similarData = await getAyahSimilar(ayah.surah_number, ayah.ayah_number);
-        if (similarData.similar.length === 0 && similarData.phrases.length === 0) showSimilar = false;
       } catch (e) {
         console.error('Failed to load similar ayahs:', e);
       } finally {
@@ -194,14 +189,14 @@
         {showTafsir ? 'Hide' : 'Show'} Tafsir
       </button>
     {/if}
-    {#if !compact && !variantEmpty}
+    {#if variantCount > 0}
       <button class="readings-toggle" class:active-toggle={showVariants} onclick={toggleVariants}>
-        Readings
+        Readings ({variantCount})
       </button>
     {/if}
-    {#if !compact && !similarEmpty}
+    {#if similarCount > 0}
       <button class="similar-toggle" class:active-toggle={showSimilar} onclick={toggleSimilar}>
-        Similar
+        Similar ({similarCount})
       </button>
     {/if}
   </div>

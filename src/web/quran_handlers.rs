@@ -350,6 +350,82 @@ pub async fn surah_hadith_counts(
     Ok(Json(string_counts))
 }
 
+/// Returns { ayah_number: count } for ayahs in this surah that have similar_to or shares_phrase edges.
+pub async fn surah_similar_counts(
+    State(state): State<AppState>,
+    Path(number): Path<i64>,
+) -> Result<Json<std::collections::HashMap<String, i64>>, StatusCode> {
+    #[derive(Debug, surrealdb::types::SurrealValue)]
+    struct AyahCount {
+        ayah_number: i64,
+        count: i64,
+    }
+
+    // Count similar_to edges + shares_phrase edges per ayah
+    let mut res = state
+        .db
+        .query(
+            "SELECT in.ayah_number AS ayah_number, count() AS count \
+             FROM similar_to WHERE in.surah_number = $s \
+             GROUP BY ayah_number",
+        )
+        .bind(("s", number))
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    let similar: Vec<AyahCount> = res.take(0).unwrap_or_default();
+
+    let mut res2 = state
+        .db
+        .query(
+            "SELECT in.ayah_number AS ayah_number, count() AS count \
+             FROM shares_phrase WHERE in.surah_number = $s \
+             GROUP BY ayah_number",
+        )
+        .bind(("s", number))
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    let phrases: Vec<AyahCount> = res2.take(0).unwrap_or_default();
+
+    // Merge both counts
+    let mut counts = std::collections::HashMap::new();
+    for ac in similar.iter().chain(phrases.iter()) {
+        *counts.entry(ac.ayah_number.to_string()).or_insert(0) += ac.count;
+    }
+
+    Ok(Json(counts))
+}
+
+/// Returns { ayah_number: count } for ayahs in this surah that have variant readings.
+pub async fn surah_variant_counts(
+    State(state): State<AppState>,
+    Path(number): Path<i64>,
+) -> Result<Json<std::collections::HashMap<String, i64>>, StatusCode> {
+    #[derive(Debug, surrealdb::types::SurrealValue)]
+    struct AyahCount {
+        ayah_number: i64,
+        count: i64,
+    }
+
+    let mut res = state
+        .db
+        .query(
+            "SELECT ayah_number, count() AS count \
+             FROM variant_reading WHERE surah_number = $s \
+             GROUP BY ayah_number",
+        )
+        .bind(("s", number))
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    let rows: Vec<AyahCount> = res.take(0).unwrap_or_default();
+    let counts: std::collections::HashMap<String, i64> =
+        rows.into_iter().map(|r| (r.ayah_number.to_string(), r.count)).collect();
+
+    Ok(Json(counts))
+}
+
 fn parse_ayah_key(key: &str) -> Option<(i64, i64)> {
     let parts: Vec<&str> = key.split(':').collect();
     if parts.len() == 2 {
@@ -434,6 +510,8 @@ struct SimilarEdgeRow {
     matched_positions: Option<String>,
     surah_number: i64,
     ayah_number: i64,
+    text_ar: Option<String>,
+    text_en: Option<String>,
 }
 
 #[derive(Debug, SurrealValue)]
@@ -468,7 +546,9 @@ pub async fn ayah_similar(
     let mut res = state
         .db
         .query(
-            "SELECT score, coverage, matched_positions, out.surah_number AS surah_number, out.ayah_number AS ayah_number \
+            "SELECT score, coverage, matched_positions, \
+             out.surah_number AS surah_number, out.ayah_number AS ayah_number, \
+             out.text_ar AS text_ar, out.text_en AS text_en \
              FROM similar_to WHERE in = $ayah_id ORDER BY score DESC LIMIT 20",
         )
         .bind(("ayah_id", ayah_id.clone()))
@@ -488,6 +568,8 @@ pub async fn ayah_similar(
             matched_positions: r
                 .matched_positions
                 .and_then(|s| serde_json::from_str(&s).ok()),
+            text_ar: r.text_ar,
+            text_en: r.text_en,
         })
         .collect();
 

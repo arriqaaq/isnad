@@ -354,6 +354,8 @@ export interface ApiSimilarAyah {
   score: number;
   coverage: number;
   matched_positions: number[][] | null;
+  text_ar: string | null;
+  text_en: string | null;
 }
 
 export interface ApiPhraseWithAyahs {

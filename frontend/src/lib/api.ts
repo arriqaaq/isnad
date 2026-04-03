@@ -176,6 +176,18 @@ export async function getSurahHadithCounts(
   return get(`/quran/surahs/${surah}/hadith-counts`);
 }
 
+export async function getSurahSimilarCounts(
+  surah: number
+): Promise<Record<string, number>> {
+  return get(`/quran/surahs/${surah}/similar-counts`);
+}
+
+export async function getSurahVariantCounts(
+  surah: number
+): Promise<Record<string, number>> {
+  return get(`/quran/surahs/${surah}/variant-counts`);
+}
+
 // ── Unified Quran & Sunnah API ──
 
 export async function searchUnified(
