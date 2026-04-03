@@ -15,6 +15,7 @@
   let playerRef: ReturnType<typeof RecitationPlayer> | undefined = $state(undefined);
 
   let surahNum = $derived(Number(page.params.surah));
+  let startingAyah = $derived(Number(page.url.searchParams.get('ayah')) || 0);
   let reciterFolder = $derived($preferences.selectedReciter ?? 'Alafasy_128kbps');
 
   $effect(() => {
@@ -27,6 +28,19 @@
       data = d;
       hadithCounts = counts;
       loading = false;
+
+      // Scroll to specific ayah if ?ayah=N is in the URL
+      if (startingAyah > 0) {
+        activeAyah = startingAyah;
+        requestAnimationFrame(() => {
+          setTimeout(() => {
+            const el = document.getElementById(`${surahNum}:${startingAyah}`);
+            if (el) {
+              el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+          }, 100);
+        });
+      }
     });
   });
 

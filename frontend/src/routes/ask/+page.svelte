@@ -191,7 +191,7 @@
                 <summary>Quran Sources ({msg.quran_sources.length} ayahs)</summary>
                 <div class="source-list">
                   {#each msg.quran_sources as s}
-                    <a href="/quran/{s.surah_number}#{s.surah_number}:{s.ayah_number}" class="source-card">
+                    <a href="/quran/{s.surah_number}?ayah={s.ayah_number}" class="source-card">
                       <span class="source-ref mono quran-ref">{s.surah_number}:{s.ayah_number}</span>
                       <span class="source-arabic" dir="rtl">{truncate(s.text_ar, 80)}</span>
                       {#if s.text_en}<span class="source-text">{truncate(s.text_en, 120)}</span>{/if}

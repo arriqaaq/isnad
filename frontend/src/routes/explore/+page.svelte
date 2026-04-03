@@ -101,7 +101,7 @@
           {#if isQuran(item)}
             <div class="result-item">
               <div class="source-tag quran-tag">Quran</div>
-              <a href="/quran/{item.surah_number}#{item.surah_number}:{item.ayah_number}" class="result-link">
+              <a href="/quran/{item.surah_number}?ayah={item.ayah_number}" class="result-link">
                 <AyahCard ayah={{
                   id: item.id,
                   surah_number: item.surah_number,
