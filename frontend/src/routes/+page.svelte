@@ -173,17 +173,18 @@
       </div>
     </div>
 
-    <!-- Secondary features — compact row -->
-    <div class="feat-row animate-on-scroll" use:inview>
-      <div class="feat-compact">
-        <h3>Ask AI</h3>
-        <p>Ask questions in natural language. Get answers grounded in the Quran and Hadith, powered by local LLMs fine-tuned on Islamic scholarship.</p>
-        <a href="/ask" class="feat-link">Ask a Question &rarr;</a>
+    <!-- Early Manuscripts -->
+    <div class="feat animate-on-scroll" use:inview>
+      <div class="feat-visual">
+        <div class="app-frame">
+          <div class="frame-dots"><span></span><span></span><span></span></div>
+          <img src="/img/manuscript-sample.jpg" alt="Early Quranic manuscript — Berlin, Wetzstein II 1913" style="height: 340px; object-fit: cover;" />
+        </div>
       </div>
-      <div class="feat-compact">
-        <h3>Research & Analysis</h3>
-        <p>Hadith family detection, common-link analysis, statistical chain metrics, and narrator scoring for scholarly research.</p>
-        <a href="/analysis" class="feat-link">View Analysis &rarr;</a>
+      <div class="feat-text">
+        <h3>Early Manuscripts</h3>
+        <p>View high-resolution images of early Quranic manuscripts per ayah from the Corpus Coranicum archive — Berlin-Brandenburg Academy of Sciences. Click to zoom.</p>
+        <a href="/quran/2?ayah=238" class="feat-link">View Example &rarr;</a>
       </div>
     </div>
   </section>
@@ -208,9 +209,9 @@
           <p>QPC Hafs Arabic + Sahih International English from Quranic Universal Library</p>
         </div>
         <div class="source-card animate-on-scroll stagger-3" use:inview>
-          <div class="source-num">114</div>
+          <div class="source-num">6,236</div>
           <h4>Tafsir Ibn Kathir</h4>
-          <p>Surahs with classical commentary for scholarly context</p>
+          <p>Classical exegesis per ayah via QUL</p>
         </div>
         <div class="source-card animate-on-scroll stagger-1" use:inview>
           <div class="source-num">33K</div>
@@ -224,8 +225,8 @@
         </div>
         <div class="source-card animate-on-scroll stagger-3" use:inview>
           <div class="source-num">&#x2726;</div>
-          <h4>Quran.com API</h4>
-          <p>Tajweed-annotated Arabic with color-coded recitation rules</p>
+          <h4>Corpus Coranicum</h4>
+          <p>Early manuscript images per ayah from Berlin-Brandenburg Academy</p>
         </div>
       </div>
     </div>
@@ -636,8 +637,9 @@
   }
   .cta-outline:hover {
     border-color: var(--accent);
-    color: var(--accent);
-    background: var(--accent-muted);
+    color: white;
+    background: var(--accent);
+    box-shadow: 0 4px 20px rgba(214,51,132,0.3);
     transform: translateY(-1px);
   }
 
@@ -767,11 +769,11 @@
     color: var(--accent-hover);
   }
 
-  /* Secondary features — compact 2-col row */
+  /* Secondary features — compact 3-col row */
   .feat-row {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 48px;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 36px;
     padding: 60px 0 20px;
   }
   .feat-compact {
@@ -784,6 +786,14 @@
     font-weight: 700;
     color: var(--text-primary);
     letter-spacing: -0.3px;
+  }
+  .feat-compact-img {
+    width: 100%;
+    height: 140px;
+    object-fit: cover;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    margin-bottom: 4px;
   }
   .feat-compact p {
     font-size: 0.92rem;

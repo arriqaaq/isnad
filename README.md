@@ -28,6 +28,7 @@ Rust backend serving a SvelteKit SPA, with SurrealDB as a unified graph + vector
 - **Narrator Networks** — 18K+ narrators with interactive Cytoscape.js graph visualization, Ibn Hajar reliability grades
 - **Hybrid Search** — BM25 full-text + 384-dim semantic vectors fused with Reciprocal Rank Fusion
 - **Ask AI (GraphRAG)** — Natural language Q&A grounded in Quran/Hadith via local Ollama, with isnad-aware context
+- **Early Manuscripts** — Per-ayah high-resolution manuscript images from Corpus Coranicum (Berlin-Brandenburg Academy), viewable with zoom
 - **Transmission Analysis** — Hadith family clustering, Common Link / Partial Common Link analysis, word-level matn diffing
 
 ## Quick Start
@@ -93,6 +94,15 @@ Ask questions in natural language. The system retrieves the 6 most relevant hadi
 </p>
 
 SurrealDB stores narrators, hadiths, and books as documents connected by `heard_from`, `narrates`, and `belongs_to` graph edges — enabling isnad reconstruction and network analysis.
+
+## Early Manuscripts
+
+<p align="center">
+  <img src="img/manuscript-sample.jpg" alt="Early Quranic manuscript — Berlin, Wetzstein II 1913" width="700">
+  <br><em>Berlin, Staatsbibliothek: Wetzstein II 1913 — Surah 2:238</em>
+</p>
+
+Per-ayah manuscript images from [Corpus Coranicum](https://corpuscoranicum.de/) (Berlin-Brandenburg Academy of Sciences). Click "Manuscripts" on any ayah to view high-resolution scans of early Quranic manuscripts — fetched live from the Corpus Coranicum API.
 
 ## Training Pipeline
 
