@@ -54,6 +54,8 @@ DEFINE FIELD IF NOT EXISTS tags           ON narrator TYPE option<array<string>>
 DEFINE FIELD IF NOT EXISTS reliability_rating ON narrator TYPE option<string>;
 DEFINE FIELD IF NOT EXISTS reliability_prior  ON narrator TYPE option<float>;
 DEFINE FIELD IF NOT EXISTS reliability_source ON narrator TYPE option<string>;
+-- Pre-computed count of hadiths narrated (see backfill_narrator_hadith_counts)
+DEFINE FIELD IF NOT EXISTS hadith_count       ON narrator TYPE option<int>;
 DEFINE INDEX IF NOT EXISTS narrator_name ON TABLE narrator FIELDS name_en;
 
 DEFINE TABLE IF NOT EXISTS hadith SCHEMAFULL;
@@ -148,13 +150,19 @@ DEFINE INDEX IF NOT EXISTS alias_name_idx ON TABLE narrator_alias FIELDS alias_n
 -- "Narrator B heard_from Narrator A" (student -> teacher, toward the Prophet)
 DEFINE TABLE IF NOT EXISTS heard_from TYPE RELATION FROM narrator TO narrator;
 DEFINE FIELD IF NOT EXISTS hadith_ref ON heard_from TYPE option<record<hadith>>;
+DEFINE INDEX IF NOT EXISTS heard_from_in_idx ON TABLE heard_from FIELDS in;
+DEFINE INDEX IF NOT EXISTS heard_from_out_idx ON TABLE heard_from FIELDS out;
+DEFINE INDEX IF NOT EXISTS heard_from_hadith_ref_idx ON TABLE heard_from FIELDS hadith_ref;
 
 -- "Narrator narrates Hadith" (narrator closest to Bukhari -> hadith)
 DEFINE TABLE IF NOT EXISTS narrates TYPE RELATION FROM narrator TO hadith;
 DEFINE FIELD IF NOT EXISTS chain_position ON narrates TYPE option<int>;
+DEFINE INDEX IF NOT EXISTS narrates_in_idx ON TABLE narrates FIELDS in;
+DEFINE INDEX IF NOT EXISTS narrates_out_idx ON TABLE narrates FIELDS out;
 
 -- "Hadith belongs_to Book"
 DEFINE TABLE IF NOT EXISTS belongs_to TYPE RELATION FROM hadith TO book;
+DEFINE INDEX IF NOT EXISTS belongs_to_in_idx ON TABLE belongs_to FIELDS in;
 "#;
 
 // ── Quran Schema ──
@@ -188,7 +196,9 @@ DEFINE INDEX IF NOT EXISTS ayah_composite  ON TABLE ayah FIELDS surah_number, ay
 DEFINE TABLE IF NOT EXISTS references_hadith SCHEMAFULL TYPE RELATION IN ayah OUT hadith;
 DEFINE FIELD IF NOT EXISTS collection     ON references_hadith TYPE string;
 DEFINE FIELD IF NOT EXISTS hadith_number  ON references_hadith TYPE string;
-DEFINE FIELD IF NOT EXISTS source         ON references_hadith TYPE string DEFAULT 'qurancom'
+DEFINE FIELD IF NOT EXISTS source         ON references_hadith TYPE string DEFAULT 'qurancom';
+DEFINE INDEX IF NOT EXISTS refs_hadith_in_idx ON TABLE references_hadith FIELDS in;
+DEFINE INDEX IF NOT EXISTS refs_hadith_out_idx ON TABLE references_hadith FIELDS out
 "#;
 
 // ── Quran Word Morphology Schema ──
@@ -281,12 +291,15 @@ DEFINE TABLE IF NOT EXISTS shares_phrase SCHEMAFULL TYPE RELATION IN ayah OUT qu
 DEFINE FIELD IF NOT EXISTS word_from       ON shares_phrase TYPE int;
 DEFINE FIELD IF NOT EXISTS word_to         ON shares_phrase TYPE int;
 DEFINE FIELD IF NOT EXISTS matched_count   ON shares_phrase TYPE option<int>;
+DEFINE INDEX IF NOT EXISTS shares_phrase_in_idx ON TABLE shares_phrase FIELDS in;
+DEFINE INDEX IF NOT EXISTS shares_phrase_out_idx ON TABLE shares_phrase FIELDS out;
 
 -- Edge: ayah -> similar_to -> ayah
 DEFINE TABLE IF NOT EXISTS similar_to SCHEMAFULL TYPE RELATION IN ayah OUT ayah;
 DEFINE FIELD IF NOT EXISTS score           ON similar_to TYPE int;
 DEFINE FIELD IF NOT EXISTS coverage        ON similar_to TYPE int;
-DEFINE FIELD IF NOT EXISTS matched_positions ON similar_to TYPE option<string>
+DEFINE FIELD IF NOT EXISTS matched_positions ON similar_to TYPE option<string>;
+DEFINE INDEX IF NOT EXISTS similar_to_in_idx ON TABLE similar_to FIELDS in
 "#;
 
 pub async fn init_quran_similar_schema(db: &Surreal<Db>) -> Result<()> {
@@ -440,5 +453,17 @@ pub async fn init_fulltext_indexes(db: &Surreal<Db>) -> Result<()> {
         }
     }
     tracing::info!("Full-text search indexes initialized");
+    Ok(())
+}
+
+/// Pre-compute hadith_count on every narrator record.
+///
+/// This avoids expensive `count(->narrates->hadith)` graph traversals on every
+/// narrator list/search request. Call at startup after schema init.
+pub async fn backfill_narrator_hadith_counts(db: &Surreal<Db>) -> Result<()> {
+    db.query("UPDATE narrator SET hadith_count = count(->narrates->hadith)")
+        .await?
+        .check()?;
+    tracing::info!("Backfilled narrator hadith_count");
     Ok(())
 }

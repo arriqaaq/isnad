@@ -282,10 +282,10 @@ pub(crate) fn compute_pre_cl_diversity(graph: &FamilyGraph, cl_id: &str) -> PreC
                 branching_points += 1;
             }
             // Reliability check
-            if let Some(prior) = node.reliability_prior {
-                if prior >= RELIABLE_THRESHOLD {
-                    reliable_count += 1;
-                }
+            if let Some(prior) = node.reliability_prior
+                && prior >= RELIABLE_THRESHOLD
+            {
+                reliable_count += 1;
             }
             // Bio check
             if node.has_bio {

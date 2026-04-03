@@ -228,12 +228,12 @@ async fn discover_verses(
 
         match client.get(&url).send().await {
             Ok(resp) if resp.status().is_success() => {
-                if let Ok(text) = resp.text().await {
-                    if let Ok(counts) = serde_json::from_str::<HashMap<String, i64>>(&text) {
-                        for (verse_key, cnt) in counts {
-                            if let Some((s, a)) = parse_verse_key(&verse_key) {
-                                result.push((s, a, cnt));
-                            }
+                if let Ok(text) = resp.text().await
+                    && let Ok(counts) = serde_json::from_str::<HashMap<String, i64>>(&text)
+                {
+                    for (verse_key, cnt) in counts {
+                        if let Some((s, a)) = parse_verse_key(&verse_key) {
+                            result.push((s, a, cnt));
                         }
                     }
                 }
@@ -593,13 +593,14 @@ pub async fn get_curated_hadiths(
 
 /// Get hadith reference counts per ayah in a surah.
 pub async fn get_hadith_counts(db: &Surreal<Db>, surah: i64) -> Result<HashMap<i64, i64>> {
-    // Query the edge table directly — group by source ayah to get counts
-    // The `in` field of references_hadith is the ayah record ID (e.g., ayah:5_3)
+    // Use subquery to get ayah IDs first (uses ayah_surah_idx), then filter edges
+    // by indexed `in` field — avoids dereferencing in.surah_number on every edge row.
     let mut res = db
         .query(
-            "SELECT in.ayah_number AS ayah_number, count() AS count \
+            "LET $ayah_ids = (SELECT id FROM ayah WHERE surah_number = $surah); \
+             SELECT in.ayah_number AS ayah_number, count() AS count \
              FROM references_hadith \
-             WHERE in.surah_number = $surah \
+             WHERE in IN $ayah_ids \
              GROUP BY ayah_number",
         )
         .bind(("surah", surah))
@@ -611,7 +612,7 @@ pub async fn get_hadith_counts(db: &Surreal<Db>, surah: i64) -> Result<HashMap<i
         count: i64,
     }
 
-    let rows: Vec<AyahCount> = res.take(0)?;
+    let rows: Vec<AyahCount> = res.take(1)?;
     let mut counts = HashMap::new();
     for row in rows {
         if let Some(ayah_num) = row.ayah_number {
@@ -651,7 +652,7 @@ pub async fn find_semantic_hadiths(
     // HNSW similarity search against hadith embeddings
     let sql = format!(
         "SELECT *, vector::similarity::cosine(embedding, $query_vec) AS score FROM hadith \
-         WHERE embedding <|{limit},40|> $query_vec \
+         WHERE embedding <|{limit},80|> $query_vec \
          ORDER BY score DESC"
     );
 

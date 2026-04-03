@@ -1,4 +1,4 @@
-.PHONY: build frontend backend server dev stop ingest ingest-test ingest-full list-books quran-prepare quran-prepare-deps quran-ingest quran-hadith-refs quran-morphology quran-similar quran-manuscripts quran quran-full quran-check analyze analyze-bio analyze-families analyze-transmission pipeline-check pipeline-test pipeline-full clean
+.PHONY: build frontend backend server dev stop ingest ingest-test ingest-full list-books hadith-full hadith-ingest quran-prepare quran-prepare-deps quran-ingest quran-hadith-refs quran-morphology quran-similar quran-manuscripts quran quran-full quran-check analyze analyze-bio analyze-families analyze-transmission pipeline-check pipeline-test pipeline-full clean
 
 # SurrealDB HNSW index traversal needs extra stack space
 export RUST_MIN_STACK=8388608
@@ -35,17 +35,43 @@ list-books:
 
 # Quick test ingest (5 per book, with translation via qwen3:8b)
 ingest-test:
-	rm -rf db_data
 	cargo run -- ingest --limit 5 --translate --translate-model qwen3:8b
+
+# Full hadith pipeline: ingest all 6 books + human translations + narrator bios + families + transmission analysis
+hadith-full:
+	@echo ""
+	@echo "═══════════════════════════════════════"
+	@echo "  Step 1/4: Ingesting hadith data"
+	@echo "═══════════════════════════════════════"
+	cargo run -- ingest
+	@echo ""
+	@echo "═══════════════════════════════════════"
+	@echo "  Step 2/4: Enriching narrator bios"
+	@echo "═══════════════════════════════════════"
+	cargo run -- analyze --narrator-bio data/ar_sanad_narrators.csv
+	@echo ""
+	@echo "═══════════════════════════════════════"
+	@echo "  Step 3/4: Computing hadith families"
+	@echo "═══════════════════════════════════════"
+	cargo run -- analyze --families
+	@echo ""
+	@echo "═══════════════════════════════════════"
+	@echo "  Step 4/4: Transmission analysis"
+	@echo "═══════════════════════════════════════"
+	cargo run -- analyze --juynboll
+	@echo ""
+	@echo "✓ Hadith pipeline complete."
+
+# Ingest hadith only (no analysis)
+hadith-ingest:
+	cargo run -- ingest
 
 # Full ingest of 6 major books with translation via qwen3:8b
 ingest-full:
-	rm -rf db_data
 	cargo run -- ingest --translate --translate-model qwen3:8b
 
 # Ingest with human English translations (no Ollama needed)
 ingest:
-	rm -rf db_data
 	cargo run -- ingest
 
 # === Quran ingestion ===
@@ -144,7 +170,6 @@ analyze-transmission:
 
 # Full pipeline: ingest 100 per book + all analysis
 pipeline-test:
-	rm -rf db_data
 	cargo run -- ingest --limit 100
 	cargo run -- analyze --narrator-bio data/ar_sanad_narrators.csv --families
 	cargo run -- analyze --juynboll
@@ -169,35 +194,10 @@ pipeline-check:
 	echo ""; \
 	if $$ok; then echo "All required files present. Run: make pipeline-full"; else echo "⚠  Download missing files above first"; exit 1; fi
 
-# Full pipeline: hadith + quran + analysis (everything from scratch)
-# Order: check → hadith ingest → quran full → analysis
+# Full pipeline: hadith + quran (everything from scratch)
 pipeline-full: pipeline-check
-	rm -rf db_data
-	@echo ""
-	@echo "═══════════════════════════════════════"
-	@echo "  Step 1/5: Ingesting Hadith data"
-	@echo "═══════════════════════════════════════"
-	cargo run -- ingest
-	@echo ""
-	@echo "═══════════════════════════════════════"
-	@echo "  Step 2/5: Ingesting Quran data"
-	@echo "═══════════════════════════════════════"
+	$(MAKE) hadith-full
 	$(MAKE) quran-full
-	@echo ""
-	@echo "═══════════════════════════════════════"
-	@echo "  Step 3/5: Enriching narrator bios"
-	@echo "═══════════════════════════════════════"
-	cargo run -- analyze --narrator-bio data/ar_sanad_narrators.csv
-	@echo ""
-	@echo "═══════════════════════════════════════"
-	@echo "  Step 4/5: Computing hadith families"
-	@echo "═══════════════════════════════════════"
-	cargo run -- analyze --families
-	@echo ""
-	@echo "═══════════════════════════════════════"
-	@echo "  Step 5/5: Transmission analysis"
-	@echo "═══════════════════════════════════════"
-	cargo run -- analyze --juynboll
 	@echo ""
 	@echo "✓ Full pipeline complete. Run: make server"
 

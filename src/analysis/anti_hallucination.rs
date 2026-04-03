@@ -77,26 +77,28 @@ pub fn validate_rag_output(
     // Pattern: "Hadith #N", "hadith N", "#N"
     for word in response_text.split_whitespace() {
         let cleaned = word.trim_matches(|c: char| !c.is_ascii_digit());
-        if let Ok(num) = cleaned.parse::<i64>() {
-            if num > 0 && num < 10000 && !context_hadith_numbers.contains(&num) {
-                // Only flag if it looks like a hadith reference
-                let prev_idx = response_text.find(word).unwrap_or(0);
-                let before = if prev_idx > 10 {
-                    &response_text[prev_idx - 10..prev_idx]
-                } else {
-                    &response_text[..prev_idx]
-                };
-                let before_lower = before.to_lowercase();
-                if before_lower.contains("hadith")
-                    || before_lower.contains("#")
-                    || before_lower.contains("number")
-                {
-                    violations.push(Violation {
-                        level: ViolationLevel::Warning,
-                        code: "UNVERIFIED_HADITH_REF".to_string(),
-                        message: format!("Hadith #{num} referenced but not in provided context"),
-                    });
-                }
+        if let Ok(num) = cleaned.parse::<i64>()
+            && num > 0
+            && num < 10000
+            && !context_hadith_numbers.contains(&num)
+        {
+            // Only flag if it looks like a hadith reference
+            let prev_idx = response_text.find(word).unwrap_or(0);
+            let before = if prev_idx > 10 {
+                &response_text[prev_idx - 10..prev_idx]
+            } else {
+                &response_text[..prev_idx]
+            };
+            let before_lower = before.to_lowercase();
+            if before_lower.contains("hadith")
+                || before_lower.contains("#")
+                || before_lower.contains("number")
+            {
+                violations.push(Violation {
+                    level: ViolationLevel::Warning,
+                    code: "UNVERIFIED_HADITH_REF".to_string(),
+                    message: format!("Hadith #{num} referenced but not in provided context"),
+                });
             }
         }
     }
@@ -143,14 +145,14 @@ pub fn validate_evidence_import(
         });
     }
 
-    if let Some(st) = source_type {
-        if !is_verifiable_source(st) {
-            violations.push(Violation {
-                level: ViolationLevel::Warning,
-                code: "UNVERIFIABLE_SOURCE".to_string(),
-                message: format!("Source type '{st}' is not in verifiable set"),
-            });
-        }
+    if let Some(st) = source_type
+        && !is_verifiable_source(st)
+    {
+        violations.push(Violation {
+            level: ViolationLevel::Warning,
+            code: "UNVERIFIABLE_SOURCE".to_string(),
+            message: format!("Source type '{st}' is not in verifiable set"),
+        });
     }
 
     violations

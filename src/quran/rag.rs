@@ -39,15 +39,15 @@ impl OllamaClient {
                 name, a.surah_number, a.ayah_number, text_en, a.text_ar,
             ));
 
-            if let Some(ref tafsir) = a.tafsir_en {
-                if !tafsir.is_empty() {
-                    let truncated = if tafsir.len() > MAX_TAFSIR_CHARS {
-                        &tafsir[..tafsir.floor_char_boundary(MAX_TAFSIR_CHARS)]
-                    } else {
-                        tafsir
-                    };
-                    context.push_str(&format!("Tafsir Ibn Kathir: {truncated}\n"));
-                }
+            if let Some(ref tafsir) = a.tafsir_en
+                && !tafsir.is_empty()
+            {
+                let truncated = if tafsir.len() > MAX_TAFSIR_CHARS {
+                    &tafsir[..tafsir.floor_char_boundary(MAX_TAFSIR_CHARS)]
+                } else {
+                    tafsir
+                };
+                context.push_str(&format!("Tafsir Ibn Kathir: {truncated}\n"));
             }
             context.push('\n');
         }

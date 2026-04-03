@@ -24,7 +24,7 @@ impl Embedder {
 
     pub fn embed(&self, texts: &[&str]) -> Result<Vec<Vec<f32>>> {
         let mut model = self.model.lock().unwrap();
-        let embeddings = model.embed(texts.to_vec(), None)?;
+        let embeddings = model.embed(texts, None)?;
         Ok(embeddings)
     }
 

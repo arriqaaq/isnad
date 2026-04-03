@@ -234,7 +234,7 @@ pub async fn narrator_list(
         match state
             .db
             .query(
-                "SELECT *, count(->narrates->hadith) AS hadith_count FROM narrator \
+                "SELECT * FROM narrator \
                  WHERE string::lowercase(name_en) CONTAINS string::lowercase($q) \
                     OR name_ar CONTAINS $q \
                  ORDER BY hadith_count DESC LIMIT $limit START $offset",
@@ -254,7 +254,7 @@ pub async fn narrator_list(
         match state
             .db
             .query(
-                "SELECT *, count(->narrates->hadith) AS hadith_count FROM narrator \
+                "SELECT * FROM narrator \
                  ORDER BY hadith_count DESC LIMIT $limit START $offset",
             )
             .bind(("limit", limit))
@@ -295,70 +295,37 @@ pub async fn narrator_detail(
 ) -> Result<impl IntoResponse, StatusCode> {
     let nrid = rid("narrator", &id);
 
-    let mut res = state
-        .db
-        .query("SELECT * FROM $rid")
-        .bind(("rid", nrid.clone()))
-        .await
-        .map_err(|e| {
-            tracing::error!("Narrator detail query failed: {e}");
-            StatusCode::INTERNAL_SERVER_ERROR
-        })?;
-
-    let narrator: Option<Narrator> = res.take(0).unwrap_or(None);
-    let narrator = narrator.ok_or(StatusCode::NOT_FOUND)?;
-
-    let hadiths = match state
-        .db
-        .query("SELECT ->narrates->hadith.* AS hadiths FROM $rid")
-        .bind(("rid", nrid.clone()))
-        .await
-    {
-        Ok(mut r) => {
-            let result: Option<HadithsResult> = r.take(0).unwrap_or(None);
-            result.map(|r| r.hadiths).unwrap_or_default()
-        }
-        Err(e) => {
-            tracing::error!("Hadiths for narrator query failed: {e}");
-            vec![]
-        }
-    };
-
-    let teachers = match state
+    // Single multi-statement query instead of 4 sequential round trips
+    let (narrator, hadiths, teachers, students) = match state
         .db
         .query(
-            "SELECT array::distinct(array::filter(->heard_from->narrator.*, |$v| $v IS NOT NONE)) AS teachers FROM $rid",
-        )
-        .bind(("rid", nrid.clone()))
-        .await
-    {
-        Ok(mut r) => {
-            let result: Option<TeachersResult> = r.take(0).unwrap_or(None);
-            result.map(|r| r.teachers).unwrap_or_default()
-        }
-        Err(e) => {
-            tracing::error!("Teachers query failed: {e}");
-            vec![]
-        }
-    };
-
-    let students = match state
-        .db
-        .query(
-            "SELECT array::distinct(array::filter(<-heard_from<-narrator.*, |$v| $v IS NOT NONE)) AS students FROM $rid",
+            "SELECT * FROM $rid; \
+             SELECT ->narrates->hadith.* AS hadiths FROM $rid; \
+             SELECT array::distinct(array::filter(->heard_from->narrator.*, |$v| $v IS NOT NONE)) AS teachers FROM $rid; \
+             SELECT array::distinct(array::filter(<-heard_from<-narrator.*, |$v| $v IS NOT NONE)) AS students FROM $rid;",
         )
         .bind(("rid", nrid))
         .await
     {
-        Ok(mut r) => {
-            let result: Option<StudentsResult> = r.take(0).unwrap_or(None);
-            result.map(|r| r.students).unwrap_or_default()
+        Ok(mut res) => {
+            let narrator: Option<Narrator> = res.take(0).unwrap_or(None);
+            let hadiths_result: Option<HadithsResult> = res.take(1).unwrap_or(None);
+            let teachers_result: Option<TeachersResult> = res.take(2).unwrap_or(None);
+            let students_result: Option<StudentsResult> = res.take(3).unwrap_or(None);
+            (
+                narrator,
+                hadiths_result.map(|r| r.hadiths).unwrap_or_default(),
+                teachers_result.map(|r| r.teachers).unwrap_or_default(),
+                students_result.map(|r| r.students).unwrap_or_default(),
+            )
         }
         Err(e) => {
-            tracing::error!("Students query failed: {e}");
-            vec![]
+            tracing::error!("Narrator detail query failed: {e}");
+            return Err(StatusCode::INTERNAL_SERVER_ERROR);
         }
     };
+
+    let narrator = narrator.ok_or(StatusCode::NOT_FOUND)?;
 
     // Deduplicate by narrator ID
     let dedup_narrators = |narrators: Vec<Narrator>| -> Vec<Narrator> {
@@ -517,72 +484,72 @@ pub async fn narrator_graph_data(
         total_students: Some(total_students),
     };
 
-    if let Some(narrator) = &narrator {
-        if let Some(nid) = &narrator.id {
-            let nid_str = record_id_string(nid);
-            graph.nodes.push(GraphNode {
-                data: GraphNodeData {
-                    id: nid_str.clone(),
-                    label: narrator
-                        .name_ar
-                        .clone()
-                        .unwrap_or_else(|| narrator.name_en.clone()),
-                    label_en: narrator.name_en.clone(),
-                    node_type: "center".into(),
-                    generation: narrator.generation.clone(),
-                },
-            });
+    if let Some(narrator) = &narrator
+        && let Some(nid) = &narrator.id
+    {
+        let nid_str = record_id_string(nid);
+        graph.nodes.push(GraphNode {
+            data: GraphNodeData {
+                id: nid_str.clone(),
+                label: narrator
+                    .name_ar
+                    .clone()
+                    .unwrap_or_else(|| narrator.name_en.clone()),
+                label_en: narrator.name_en.clone(),
+                node_type: "center".into(),
+                generation: narrator.generation.clone(),
+            },
+        });
 
-            for (i, teacher) in teachers.iter().enumerate() {
-                if let Some(tid) = &teacher.id {
-                    let tid_str = record_id_string(tid);
-                    graph.nodes.push(GraphNode {
-                        data: GraphNodeData {
-                            id: tid_str.clone(),
-                            label: teacher
-                                .name_ar
-                                .clone()
-                                .unwrap_or_else(|| teacher.name_en.clone()),
-                            label_en: teacher.name_en.clone(),
-                            node_type: "teacher".into(),
-                            generation: teacher.generation.clone(),
-                        },
-                    });
-                    graph.edges.push(GraphEdge {
-                        data: GraphEdgeData {
-                            id: format!("t{i}"),
-                            source: nid_str.clone(),
-                            target: tid_str,
-                            label: "heard from".into(),
-                        },
-                    });
-                }
+        for (i, teacher) in teachers.iter().enumerate() {
+            if let Some(tid) = &teacher.id {
+                let tid_str = record_id_string(tid);
+                graph.nodes.push(GraphNode {
+                    data: GraphNodeData {
+                        id: tid_str.clone(),
+                        label: teacher
+                            .name_ar
+                            .clone()
+                            .unwrap_or_else(|| teacher.name_en.clone()),
+                        label_en: teacher.name_en.clone(),
+                        node_type: "teacher".into(),
+                        generation: teacher.generation.clone(),
+                    },
+                });
+                graph.edges.push(GraphEdge {
+                    data: GraphEdgeData {
+                        id: format!("t{i}"),
+                        source: nid_str.clone(),
+                        target: tid_str,
+                        label: "heard from".into(),
+                    },
+                });
             }
+        }
 
-            for (i, student) in students.iter().enumerate() {
-                if let Some(sid) = &student.id {
-                    let sid_str = record_id_string(sid);
-                    graph.nodes.push(GraphNode {
-                        data: GraphNodeData {
-                            id: sid_str.clone(),
-                            label: student
-                                .name_ar
-                                .clone()
-                                .unwrap_or_else(|| student.name_en.clone()),
-                            label_en: student.name_en.clone(),
-                            node_type: "student".into(),
-                            generation: student.generation.clone(),
-                        },
-                    });
-                    graph.edges.push(GraphEdge {
-                        data: GraphEdgeData {
-                            id: format!("s{i}"),
-                            source: sid_str,
-                            target: nid_str.clone(),
-                            label: "heard from".into(),
-                        },
-                    });
-                }
+        for (i, student) in students.iter().enumerate() {
+            if let Some(sid) = &student.id {
+                let sid_str = record_id_string(sid);
+                graph.nodes.push(GraphNode {
+                    data: GraphNodeData {
+                        id: sid_str.clone(),
+                        label: student
+                            .name_ar
+                            .clone()
+                            .unwrap_or_else(|| student.name_en.clone()),
+                        label_en: student.name_en.clone(),
+                        node_type: "student".into(),
+                        generation: student.generation.clone(),
+                    },
+                });
+                graph.edges.push(GraphEdge {
+                    data: GraphEdgeData {
+                        id: format!("s{i}"),
+                        source: sid_str,
+                        target: nid_str.clone(),
+                        label: "heard from".into(),
+                    },
+                });
             }
         }
     }
@@ -634,16 +601,14 @@ pub async fn ask(
                         continue;
                     }
                     if let Ok(parsed) = serde_json::from_slice::<ChatChunk>(line) {
-                        if let Some(msg) = parsed.message {
-                            if !msg.content.is_empty() {
-                                sse.push_str(&format!(
-                                    "data: {}\n\n",
-                                    serde_json::to_string(
-                                        &serde_json::json!({ "text": msg.content })
-                                    )
+                        if let Some(msg) = parsed.message
+                            && !msg.content.is_empty()
+                        {
+                            sse.push_str(&format!(
+                                "data: {}\n\n",
+                                serde_json::to_string(&serde_json::json!({ "text": msg.content }))
                                     .unwrap()
-                                ));
-                            }
+                            ));
                         }
                         if parsed.done {
                             sse.push_str("data: {\"done\":true}\n\n");
@@ -1220,16 +1185,14 @@ pub async fn unified_ask(
                         continue;
                     }
                     if let Ok(parsed) = serde_json::from_slice::<ChatChunk>(line) {
-                        if let Some(msg) = parsed.message {
-                            if !msg.content.is_empty() {
-                                sse.push_str(&format!(
-                                    "data: {}\n\n",
-                                    serde_json::to_string(
-                                        &serde_json::json!({ "text": msg.content })
-                                    )
+                        if let Some(msg) = parsed.message
+                            && !msg.content.is_empty()
+                        {
+                            sse.push_str(&format!(
+                                "data: {}\n\n",
+                                serde_json::to_string(&serde_json::json!({ "text": msg.content }))
                                     .unwrap()
-                                ));
-                            }
+                            ));
                         }
                         if parsed.done {
                             sse.push_str("data: {\"done\":true}\n\n");

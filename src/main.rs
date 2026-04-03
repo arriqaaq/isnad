@@ -467,6 +467,7 @@ async fn async_main() -> Result<()> {
             db::init_manuscript_schema(&db).await?;
             quran::audio::init_reciters(&db).await?;
             db::init_fulltext_indexes(&db).await?;
+            db::backfill_narrator_hadith_counts(&db).await?;
             // Quran fulltext indexes are created during ingest-quran, not here.
             // Creating them on an empty table with option<string> fields causes errors.
             web::serve(db, port, ollama_url, ollama_model).await?;

@@ -207,7 +207,7 @@ pub fn list_books(csv_path: &str) -> Result<Vec<(String, usize)>> {
 /// Print the book list to stdout.
 pub fn print_book_list(csv_path: &str) -> Result<()> {
     let books = list_books(csv_path)?;
-    println!("{:>4}  {:>6}  {}", "#", "Count", "Book Name");
+    println!("{:>4}  {:>6}  Book Name", "#", "Count");
     println!("{}", "-".repeat(60));
     for (i, (name, count)) in books.iter().enumerate() {
         println!("{:>4}  {:>6}  {}", i + 1, count, name);
@@ -281,10 +281,10 @@ pub async fn ingest(
             let book = rec.get(1).unwrap_or("").to_string();
             if selected_books.contains(&book) {
                 let c = counts.entry(book).or_insert(0);
-                if let Some(limit) = limit_per_book {
-                    if *c >= limit {
-                        continue;
-                    }
+                if let Some(limit) = limit_per_book
+                    && *c >= limit
+                {
+                    continue;
                 }
                 *c += 1;
             }
@@ -318,10 +318,10 @@ pub async fn ingest(
 
         // Check per-book limit
         let current_book_count = book_counts.entry(book_name.clone()).or_insert(0);
-        if let Some(limit) = limit_per_book {
-            if *current_book_count >= limit {
-                continue;
-            }
+        if let Some(limit) = limit_per_book
+            && *current_book_count >= limit
+        {
+            continue;
         }
 
         let num_str = record.get(2).unwrap_or("0");
@@ -503,12 +503,11 @@ fn extract_narrator_en(english_text: &str) -> Option<String> {
     if let Some(rest) = text
         .strip_prefix("Narrated ")
         .or_else(|| text.strip_prefix("It is narrated on the authority of "))
+        && let Some(colon) = rest.find(':')
     {
-        if let Some(colon) = rest.find(':') {
-            let name = rest[..colon].trim();
-            if !name.is_empty() && name.len() < 100 {
-                return Some(name.to_string());
-            }
+        let name = rest[..colon].trim();
+        if !name.is_empty() && name.len() < 100 {
+            return Some(name.to_string());
         }
     }
     None
@@ -634,17 +633,17 @@ pub async fn merge_human_translations(db: &Surreal<Db>) -> Result<()> {
                 merged += 1;
 
                 // Update narrator name_en if we found one
-                if let Some(en_name) = &t.narrator_en {
-                    if let Some(ar_name) = &h.narrator_text {
-                        let nslug = slug(ar_name);
-                        if !nslug.is_empty() {
-                            db.query("UPDATE $rid SET name_en = $en")
-                                .bind(("rid", rid("narrator", &nslug)))
-                                .bind(("en", en_name.clone()))
-                                .await
-                                .ok();
-                            narrator_names_found += 1;
-                        }
+                if let Some(en_name) = &t.narrator_en
+                    && let Some(ar_name) = &h.narrator_text
+                {
+                    let nslug = slug(ar_name);
+                    if !nslug.is_empty() {
+                        db.query("UPDATE $rid SET name_en = $en")
+                            .bind(("rid", rid("narrator", &nslug)))
+                            .bind(("en", en_name.clone()))
+                            .await
+                            .ok();
+                        narrator_names_found += 1;
                     }
                 }
             }
@@ -721,14 +720,14 @@ pub async fn translate_all(db: &Surreal<Db>, model: &str) -> Result<()> {
     let narrators: Vec<IdAndName> = res.take(0)?;
 
     // Batch narrators in groups of 20 for speed
-    let total_batches = (narrators.len() + 19) / 20;
+    let total_batches = narrators.len().div_ceil(20);
     println!(
         "   {} narrators in {} batches (may take a minute per batch)",
         narrators.len(),
         total_batches
     );
     let pb = make_progress(narrators.len() as u64, "narrators");
-    for (_batch_idx, chunk) in narrators.chunks(20).enumerate() {
+    for chunk in narrators.chunks(20) {
         let names: Vec<(&RecordId, &str)> = chunk
             .iter()
             .filter_map(|n| Some((n.id.as_ref()?, n.name_ar.as_deref()?)))

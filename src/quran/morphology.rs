@@ -213,8 +213,8 @@ fn parse_morphology_file(path: &str) -> Result<Vec<ParsedWord>> {
         let pos = parts[2].to_string();
         let features = parse_features(parts[3]);
 
-        let is_prefix = features.get("affix").map_or(false, |v| v == "PREF");
-        let is_suffix = features.get("affix").map_or(false, |v| v == "SUFF");
+        let is_prefix = features.get("affix").is_some_and(|v| v == "PREF");
+        let is_suffix = features.get("affix").is_some_and(|v| v == "SUFF");
 
         word_segments
             .entry((surah, ayah, word_pos))
@@ -308,7 +308,8 @@ pub async fn ingest_morphology(db: &Surreal<Db>, morph_path: &str, qul_dir: &str
 
     // 2. Load QUL word translations if available
     // Try colored version first (in data/ root), then plain version in qul_dir
-    let word_translations = load_qul_json(&format!("{qul_dir}/colored-english-wbw-translation.json"));
+    let word_translations =
+        load_qul_json(&format!("{qul_dir}/colored-english-wbw-translation.json"));
     if word_translations.is_some() {
         println!("   ✓ Loaded QUL word translations");
     }
@@ -337,9 +338,7 @@ pub async fn ingest_morphology(db: &Surreal<Db>, morph_path: &str, qul_dir: &str
         // Value may contain HTML spans like "<span class='n'>name</span>" — strip them
         let translation = word_translations.as_ref().and_then(|wt| {
             let k = format!("{}:{}:{}", word.surah, word.ayah, word.word_pos);
-            wt.get(&k)
-                .and_then(|v| v.as_str())
-                .map(|s| strip_html_tags(s))
+            wt.get(&k).and_then(|v| v.as_str()).map(strip_html_tags)
         });
 
         // Look up QUL transliteration: key format "surah:ayah" (ayah-level, not word)

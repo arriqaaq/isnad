@@ -25,12 +25,12 @@
       .finally(() => { loading = false; });
   });
 
-  function confidenceColor(outcome: string): string {
+  function confidenceColor(outcome: string): 'default' | 'accent' | 'success' | 'warning' {
     switch (outcome) {
       case 'supported': return 'success';
       case 'contested': return 'warning';
       case 'uncertain': return 'accent';
-      default: return '';
+      default: return 'default';
     }
   }
 

@@ -136,10 +136,9 @@ pub async fn compute_families(db: &Surreal<Db>, _embedder: &Embedder) -> Result<
         // Convert to f32 for the HNSW query
         let query_vec: Vec<f32> = embedding.iter().map(|&v| v as f32).collect();
 
-        let sql = format!(
-            "SELECT id, vector::similarity::cosine(embedding, $qv) AS score \
-             FROM hadith WHERE embedding <|10,40|> $qv ORDER BY score DESC"
-        );
+        let sql = "SELECT id, vector::similarity::cosine(embedding, $qv) AS score \
+             FROM hadith WHERE embedding <|10,80|> $qv ORDER BY score DESC"
+            .to_string();
         let mut nr = db.query(&sql).bind(("qv", query_vec)).await?;
 
         #[derive(Debug, SurrealValue)]

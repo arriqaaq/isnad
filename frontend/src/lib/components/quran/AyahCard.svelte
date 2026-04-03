@@ -259,6 +259,9 @@
   .arabic-text {
     color: var(--text-primary);
   }
+  .tajweed-text {
+    font-family: 'Amiri Quran', 'Amiri', 'Noto Naskh Arabic', serif;
+  }
   .verse-badge {
     display: inline;
     font-size: 0.65em;

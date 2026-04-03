@@ -72,12 +72,12 @@
 
   const RATINGS = ['', 'thiqah', 'saduq', 'majhul', 'daif', 'matruk', 'accused_fabrication'];
 
-  function ratingColor(rating: string | null): string {
-    if (!rating) return '';
-    const map: Record<string, string> = {
-      thiqah: 'success', saduq: 'accent', majhul: '', daif: 'warning', matruk: 'warning', accused_fabrication: 'warning'
+  function ratingColor(rating: string | null): 'default' | 'accent' | 'success' | 'warning' {
+    if (!rating) return 'default';
+    const map: Record<string, 'default' | 'accent' | 'success' | 'warning'> = {
+      thiqah: 'success', saduq: 'accent', majhul: 'default', daif: 'warning', matruk: 'warning', accused_fabrication: 'warning'
     };
-    return map[rating] ?? '';
+    return map[rating] ?? 'default';
   }
 
   async function handleSave() {
@@ -109,7 +109,7 @@
       await updateNarrator(data.narrator.id, payload);
       saveMsg = 'Saved';
       // Refresh data
-      const d = await getNarrator(id);
+      const d = await getNarrator(id!);
       const seen = new Set<string>();
       d.hadiths = d.hadiths.filter(h => { if (seen.has(h.id)) return false; seen.add(h.id); return true; });
       data = d;
@@ -310,7 +310,6 @@
 <style>
   .narrator-view { padding: 24px; max-width: 1200px; }
   .view-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
-  .name-ar { color: var(--text-secondary); font-size: 1.2rem; margin-top: 4px; }
   .kunya { color: var(--text-muted); font-weight: normal; font-size: 0.85em; }
   .dates { color: var(--text-muted); font-size: 0.85rem; margin-top: 2px; }
   .badges { display: flex; gap: 8px; flex-wrap: wrap; }

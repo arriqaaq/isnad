@@ -13,7 +13,7 @@
   $effect(() => {
     loading = true;
     error = '';
-    getManuscript(manuscriptId)
+    getManuscript(manuscriptId!)
       .then((ms) => {
         manuscript = ms;
         loading = false;

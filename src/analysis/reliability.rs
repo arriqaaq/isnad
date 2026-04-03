@@ -146,17 +146,31 @@ pub async fn get_narrator_evidence(db: &Surreal<Db>, narrator_id: &str) -> Resul
     Ok(evidence)
 }
 
+/// Parameters for adding a reported evidence record.
+pub struct ReportedEvidenceParams<'a> {
+    pub narrator_id: &'a str,
+    pub evidence_id: &'a str,
+    pub rating: &'a str,
+    pub scholar: Option<&'a str>,
+    pub work: Option<&'a str>,
+    pub citation_text: Option<&'a str>,
+    pub source_collection: Option<&'a str>,
+}
+
 /// Add a reported evidence record for a narrator.
 pub async fn add_reported_evidence(
     db: &Surreal<Db>,
-    narrator_id: &str,
-    evidence_id: &str,
-    rating: &str,
-    scholar: Option<&str>,
-    work: Option<&str>,
-    citation_text: Option<&str>,
-    source_collection: Option<&str>,
+    params: &ReportedEvidenceParams<'_>,
 ) -> Result<()> {
+    let ReportedEvidenceParams {
+        narrator_id,
+        evidence_id,
+        rating,
+        scholar,
+        work,
+        citation_text,
+        source_collection,
+    } = params;
     let slug = format!("ev_{}_{}", narrator_id, evidence_id);
     db.query(
         "CREATE $rid CONTENT { \
@@ -168,13 +182,13 @@ pub async fn add_reported_evidence(
         }",
     )
     .bind(("rid", RecordId::new("evidence", slug.as_str())))
-    .bind(("nid", RecordId::new("narrator", narrator_id)))
+    .bind(("nid", RecordId::new("narrator", *narrator_id)))
     .bind(("eid", evidence_id.to_string()))
     .bind(("rating", rating.to_string()))
-    .bind(("scholar", scholar.map(String::from)))
-    .bind(("work", work.map(String::from)))
-    .bind(("citation", citation_text.map(String::from)))
-    .bind(("scol", source_collection.map(String::from)))
+    .bind(("scholar", scholar.map(|s| s.to_string())))
+    .bind(("work", work.map(|s| s.to_string())))
+    .bind(("citation", citation_text.map(|s| s.to_string())))
+    .bind(("scol", source_collection.map(|s| s.to_string())))
     .await?;
     Ok(())
 }

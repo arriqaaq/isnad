@@ -50,17 +50,14 @@ pub struct QuranAskRequest {
 pub async fn quran_stats(State(state): State<AppState>) -> impl IntoResponse {
     let mut res = state
         .db
-        .query("SELECT count() FROM surah GROUP ALL")
+        .query(
+            "SELECT count() FROM surah GROUP ALL; \
+             SELECT count() FROM ayah GROUP ALL",
+        )
         .await
         .unwrap();
     let surah_count: Option<CountResult> = res.take(0).unwrap_or(None);
-
-    let mut res2 = state
-        .db
-        .query("SELECT count() FROM ayah GROUP ALL")
-        .await
-        .unwrap();
-    let ayah_count: Option<CountResult> = res2.take(0).unwrap_or(None);
+    let ayah_count: Option<CountResult> = res.take(1).unwrap_or(None);
 
     Json(QuranStatsResponse {
         surah_count: surah_count.map(|c| c.count).unwrap_or(0),
@@ -252,16 +249,14 @@ pub async fn ask_quran(
                         continue;
                     }
                     if let Ok(parsed) = serde_json::from_slice::<ChatChunk>(line) {
-                        if let Some(msg) = parsed.message {
-                            if !msg.content.is_empty() {
-                                sse.push_str(&format!(
-                                    "data: {}\n\n",
-                                    serde_json::to_string(
-                                        &serde_json::json!({ "text": msg.content })
-                                    )
+                        if let Some(msg) = parsed.message
+                            && !msg.content.is_empty()
+                        {
+                            sse.push_str(&format!(
+                                "data: {}\n\n",
+                                serde_json::to_string(&serde_json::json!({ "text": msg.content }))
                                     .unwrap()
-                                ));
-                            }
+                            ));
                         }
                         if parsed.done {
                             sse.push_str("data: {\"done\":true}\n\n");
@@ -270,7 +265,7 @@ pub async fn ask_quran(
                 }
                 Ok(bytes::Bytes::from(sse))
             }
-            Err(e) => Err(std::io::Error::new(std::io::ErrorKind::Other, e)),
+            Err(e) => Err(std::io::Error::other(e)),
         }));
 
     Ok(Response::builder()
@@ -361,32 +356,25 @@ pub async fn surah_similar_counts(
         count: i64,
     }
 
-    // Count similar_to edges + shares_phrase edges per ayah
+    // Use subquery to get ayah IDs first (uses ayah_surah_idx), then filter edges
+    // by indexed `in` field — avoids dereferencing in.surah_number on every edge row.
     let mut res = state
         .db
         .query(
-            "SELECT in.ayah_number AS ayah_number, count() AS count \
-             FROM similar_to WHERE in.surah_number = $s \
+            "LET $ayah_ids = (SELECT id FROM ayah WHERE surah_number = $s); \
+             SELECT in.ayah_number AS ayah_number, count() AS count \
+             FROM similar_to WHERE in IN $ayah_ids \
+             GROUP BY ayah_number; \
+             SELECT in.ayah_number AS ayah_number, count() AS count \
+             FROM shares_phrase WHERE in IN $ayah_ids \
              GROUP BY ayah_number",
         )
         .bind(("s", number))
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let similar: Vec<AyahCount> = res.take(0).unwrap_or_default();
-
-    let mut res2 = state
-        .db
-        .query(
-            "SELECT in.ayah_number AS ayah_number, count() AS count \
-             FROM shares_phrase WHERE in.surah_number = $s \
-             GROUP BY ayah_number",
-        )
-        .bind(("s", number))
-        .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-
-    let phrases: Vec<AyahCount> = res2.take(0).unwrap_or_default();
+    let similar: Vec<AyahCount> = res.take(1).unwrap_or_default();
+    let phrases: Vec<AyahCount> = res.take(2).unwrap_or_default();
 
     // Merge both counts
     let mut counts = std::collections::HashMap::new();
@@ -420,8 +408,10 @@ pub async fn surah_variant_counts(
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     let rows: Vec<AyahCount> = res.take(0).unwrap_or_default();
-    let counts: std::collections::HashMap<String, i64> =
-        rows.into_iter().map(|r| (r.ayah_number.to_string(), r.count)).collect();
+    let counts: std::collections::HashMap<String, i64> = rows
+        .into_iter()
+        .map(|r| (r.ayah_number.to_string(), r.count))
+        .collect();
 
     Ok(Json(counts))
 }
@@ -589,42 +579,59 @@ pub async fn ayah_similar(
         .take(0)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
-    // For each phrase, get the other ayahs that share it
-    let mut phrases: Vec<ApiPhraseWithAyahs> = Vec::new();
-    for p in phrase_rows {
-        let phrase_id = match &p.id {
-            Some(rid) => rid.clone(),
-            None => continue,
-        };
-        let phrase_id_str = record_id_key_string(&phrase_id);
+    // Batch-fetch all ayahs sharing any of these phrases (single query instead of N+1)
+    let phrase_ids: Vec<RecordId> = phrase_rows.iter().filter_map(|p| p.id.clone()).collect();
+
+    let mut phrase_ayah_map: std::collections::HashMap<String, Vec<String>> =
+        std::collections::HashMap::new();
+
+    if !phrase_ids.is_empty() {
+        #[derive(Debug, SurrealValue)]
+        struct PhraseAyahRow {
+            phrase_id: Option<RecordId>,
+            surah_number: i64,
+            ayah_number: i64,
+        }
 
         let mut res3 = state
             .db
             .query(
-                "SELECT in.surah_number AS surah_number, in.ayah_number AS ayah_number \
-                 FROM shares_phrase WHERE out = $phrase_id AND in != $ayah_id",
+                "SELECT out AS phrase_id, in.surah_number AS surah_number, in.ayah_number AS ayah_number \
+                 FROM shares_phrase WHERE out IN $phrase_ids AND in != $ayah_id",
             )
-            .bind(("phrase_id", phrase_id))
+            .bind(("phrase_ids", phrase_ids))
             .bind(("ayah_id", ayah_id.clone()))
             .await
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
-        let ayah_rows: Vec<AyahKeyRow> = res3
+        let rows: Vec<PhraseAyahRow> = res3
             .take(0)
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
-        let ayah_keys: Vec<String> = ayah_rows
-            .into_iter()
-            .map(|r| format!("{}:{}", r.surah_number, r.ayah_number))
-            .collect();
-
-        phrases.push(ApiPhraseWithAyahs {
-            id: phrase_id_str,
-            text_ar: p.text_ar,
-            occurrence: p.occurrence,
-            ayah_keys,
-        });
+        for row in rows {
+            if let Some(ref pid) = row.phrase_id {
+                let key = record_id_key_string(pid);
+                phrase_ayah_map
+                    .entry(key)
+                    .or_default()
+                    .push(format!("{}:{}", row.surah_number, row.ayah_number));
+            }
+        }
     }
+
+    let phrases: Vec<ApiPhraseWithAyahs> = phrase_rows
+        .into_iter()
+        .filter_map(|p| {
+            let pid = p.id.as_ref()?;
+            let pid_str = record_id_key_string(pid);
+            Some(ApiPhraseWithAyahs {
+                id: pid_str.clone(),
+                text_ar: p.text_ar,
+                occurrence: p.occurrence,
+                ayah_keys: phrase_ayah_map.remove(&pid_str).unwrap_or_default(),
+            })
+        })
+        .collect();
 
     Ok(Json(AyahSimilarResponse { similar, phrases }))
 }

@@ -376,6 +376,7 @@ fn parse_manuscript_file(path: &std::path::Path) -> Result<Vec<ParsedManuscript>
 /// - `<rdg>` or `<reading>` elements with `wit` or `resp` attributes
 /// - `<app>` elements that contain `<lem>` (standard) and `<rdg>` (variant)
 /// - Surah/ayah references from `<ref>` or attributes like `n="2:255"`
+///
 /// Parse the allvariants.xml TEI file from Corpus Coranicum.
 ///
 /// Structure:
@@ -438,18 +439,17 @@ fn parse_variant_file(path: &std::path::Path) -> Result<Vec<ParsedVariant>> {
                             if key == "n" {
                                 let val = String::from_utf8_lossy(&attr.value);
                                 let parts: Vec<&str> = val.split(':').collect();
-                                if parts.len() == 3 {
-                                    if let (Ok(s), Ok(a), Ok(w)) = (
+                                if parts.len() == 3
+                                    && let (Ok(s), Ok(a), Ok(w)) = (
                                         parts[0].parse::<i64>(),
                                         parts[1].parse::<i64>(),
                                         parts[2].parse::<i64>(),
-                                    ) {
-                                        if first_surah.is_none() {
-                                            first_surah = Some(s);
-                                            first_ayah = Some(a);
-                                            first_word = Some(w);
-                                        }
-                                    }
+                                    )
+                                    && first_surah.is_none()
+                                {
+                                    first_surah = Some(s);
+                                    first_ayah = Some(a);
+                                    first_word = Some(w);
                                 }
                             }
                         }
@@ -465,10 +465,12 @@ fn parse_variant_file(path: &std::path::Path) -> Result<Vec<ParsedVariant>> {
                 let local = local_name(e.name().as_ref());
                 if local.as_slice() == b"item" && in_item {
                     // Emit variant if we have valid data
-                    if !word_texts.is_empty() && first_surah.is_some() && first_ayah.is_some() {
+                    if let (false, Some(surah), Some(ayah)) =
+                        (word_texts.is_empty(), first_surah, first_ayah)
+                    {
                         variants.push(ParsedVariant {
-                            surah_number: first_surah.unwrap(),
-                            ayah_number: first_ayah.unwrap(),
+                            surah_number: surah,
+                            ayah_number: ayah,
                             word_position: first_word,
                             reader_name: if reader_name.is_empty() {
                                 "Unknown".to_string()
@@ -504,31 +506,4 @@ fn local_name(name: &[u8]) -> Vec<u8> {
     } else {
         name.to_vec()
     }
-}
-
-/// Try to parse surah:ayah from a string like "Q2:255", "2:255", "002_255", "s2.v255"
-fn parse_verse_ref(s: &str) -> Option<(i64, i64)> {
-    // Pattern: "Q2:255" or "2:255"
-    let cleaned = s.trim_start_matches('Q').trim_start_matches('q');
-    if let Some((a, b)) = cleaned.split_once(':') {
-        let surah = a.trim().parse::<i64>().ok()?;
-        let ayah = b.trim().parse::<i64>().ok()?;
-        if (1..=114).contains(&surah) && ayah > 0 {
-            return Some((surah, ayah));
-        }
-    }
-    // Pattern: "002_255"
-    if let Some((a, b)) = s.split_once('_') {
-        let surah = a.trim().parse::<i64>().ok()?;
-        let ayah = b.trim().parse::<i64>().ok()?;
-        if (1..=114).contains(&surah) && ayah > 0 {
-            return Some((surah, ayah));
-        }
-    }
-    None
-}
-
-/// Try to parse surah/ayah from filename stem (e.g., "002_255" or "s002a255")
-fn parse_surah_ayah_from_stem(stem: &str) -> Option<(i64, i64)> {
-    parse_verse_ref(stem)
 }

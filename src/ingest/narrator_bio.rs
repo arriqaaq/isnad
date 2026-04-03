@@ -358,13 +358,15 @@ pub async fn ingest_narrator_bios(db: &Surreal<Db>, csv_path: &str) -> Result<Bi
         let ev_id = format!("taqrib_{}", narrator_key);
         reliability::add_reported_evidence(
             db,
-            &narrator_key,
-            &ev_id,
-            rating,
-            Some("Ibn Hajar al-Asqalani"),
-            Some("Taqrib al-Tahdhib"),
-            Some(rank_text),
-            Some("AR-Sanad Dataset"),
+            &reliability::ReportedEvidenceParams {
+                narrator_id: &narrator_key,
+                evidence_id: &ev_id,
+                rating,
+                scholar: Some("Ibn Hajar al-Asqalani"),
+                work: Some("Taqrib al-Tahdhib"),
+                citation_text: Some(rank_text),
+                source_collection: Some("AR-Sanad Dataset"),
+            },
         )
         .await
         .ok();
