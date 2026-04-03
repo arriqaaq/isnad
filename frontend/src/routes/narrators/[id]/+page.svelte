@@ -308,7 +308,7 @@
 </div>
 
 <style>
-  .narrator-view { padding: 24px; max-width: 900px; }
+  .narrator-view { padding: 24px; max-width: 1200px; }
   .view-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
   .name-ar { color: var(--text-secondary); font-size: 1.2rem; margin-top: 4px; }
   .kunya { color: var(--text-muted); font-weight: normal; font-size: 0.85em; }

@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Naskh+Arabic:wght@400;500;600;700&family=Amiri:wght@400;700&family=Amiri+Quran&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Naskh+Arabic:wght@400;500;600;700&family=Amiri:wght@400;700&family=Amiri+Quran&family=Scheherazade+New:wght@400;700&family=EB+Garamond:ital,wght@0,400;0,600;1,400;1,600&display=swap');
 
 :root {
   --bg-primary: #ffffff;
@@ -28,6 +28,16 @@
   --sidebar-width: 220px;
   --topbar-height: 56px;
   --transition: 150ms ease;
+
+  /* Graph visualization */
+  --graph-center: #d63384;
+  --graph-teacher: #16a34a;
+  --graph-student: #b8860b;
+  --graph-edge: rgba(156, 163, 175, 0.35);
+  --graph-edge-hover: #d63384;
+  --graph-shadow-center: rgba(214, 51, 132, 0.3);
+  --graph-shadow-teacher: rgba(22, 163, 74, 0.3);
+  --graph-shadow-student: rgba(184, 134, 11, 0.3);
 }
 
 *, *::before, *::after {
@@ -161,6 +171,16 @@ input::placeholder {
   --success: #3fb950;
   --warning: #d29922;
   --error: #f85149;
+
+  /* Graph visualization */
+  --graph-center: #e77aab;
+  --graph-teacher: #3fb950;
+  --graph-student: #daa520;
+  --graph-edge: rgba(107, 114, 128, 0.35);
+  --graph-edge-hover: #e77aab;
+  --graph-shadow-center: rgba(231, 122, 171, 0.35);
+  --graph-shadow-teacher: rgba(63, 185, 80, 0.35);
+  --graph-shadow-student: rgba(218, 165, 32, 0.35);
 }
 
 /* ── Theme: Brown (Sepia) ── */
@@ -182,6 +202,16 @@ input::placeholder {
   --success: #2d7a3a;
   --warning: #b8860b;
   --error: #c53030;
+
+  /* Graph visualization */
+  --graph-center: #b8860b;
+  --graph-teacher: #2d7a3a;
+  --graph-student: #8b6914;
+  --graph-edge: rgba(154, 138, 110, 0.35);
+  --graph-edge-hover: #b8860b;
+  --graph-shadow-center: rgba(184, 134, 11, 0.3);
+  --graph-shadow-teacher: rgba(45, 122, 58, 0.3);
+  --graph-shadow-student: rgba(139, 105, 20, 0.3);
 }
 
 /* ── Theme: Pink ── */
@@ -203,6 +233,16 @@ input::placeholder {
   --success: #2e7d32;
   --warning: #f57c00;
   --error: #d32f2f;
+
+  /* Graph visualization */
+  --graph-center: #d63384;
+  --graph-teacher: #2e7d32;
+  --graph-student: #c2185b;
+  --graph-edge: rgba(160, 122, 142, 0.35);
+  --graph-edge-hover: #d63384;
+  --graph-shadow-center: rgba(214, 51, 132, 0.3);
+  --graph-shadow-teacher: rgba(46, 125, 50, 0.3);
+  --graph-shadow-student: rgba(194, 24, 91, 0.3);
 }
 
 /* ── Mobile Responsive ── */

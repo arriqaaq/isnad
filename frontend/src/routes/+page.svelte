@@ -26,137 +26,210 @@
 </script>
 
 <div class="landing">
-  <!-- Hero -->
+
+  <!-- ════════ HERO ════════ -->
   <section class="hero">
-    <div class="hero-bg"></div>
-    <div class="hero-content">
+    <div class="hero-glow"></div>
+    <div class="hero-glow-2"></div>
+
+    <p class="bismillah" dir="rtl">بِسۡمِ ٱللَّهِ ٱلرَّحۡمَـٰنِ ٱلرَّحِيمِ</p>
+
+    <div class="hero-title-group">
       <h1 class="hero-title">
         <span class="title-en">Ilm</span>
         <span class="title-ar" dir="rtl">عِلْم</span>
       </h1>
-      <p class="hero-subtitle">Search the <strong>Quran</strong> and <strong>Sunnah</strong> by meaning</p>
+      <p class="hero-tagline">Search the Quran & Sunnah. <em>Deeply.</em></p>
     </div>
 
-    <!-- Google-style Search Bar -->
+    <p class="hero-desc">
+      A complete semantic search platform for Islamic scholarship — explore the Quran with tafsir,
+      hundreds of thousands of hadiths with narrator chains, and interactive isnad graphs.
+      Powered by meaning, not just keywords.
+    </p>
+
+    <div class="hero-pills">
+      <span class="pill">Free & Open Source</span>
+      <span class="pill">Semantic Search</span>
+      <span class="pill">Bilingual</span>
+      <span class="pill">Open Data</span>
+      <span class="pill">AI-Powered</span>
+    </div>
+
     <form class="hero-search" onsubmit={handleSearch}>
       <div class="hero-search-bar">
-        <span class="hero-search-icon">&#x2315;</span>
+        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+        </svg>
         <input
           type="text"
-          placeholder="Search Quran & Sunnah..."
+          placeholder="What does the Quran say about patience?"
           bind:value={searchQuery}
           class="hero-search-input"
         />
+        <button type="submit" class="search-btn">Search</button>
       </div>
     </form>
 
-    <!-- Quick Access Cards -->
-    <div class="quick-access">
-      <div class="access-card quran-card">
-        <div class="card-icon">◈</div>
-        <h2>Read Quran</h2>
+    <div class="hero-ctas">
+      <a href="/explore" class="cta cta-filled">Start Exploring</a>
+      <a href="/quran" class="cta cta-outline">Browse Quran</a>
+      <a href="/hadiths" class="cta cta-outline">Browse Hadith</a>
+    </div>
+
+    {#if hadithStats || quranStats}
+      <div class="hero-stats">
         {#if quranStats}
-          <div class="card-stats">
-            <span class="stat">{quranStats.surah_count} Surahs</span>
-            <span class="stat-dot">·</span>
-            <span class="stat">{quranStats.ayah_count.toLocaleString()} Ayahs</span>
+          <div class="hero-stat">
+            <span class="hero-stat-num">{quranStats.surah_count}</span>
+            <span class="hero-stat-label">Surahs</span>
+          </div>
+          <span class="hero-stat-dot"></span>
+          <div class="hero-stat">
+            <span class="hero-stat-num">{quranStats.ayah_count.toLocaleString()}</span>
+            <span class="hero-stat-label">Ayahs</span>
           </div>
         {/if}
-        <div class="card-links">
-          <a href="/quran">Browse Surahs</a>
-          <a href="/quran/search">Search</a>
-        </div>
-      </div>
-
-      <div class="access-card hadith-card">
-        <div class="card-icon">☰</div>
-        <h2>Explore Hadith</h2>
         {#if hadithStats}
-          <div class="card-stats">
-            <span class="stat">{hadithStats.hadith_count.toLocaleString()} Hadiths</span>
-            <span class="stat-dot">·</span>
-            <span class="stat">{hadithStats.narrator_count.toLocaleString()} Narrators</span>
+          <span class="hero-stat-dot"></span>
+          <div class="hero-stat">
+            <span class="hero-stat-num">{hadithStats.hadith_count.toLocaleString()}</span>
+            <span class="hero-stat-label">Hadiths</span>
+          </div>
+          <span class="hero-stat-dot"></span>
+          <div class="hero-stat">
+            <span class="hero-stat-num">{hadithStats.narrator_count.toLocaleString()}</span>
+            <span class="hero-stat-label">Narrators</span>
           </div>
         {/if}
-        <div class="card-links">
-          <a href="/hadiths">Browse Hadiths</a>
-          <a href="/search">Search</a>
-          <a href="/narrators">Narrators</a>
+      </div>
+    {/if}
+  </section>
+
+  <!-- ════════ FEATURES ════════ -->
+  <section class="features-section">
+    <div class="section-header animate-on-scroll" use:inview>
+      <span class="section-label">Features</span>
+      <h2>Everything you need to study</h2>
+    </div>
+
+    <!-- Intelligent Search — full width hero feature -->
+    <div class="feat animate-on-scroll" use:inview>
+      <div class="feat-visual">
+        <img src="/img/feature-search.png" alt="Unified search across Quran and Hadith" />
+      </div>
+      <div class="feat-text">
+        <h3>Intelligent Search</h3>
+        <p>Find verses and hadiths by what they mean, not just keywords. Hybrid search fuses BM25 full-text with 384-dimension semantic vectors across the entire corpus.</p>
+        <a href="/explore" class="feat-link">Try Search &rarr;</a>
+      </div>
+    </div>
+
+    <!-- Quran Reader -->
+    <div class="feat feat-reverse animate-on-scroll" use:inview>
+      <div class="feat-visual">
+        <img src="/img/feature-quran.png" alt="Quran reader with tajweed and tafsir" />
+      </div>
+      <div class="feat-text">
+        <h3>Quran Reader</h3>
+        <p>114 Surahs with Tajweed-colored Arabic, Sahih International translation, and expandable Tafsir Ibn Kathir commentary — per ayah.</p>
+        <a href="/quran" class="feat-link">Read Quran &rarr;</a>
+      </div>
+    </div>
+
+    <!-- Hadith Explorer -->
+    <div class="feat animate-on-scroll" use:inview>
+      <div class="feat-visual">
+        <img src="/img/feature-hadith.png" alt="Hadith browsing with narrator chains" />
+      </div>
+      <div class="feat-text">
+        <h3>Hadith Explorer</h3>
+        <p>Browse hundreds of thousands of hadiths from 926 books across 6 canonical collections, each with full narrator chains and source attribution.</p>
+        <a href="/hadiths" class="feat-link">Explore Hadiths &rarr;</a>
+      </div>
+    </div>
+
+    <!-- Narrator Networks -->
+    <div class="feat feat-reverse animate-on-scroll" use:inview>
+      <div class="feat-visual">
+        <img src="/img/feature-narrators.png" alt="Interactive narrator graph visualization" />
+      </div>
+      <div class="feat-text">
+        <h3>Narrator Networks</h3>
+        <p>Interactive graph visualization of 18K+ narrators. Trace isnad chains, explore teacher-student relationships, and check Ibn Hajar reliability grades.</p>
+        <a href="/narrators" class="feat-link">View Narrators &rarr;</a>
+      </div>
+    </div>
+
+    <!-- Secondary features — compact row -->
+    <div class="feat-row animate-on-scroll" use:inview>
+      <div class="feat-compact">
+        <h3>Ask AI</h3>
+        <p>Ask questions in natural language. Get answers grounded in the Quran and Hadith, powered by local LLMs fine-tuned on Islamic scholarship.</p>
+        <a href="/ask" class="feat-link">Ask a Question &rarr;</a>
+      </div>
+      <div class="feat-compact">
+        <h3>Research & Analysis</h3>
+        <p>Hadith family detection, common-link analysis, statistical chain metrics, and narrator scoring for scholarly research.</p>
+        <a href="/analysis" class="feat-link">View Analysis &rarr;</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ DATA SOURCES ════════ -->
+  <section class="sources-section" use:inview>
+    <div class="sources-inner">
+      <div class="section-header animate-on-scroll" use:inview>
+        <span class="section-label">Provenance</span>
+        <h2>Data Sources</h2>
+        <p>Built on open scholarly datasets. Every hadith, ayah, and narrator is traceable to its source.</p>
+      </div>
+      <div class="source-grid">
+        <div class="source-card animate-on-scroll stagger-1" use:inview>
+          <div class="source-num">368K</div>
+          <h4>Sanadset 650K</h4>
+          <p>Hadith records with pre-parsed narrator chains from 926 books</p>
+        </div>
+        <div class="source-card animate-on-scroll stagger-2" use:inview>
+          <div class="source-num">6,236</div>
+          <h4>Tanzil.net</h4>
+          <p>Quranic verses in Uthmani Arabic + Sahih International English</p>
+        </div>
+        <div class="source-card animate-on-scroll stagger-3" use:inview>
+          <div class="source-num">114</div>
+          <h4>Tafsir Ibn Kathir</h4>
+          <p>Surahs with classical commentary for scholarly context</p>
+        </div>
+        <div class="source-card animate-on-scroll stagger-1" use:inview>
+          <div class="source-num">33K</div>
+          <h4>Sunnah.com</h4>
+          <p>Human-verified English translations across 6 canonical collections</p>
+        </div>
+        <div class="source-card animate-on-scroll stagger-2" use:inview>
+          <div class="source-num">18K</div>
+          <h4>AR-Sanad</h4>
+          <p>Narrators with Ibn Hajar's reliability classifications</p>
+        </div>
+        <div class="source-card animate-on-scroll stagger-3" use:inview>
+          <div class="source-num">&#x2726;</div>
+          <h4>Quran.com API</h4>
+          <p>Tajweed-annotated Arabic with color-coded recitation rules</p>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- Features -->
-  <section class="section features" use:inview>
-    <div class="section-label animate-on-scroll" use:inview>Features</div>
-    <h2 class="section-title animate-on-scroll" use:inview>What is Ilm?</h2>
-    <div class="feature-grid">
-      <div class="feature-card animate-on-scroll stagger-1" use:inview>
-        <div class="feature-highlight">Semantic</div>
-        <h3>Search by Meaning</h3>
-        <p>Find verses and hadiths by <strong>what they mean</strong>, not just keywords. Hybrid search fuses <strong>BM25</strong> with <strong>384-dim vectors</strong>.</p>
-      </div>
-      <div class="feature-card animate-on-scroll stagger-2" use:inview>
-        <div class="feature-highlight">114 Surahs</div>
-        <h3>Quran with Tafsir</h3>
-        <p><strong>Tajweed-colored</strong> Arabic, Sahih International translation, and expandable <strong>Tafsir Ibn Kathir</strong> commentary per ayah.</p>
-      </div>
-      <div class="feature-card animate-on-scroll stagger-3" use:inview>
-        <div class="feature-highlight">Interactive</div>
-        <h3>Narrator Graphs</h3>
-        <p>Visualize <strong>isnad chains</strong> as graphs. Trace <strong>transmission paths</strong> and explore <strong>teacher-student</strong> networks.</p>
-      </div>
-    </div>
-  </section>
-
-  <!-- Data Sources -->
-  <section class="section data-sources" use:inview>
-    <div class="section-label animate-on-scroll" use:inview>Provenance</div>
-    <h2 class="section-title animate-on-scroll" use:inview>Data Sources</h2>
-    <div class="source-grid">
-      <div class="source-card animate-on-scroll stagger-1" use:inview>
-        <div class="source-stat">368K</div>
-        <h4>Sanadset 650K</h4>
-        <p>Hadith records with pre-parsed narrator chains from 926 books</p>
-      </div>
-      <div class="source-card animate-on-scroll stagger-2" use:inview>
-        <div class="source-stat">6,236</div>
-        <h4>Tanzil.net</h4>
-        <p>Quranic verses in Uthmani Arabic + Sahih International English</p>
-      </div>
-      <div class="source-card animate-on-scroll stagger-3" use:inview>
-        <div class="source-stat">114</div>
-        <h4>Tafsir Ibn Kathir</h4>
-        <p>Surahs with classical commentary for scholarly context</p>
-      </div>
-      <div class="source-card animate-on-scroll stagger-1" use:inview>
-        <div class="source-stat">33K</div>
-        <h4>Sunnah.com</h4>
-        <p>Human-verified English translations across 6 canonical collections</p>
-      </div>
-      <div class="source-card animate-on-scroll stagger-2" use:inview>
-        <div class="source-stat">18K</div>
-        <h4>AR-Sanad</h4>
-        <p>Narrators with Ibn Hajar's reliability classifications</p>
-      </div>
-      <div class="source-card animate-on-scroll stagger-3" use:inview>
-        <div class="source-stat">&#x2726;</div>
-        <h4>Quran.com API</h4>
-        <p>Tajweed-annotated Arabic with color-coded recitation rules</p>
-      </div>
-    </div>
-  </section>
-
-  <!-- Architecture & Training — dark section -->
+  <!-- ════════ ARCHITECTURE ════════ -->
   <section class="hood-section" use:inview>
     <div class="hood-glow"></div>
     <div class="hood-inner">
-      <div class="section-label animate-on-scroll" use:inview>Technical</div>
-      <h2 class="hood-title animate-on-scroll" use:inview>Under the Hood</h2>
+      <div class="section-header animate-on-scroll" use:inview>
+        <span class="section-label">Open Architecture</span>
+        <h2>Under the Hood</h2>
+        <p>A modern stack built for Islamic scholarship.</p>
+      </div>
 
       <div class="hood-columns">
-        <!-- Architecture Stack -->
         <div class="hood-col">
           <h3 class="hood-subtitle animate-on-scroll" use:inview>Architecture</h3>
           <div class="arch-stack">
@@ -197,7 +270,6 @@
           </div>
         </div>
 
-        <!-- Training Pipeline -->
         <div class="hood-col">
           <h3 class="hood-subtitle animate-on-scroll" use:inview>Training Pipeline</h3>
           <div class="pipeline-grid">
@@ -227,258 +299,535 @@
     </div>
   </section>
 
-  <!-- Footer -->
+  <!-- ════════ FOOTER ════════ -->
   <footer class="landing-footer">
-    <p>Ilm — Islamic Knowledge Platform</p>
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <span class="footer-logo">Ilm</span>
+        <span class="footer-tagline">Islamic Knowledge Platform</span>
+      </div>
+      <div class="footer-links">
+        <div class="footer-col">
+          <h4>Explore</h4>
+          <a href="/explore">Unified Search</a>
+          <a href="/ask">Ask AI</a>
+        </div>
+        <div class="footer-col">
+          <h4>Quran</h4>
+          <a href="/quran">Browse Surahs</a>
+          <a href="/quran/search">Search Quran</a>
+        </div>
+        <div class="footer-col">
+          <h4>Hadith</h4>
+          <a href="/hadiths">Browse Hadiths</a>
+          <a href="/narrators">Narrators</a>
+          <a href="/books">Books</a>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>Built with care for the Muslim community</p>
+    </div>
   </footer>
 </div>
 
 <style>
+  /* ══════════════════════════════════
+     LANDING PAGE
+     ══════════════════════════════════ */
   .landing {
     min-height: 100vh;
     background: var(--bg-primary);
     overflow-x: hidden;
   }
 
-  /* Hero */
+  /* ── Shared section header ── */
+  .section-header {
+    text-align: center;
+    margin-bottom: 48px;
+  }
+  .section-label {
+    display: inline-block;
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 2.5px;
+    color: var(--accent);
+    font-weight: 700;
+    margin-bottom: 12px;
+    padding: 4px 16px;
+    background: var(--accent-muted);
+    border-radius: 20px;
+  }
+  .section-header h2 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 12px;
+    letter-spacing: -0.5px;
+  }
+  .section-header p {
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+    max-width: 520px;
+    margin: 0 auto;
+    line-height: 1.6;
+  }
+
+  /* ══════════════════════════════════
+     HERO
+     ══════════════════════════════════ */
   .hero {
     position: relative;
-    padding: 60px 24px 40px;
+    padding: 100px 24px 80px;
     text-align: center;
-    min-height: auto;
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    gap: 40px;
+    gap: 24px;
+    overflow: hidden;
   }
-  .hero-bg {
+
+  /* Shifting gradient background — pink shades, fades at edges */
+  .hero-glow {
     position: absolute;
     inset: 0;
-    background: radial-gradient(ellipse at 50% 0%, rgba(214,51,132,0.08) 0%, transparent 70%);
-    animation: pulse-glow 4s ease-in-out infinite alternate;
+    background: linear-gradient(135deg,
+      #fff5f8, #fce4ec, #f9e0f0, #fdf2f8, #f5c6d8, #fff5f8
+    ) 0 0 / 300% 300%;
+    animation: hero-gradient 12s ease infinite;
     pointer-events: none;
+    mask-image: linear-gradient(to bottom, transparent 0%, black 15%, black 70%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 15%, black 70%, transparent 100%);
   }
-  @keyframes pulse-glow {
-    from { opacity: 0.4; }
-    to { opacity: 1; }
+  .hero-glow-2 { display: none; }
+
+  :global([data-theme="dark"]) .hero-glow {
+    background: linear-gradient(135deg,
+      #1a1020, #2a1525, #1e1028, #251a2e, #3b2040, #1a1020
+    ) 0 0 / 300% 300%;
+    animation: hero-gradient 12s ease infinite;
   }
-  .hero-content {
+  :global([data-theme="brown"]) .hero-glow {
+    background: linear-gradient(135deg,
+      #f5ecd7, #f0dfc0, #efe4cb, #f5e8d0, #e8d5b0, #f5ecd7
+    ) 0 0 / 300% 300%;
+    animation: hero-gradient 12s ease infinite;
+  }
+
+  @keyframes hero-gradient {
+    0% { background-position: 0% 0%; }
+    50% { background-position: 100% 100%; }
+    100% { background-position: 0% 0%; }
+  }
+
+  /* Bismillah */
+  .bismillah {
     position: relative;
     z-index: 1;
-    animation: fade-in-up 0.8s ease forwards;
+    font-family: 'Scheherazade New', var(--font-arabic);
+    font-size: 2.2rem;
+    color: var(--accent);
+    font-weight: 400;
+    line-height: 2.4;
+    letter-spacing: 2px;
+    opacity: 0;
+    animation: fade-in 1s 0.1s ease forwards;
+  }
+
+  @keyframes fade-in {
+    to { opacity: 1; }
   }
   @keyframes fade-in-up {
-    from { opacity: 0; transform: translateY(20px); }
+    from { opacity: 0; transform: translateY(24px); }
     to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Title group */
+  .hero-title-group {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    opacity: 0;
+    animation: fade-in-up 0.8s 0.3s ease forwards;
   }
   .hero-title {
     display: flex;
     align-items: baseline;
     justify-content: center;
     gap: 16px;
-    margin-bottom: 16px;
+    margin: 0;
   }
   .title-en {
     font-size: 5rem;
-    font-weight: 700;
+    font-weight: 800;
     color: var(--accent);
-    letter-spacing: -2px;
+    letter-spacing: -3px;
+    line-height: 1;
   }
   .title-ar {
     font-family: var(--font-arabic);
-    font-size: 3.5rem;
+    font-size: 3.2rem;
     color: var(--text-muted);
     font-weight: 400;
+    line-height: 1;
   }
-  .hero-subtitle {
-    font-size: 1.15rem;
-    color: var(--text-secondary);
-    max-width: 600px;
-    margin: 0 auto;
-    line-height: 1.7;
-    font-weight: 400;
+  .hero-tagline {
+    font-size: 1.5rem;
+    color: var(--text-primary);
+    font-weight: 600;
+    letter-spacing: -0.3px;
+    margin: 0;
   }
-  .hero-subtitle :global(strong) {
+  .hero-tagline em {
+    font-family: 'EB Garamond', Georgia, serif;
     color: var(--accent);
+    font-style: italic;
+    font-size: 1.35em;
     font-weight: 600;
   }
 
-  /* Hero Search Bar */
+  /* Description */
+  .hero-desc {
+    position: relative;
+    z-index: 1;
+    font-size: 1rem;
+    color: var(--text-secondary);
+    max-width: 580px;
+    line-height: 1.8;
+    opacity: 0;
+    animation: fade-in-up 0.8s 0.5s ease forwards;
+  }
+
+  /* Pills */
+  .hero-pills {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    opacity: 0;
+    animation: fade-in-up 0.8s 0.6s ease forwards;
+  }
+  .pill {
+    padding: 5px 14px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    transition: all 0.2s ease;
+  }
+  .pill:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: var(--accent-muted);
+  }
+
+  /* Search */
   .hero-search {
     position: relative;
     z-index: 1;
     width: 100%;
-    max-width: 580px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 12px;
-    animation: fade-in-up 0.8s 0.2s ease both;
+    max-width: 600px;
+    opacity: 0;
+    animation: fade-in-up 0.8s 0.7s ease forwards;
   }
   .hero-search-bar {
     width: 100%;
     display: flex;
     align-items: center;
     background: var(--bg-surface);
-    border: 2px solid var(--border);
-    border-radius: 28px;
-    padding: 0 20px;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
-    transition: all 0.2s ease;
+    border: 1.5px solid var(--border);
+    border-radius: 16px;
+    padding: 4px 6px 4px 18px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04);
+    transition: all 0.25s ease;
+    gap: 12px;
   }
   .hero-search-bar:focus-within {
     border-color: var(--accent);
-    box-shadow: 0 4px 20px rgba(214,51,132,0.12);
+    box-shadow: 0 4px 24px rgba(214,51,132,0.12), 0 0 0 3px rgba(214,51,132,0.06);
   }
-  .hero-search-icon {
+  .search-icon {
+    width: 20px;
+    height: 20px;
     color: var(--text-muted);
-    font-size: 1.2rem;
-    margin-right: 12px;
     flex-shrink: 0;
   }
   .hero-search-input {
     flex: 1;
     border: none;
     background: transparent;
-    padding: 16px 0;
-    font-size: 1.05rem;
+    padding: 14px 0;
+    font-size: 0.95rem;
     color: var(--text-primary);
     outline: none;
   }
   .hero-search-input::placeholder {
     color: var(--text-muted);
   }
-  /* Quick Access Cards */
-  .quick-access {
+  .search-btn {
+    padding: 10px 24px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+  }
+  .search-btn:hover {
+    background: var(--accent-hover);
+    box-shadow: 0 2px 12px rgba(214,51,132,0.3);
+  }
+
+  /* CTAs */
+  .hero-ctas {
     position: relative;
     z-index: 1;
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 20px;
-    max-width: 700px;
-    width: 100%;
-    animation: fade-in-up 0.8s 0.3s ease both;
-  }
-  .access-card {
-    background: var(--bg-surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    padding: 28px 24px;
-    text-align: center;
-    color: var(--text-primary);
-    transition: all 0.2s ease;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-  }
-  .access-card:hover {
-    border-color: var(--accent);
-    box-shadow: 0 4px 20px rgba(214,51,132,0.08);
-    transform: translateY(-2px);
-    color: var(--text-primary);
-  }
-  .card-icon {
-    font-size: 1.8rem;
-    color: var(--accent);
-    margin-bottom: 4px;
-  }
-  .access-card h2 {
-    font-size: 1.2rem;
-    font-weight: 700;
-  }
-  .card-stats {
-    display: flex;
-    gap: 6px;
-    align-items: center;
-    font-size: 0.8rem;
-    color: var(--text-muted);
-    font-family: var(--font-mono);
-  }
-  .stat-dot { color: var(--border); }
-  .card-links {
     display: flex;
     gap: 12px;
-    margin-top: 8px;
-    font-size: 0.8rem;
+    opacity: 0;
+    animation: fade-in-up 0.8s 0.8s ease forwards;
   }
-  .card-links a {
-    padding: 4px 12px;
-    background: var(--accent-muted);
-    border-radius: 16px;
-    color: var(--accent);
-    font-weight: 500;
-    transition: all var(--transition);
+  .cta {
+    padding: 12px 28px;
+    border-radius: 12px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s ease;
   }
-  .card-links a:hover {
+  .cta-filled {
     background: var(--accent);
     color: white;
   }
-
-  /* Sections */
-  .section {
-    padding: 48px 24px;
-    max-width: 900px;
-    margin: 0 auto;
+  .cta-filled:hover {
+    background: var(--accent-hover);
+    color: white;
+    box-shadow: 0 4px 20px rgba(214,51,132,0.3);
+    transform: translateY(-1px);
   }
-  .section-label {
-    text-align: center;
-    font-size: 0.7rem;
-    text-transform: uppercase;
-    letter-spacing: 2px;
-    color: var(--accent);
-    font-weight: 700;
-    margin-bottom: 8px;
-  }
-  .section-title {
-    text-align: center;
-    font-size: 1.6rem;
-    margin-bottom: 36px;
+  .cta-outline {
+    background: transparent;
     color: var(--text-primary);
+    border: 1.5px solid var(--border);
+  }
+  .cta-outline:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: var(--accent-muted);
+    transform: translateY(-1px);
   }
 
-  /* Feature cards */
-  .feature-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
+  /* Stats bar */
+  .hero-stats {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
     gap: 20px;
-  }
-  .feature-card {
+    padding: 16px 32px;
     background: var(--bg-surface);
     border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    padding: 32px 24px;
+    border-radius: 16px;
+    opacity: 0;
+    animation: fade-in-up 0.8s 0.9s ease forwards;
+  }
+  .hero-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+  .hero-stat-num {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--accent);
+    font-family: var(--font-mono);
+  }
+  .hero-stat-label {
+    font-size: 0.68rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 500;
+  }
+  .hero-stat-dot {
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: var(--border);
+  }
+
+  /* ══════════════════════════════════
+     FEATURES — Apple-style stacked rows
+     ══════════════════════════════════ */
+  .features-section {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 80px 24px 40px;
+  }
+
+  /* Each feature — side-by-side image + text */
+  .feat {
+    display: grid;
+    grid-template-columns: 1.1fr 1fr;
+    gap: 48px;
+    align-items: center;
+    padding: 60px 0;
+  }
+  .feat-reverse {
+    direction: rtl;
+  }
+  .feat-reverse > * {
+    direction: ltr;
+  }
+
+  .feat-visual {
+    background: var(--bg-secondary);
+    border-radius: 20px;
+    overflow: hidden;
+    aspect-ratio: 4 / 3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .feat-visual img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .feat-text {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .feat-text h3 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: -0.5px;
+    line-height: 1.2;
+  }
+  .feat-text p {
+    font-size: 1rem;
+    color: var(--text-secondary);
+    line-height: 1.7;
+  }
+  .feat-link {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--accent);
+    text-decoration: none;
+    transition: color 0.15s ease;
+  }
+  .feat-link:hover {
+    color: var(--accent-hover);
+  }
+
+  /* Secondary features — compact 2-col row */
+  .feat-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 48px;
+    padding: 60px 0 20px;
+  }
+  .feat-compact {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .feat-compact h3 {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: -0.3px;
+  }
+  .feat-compact p {
+    font-size: 0.92rem;
+    color: var(--text-secondary);
+    line-height: 1.7;
+  }
+
+  /* ══════════════════════════════════
+     DATA SOURCES
+     ══════════════════════════════════ */
+  .sources-section {
+    padding: 0;
+  }
+  .sources-inner {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 80px 24px;
+  }
+  .source-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+  .source-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px 20px;
     text-align: center;
     transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
   }
-  .feature-card:hover {
+  .source-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--accent);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  .source-card:hover {
     border-color: var(--accent);
     box-shadow: 0 6px 28px rgba(214,51,132,0.08);
     transform: translateY(-3px);
   }
-  .feature-highlight {
+  .source-card:hover::before {
+    opacity: 1;
+  }
+  .source-num {
     font-size: 1.6rem;
     font-weight: 700;
     color: var(--accent);
-    margin-bottom: 12px;
+    font-family: var(--font-mono);
+    margin-bottom: 10px;
     line-height: 1;
   }
-  .feature-card h3 {
-    font-size: 1.05rem;
-    margin-bottom: 10px;
-  }
-  .feature-card p {
-    font-size: 0.85rem;
-    color: var(--text-secondary);
-    line-height: 1.6;
-  }
-  .feature-card p :global(strong) {
+  .source-card h4 {
+    font-size: 0.9rem;
+    margin-bottom: 6px;
     color: var(--text-primary);
-    font-weight: 600;
+  }
+  .source-card p {
+    font-size: 0.76rem;
+    color: var(--text-muted);
+    line-height: 1.5;
   }
 
-  /* Under the Hood — light pink section */
+  /* ══════════════════════════════════
+     UNDER THE HOOD
+     ══════════════════════════════════ */
   .hood-section {
     position: relative;
     background: linear-gradient(180deg,
@@ -498,7 +847,7 @@
     transform: translate(-50%, -50%);
     width: 700px;
     height: 500px;
-    background: radial-gradient(ellipse, rgba(214,51,132,0.08) 0%, transparent 70%);
+    background: radial-gradient(ellipse, rgba(214,51,132,0.06) 0%, transparent 70%);
     filter: blur(80px);
     animation: glow-breathe 4s ease-in-out infinite alternate;
     pointer-events: none;
@@ -512,12 +861,6 @@
     z-index: 1;
     max-width: 900px;
     margin: 0 auto;
-  }
-  .hood-title {
-    text-align: center;
-    font-size: 1.6rem;
-    color: var(--text-primary);
-    margin-bottom: 48px;
   }
   .hood-columns {
     display: grid;
@@ -536,12 +879,6 @@
     color: var(--accent);
     font-weight: 600;
   }
-  .hood-desc {
-    text-align: center;
-    font-size: 0.8rem;
-    color: var(--text-muted);
-    margin-bottom: 20px;
-  }
 
   /* Architecture Stack */
   .arch-stack {
@@ -556,11 +893,11 @@
     width: 100%;
     background: var(--bg-surface);
     border: 1px solid var(--border);
-    border-radius: 12px;
+    border-radius: 14px;
     padding: 18px 20px;
     text-align: center;
     transition: all 0.3s ease;
-    box-shadow: 0 2px 8px rgba(214,51,132,0.04);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.03);
   }
   .glass-card:hover {
     border-color: var(--accent);
@@ -595,13 +932,13 @@
     padding: 6px 0;
     background: var(--accent-muted);
     border: 1px solid rgba(214,51,132,0.15);
-    border-radius: 6px;
+    border-radius: 8px;
     font-size: 0.7rem;
     color: var(--text-secondary);
     text-align: center;
   }
 
-  /* Animated connecting lines */
+  /* Animated lines */
   .arch-line, .pipe-line {
     display: flex;
     flex-direction: column;
@@ -648,7 +985,7 @@
     white-space: nowrap;
   }
 
-  /* Training Pipeline */
+  /* Pipeline */
   .pipeline-grid {
     display: flex;
     flex-direction: column;
@@ -665,9 +1002,9 @@
     padding: 14px 16px;
     background: var(--bg-surface);
     border: 1px solid var(--border);
-    border-radius: 10px;
+    border-radius: 12px;
     transition: all 0.3s ease;
-    box-shadow: 0 2px 8px rgba(214,51,132,0.04);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.03);
   }
   .pipe-card:hover {
     border-color: var(--accent);
@@ -699,61 +1036,97 @@
     line-height: 1.4;
   }
 
-  /* Data Sources */
-  .source-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 16px;
+  /* ══════════════════════════════════
+     FOOTER
+     ══════════════════════════════════ */
+  .landing-footer {
+    border-top: 1px solid var(--border);
   }
-  .source-card {
-    background: var(--bg-surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    padding: 24px 20px;
-    text-align: center;
-    transition: all 0.3s ease;
+  .footer-inner {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 48px 24px 32px;
+    gap: 48px;
   }
-  .source-card:hover {
-    border-color: var(--accent);
-    box-shadow: 0 4px 20px rgba(214,51,132,0.08);
-    transform: translateY(-2px);
+  .footer-brand {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
   }
-  .source-stat {
-    font-size: 1.8rem;
-    font-weight: 700;
+  .footer-logo {
+    font-size: 1.4rem;
+    font-weight: 800;
     color: var(--accent);
-    font-family: var(--font-mono);
-    margin-bottom: 8px;
-    line-height: 1;
+    letter-spacing: -0.5px;
   }
-  .source-card h4 {
-    font-size: 0.9rem;
-    margin-bottom: 6px;
-    color: var(--text-primary);
-  }
-  .source-card p {
+  .footer-tagline {
     font-size: 0.78rem;
     color: var(--text-muted);
-    line-height: 1.5;
   }
-
-  /* Footer */
-  .landing-footer {
-    text-align: center;
-    padding: 40px 24px;
-    border-top: 1px solid var(--border);
+  .footer-links {
+    display: flex;
+    gap: 48px;
+  }
+  .footer-col {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .footer-col h4 {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
     color: var(--text-muted);
-    font-size: 0.8rem;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .footer-col a {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: color var(--transition);
+  }
+  .footer-col a:hover {
+    color: var(--accent);
+  }
+  .footer-bottom {
+    text-align: center;
+    padding: 20px 24px;
+    border-top: 1px solid var(--border);
+  }
+  .footer-bottom p {
+    font-size: 0.76rem;
+    color: var(--text-muted);
   }
 
-  /* Responsive */
+  /* ══════════════════════════════════
+     RESPONSIVE
+     ══════════════════════════════════ */
   @media (max-width: 700px) {
-    .quick-access { grid-template-columns: 1fr; }
-    .feature-grid { grid-template-columns: 1fr; }
-    .source-grid { grid-template-columns: 1fr; }
-    .title-en { font-size: 2.5rem; }
+    .hero { padding: 60px 20px 48px; gap: 20px; }
+    .title-en { font-size: 3rem; }
     .title-ar { font-size: 2rem; }
-    .sub-cards { flex-direction: column; }
+    .hero-tagline { font-size: 1.15rem; }
+    .hero-desc { font-size: 0.9rem; }
+    .hero-pills { gap: 6px; }
+    .hero-ctas { flex-direction: column; align-items: center; width: 100%; max-width: 300px; }
+    .cta { width: 100%; text-align: center; }
+    .hero-stats { flex-wrap: wrap; justify-content: center; padding: 12px 20px; gap: 12px; }
+    .feat { grid-template-columns: 1fr; gap: 24px; padding: 40px 0; }
+    .feat-reverse { direction: ltr; }
+    .feat-text h3 { font-size: 1.4rem; }
+    .feat-row { grid-template-columns: 1fr; gap: 32px; }
+    .source-grid { grid-template-columns: 1fr; }
     .hood-columns { grid-template-columns: 1fr; }
+    .sub-cards { flex-direction: column; }
+    .footer-inner { flex-direction: column; gap: 32px; }
+    .footer-links { gap: 32px; }
+  }
+
+  @media (min-width: 701px) and (max-width: 900px) {
+    .source-grid { grid-template-columns: repeat(2, 1fr); }
   }
 </style>
