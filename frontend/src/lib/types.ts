@@ -87,6 +87,7 @@ export interface SearchResponse {
 export interface HadithDetailResponse {
   hadith: ApiHadith;
   narrators: ApiNarrator[];
+  linked_ayahs: ApiAyah[];
 }
 
 export interface NarratorDetailResponse {

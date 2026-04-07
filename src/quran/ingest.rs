@@ -1,4 +1,5 @@
 use anyhow::Result;
+use regex::Regex;
 use surrealdb::Surreal;
 use surrealdb::types::{RecordId, SurrealValue};
 
@@ -51,7 +52,6 @@ struct CsvAyah {
     text_ar: String,
     text_en: String,
     tafsir_en: String,
-
 }
 
 pub async fn ingest(db: &Surreal<Db>, csv_path: &str) -> Result<()> {
@@ -641,5 +641,350 @@ async fn create_surahs(db: &Surreal<Db>) -> Result<()> {
         .check()?;
     }
     println!("   ✓ 114 surahs created");
+    Ok(())
+}
+
+// ── Tafsir chunking and embedding ──
+
+/// Strip HTML tags and decode entities, producing clean plain text.
+fn strip_html(html: &str) -> String {
+    let mut text = html.to_string();
+
+    // Replace block-level closing tags and <br> with newlines
+    let block_re = Regex::new(r"(?i)</p>|</div>|</h[1-6]>|<br\s*/?>").unwrap();
+    text = block_re.replace_all(&text, "\n").to_string();
+
+    // Strip all remaining HTML tags
+    let tag_re = Regex::new(r"<[^>]+>").unwrap();
+    text = tag_re.replace_all(&text, "").to_string();
+
+    // Decode HTML entities
+    text = text
+        .replace("&amp;", "&")
+        .replace("&lt;", "<")
+        .replace("&gt;", ">")
+        .replace("&quot;", "\"")
+        .replace("&nbsp;", " ");
+
+    // Decode numeric HTML entities (&#NNN;)
+    let numeric_re = Regex::new(r"&#(\d+);").unwrap();
+    text = numeric_re
+        .replace_all(&text, |caps: &regex::Captures| {
+            caps[1]
+                .parse::<u32>()
+                .ok()
+                .and_then(char::from_u32)
+                .map(|c| c.to_string())
+                .unwrap_or_default()
+        })
+        .to_string();
+
+    // Collapse multiple newlines into double newline (paragraph break)
+    let multi_nl = Regex::new(r"\n{3,}").unwrap();
+    text = multi_nl.replace_all(&text, "\n\n").to_string();
+
+    // Collapse multiple spaces/tabs within lines to single space
+    let multi_space = Regex::new(r"[^\S\n]+").unwrap();
+    text = multi_space.replace_all(&text, " ").to_string();
+
+    // Clean up spaces around newlines
+    let space_nl = Regex::new(r" ?\n ?").unwrap();
+    text = space_nl.replace_all(&text, "\n").to_string();
+
+    text.trim().to_string()
+}
+
+/// Split tafsir text into overlapping chunks suitable for embedding.
+///
+/// Strategy: split on paragraph boundaries first, then sentences, then words.
+/// Accumulate sections into chunks up to `max_chars`, with `overlap` chars
+/// carried from the end of the previous chunk.
+fn chunk_tafsir(text: &str, max_chars: usize, overlap: usize) -> Vec<String> {
+    if text.trim().is_empty() {
+        return Vec::new();
+    }
+
+    // Split into atomic sections: paragraphs -> sentences -> words
+    let sections = split_recursive(text, max_chars);
+
+    let mut chunks: Vec<String> = Vec::new();
+    let mut current = String::new();
+
+    for section in &sections {
+        let section = section.trim();
+        if section.is_empty() {
+            continue;
+        }
+
+        if current.is_empty() {
+            current = section.to_string();
+        } else if current.len() + 1 + section.len() <= max_chars {
+            current.push(' ');
+            current.push_str(section);
+        } else {
+            // Flush current chunk
+            chunks.push(current.clone());
+
+            // Start new chunk with overlap from end of previous
+            let overlap_text = if current.len() > overlap {
+                let start = floor_char_boundary(&current, current.len() - overlap);
+                let overlap_region = &current[start..];
+                // Try to break at a word boundary within the overlap region
+                if let Some(space_pos) = overlap_region.find(' ') {
+                    &current[start + space_pos + 1..]
+                } else {
+                    overlap_region
+                }
+            } else {
+                &current
+            };
+
+            current = format!("{} {}", overlap_text.trim(), section);
+        }
+    }
+
+    // Don't forget the last chunk
+    if !current.trim().is_empty() {
+        chunks.push(current);
+    }
+
+    chunks
+        .into_iter()
+        .filter(|c| !c.trim().is_empty())
+        .collect()
+}
+
+/// Find the largest byte index <= `byte_idx` that is a char boundary.
+fn floor_char_boundary(s: &str, byte_idx: usize) -> usize {
+    let idx = byte_idx.min(s.len());
+    let mut i = idx;
+    while i > 0 && !s.is_char_boundary(i) {
+        i -= 1;
+    }
+    i
+}
+
+/// Recursively split text into sections that fit within max_chars (byte-safe).
+fn split_recursive(text: &str, max_chars: usize) -> Vec<String> {
+    if text.len() <= max_chars {
+        return vec![text.to_string()];
+    }
+
+    // Try paragraph boundaries first
+    let paragraphs: Vec<&str> = text.split("\n\n").collect();
+    if paragraphs.len() > 1 {
+        return paragraphs
+            .into_iter()
+            .flat_map(|p| split_recursive(p, max_chars))
+            .collect();
+    }
+
+    // Try sentence boundaries
+    let sentences: Vec<&str> = text.split(". ").collect();
+    if sentences.len() > 1 {
+        let len = sentences.len();
+        return sentences
+            .into_iter()
+            .enumerate()
+            .flat_map(|(i, s)| {
+                let restored = if i < len - 1 {
+                    format!("{}.", s)
+                } else {
+                    s.to_string()
+                };
+                split_recursive(&restored, max_chars)
+            })
+            .collect();
+    }
+
+    // Fall back to word boundaries
+    let words: Vec<&str> = text.split(' ').collect();
+    if words.len() <= 1 {
+        return vec![text.to_string()];
+    }
+
+    let mut result = Vec::new();
+    let mut current = String::new();
+    for word in words {
+        if current.is_empty() {
+            current = word.to_string();
+        } else if current.len() + 1 + word.len() <= max_chars {
+            current.push(' ');
+            current.push_str(word);
+        } else {
+            result.push(current);
+            current = word.to_string();
+        }
+    }
+    if !current.is_empty() {
+        result.push(current);
+    }
+    result
+}
+
+#[derive(Debug, SurrealValue)]
+struct AyahForTafsir {
+    id: Option<RecordId>,
+    surah_number: i64,
+    ayah_number: i64,
+    tafsir_en: Option<String>,
+}
+
+#[derive(Debug, SurrealValue)]
+struct CountResult {
+    count: i64,
+}
+
+#[derive(Debug, SurrealValue)]
+struct ChunkForEmbed {
+    id: Option<RecordId>,
+}
+
+/// Chunk all tafsir texts and generate embeddings for the chunks.
+pub async fn embed_tafsir_chunks(db: &Surreal<Db>, embedder: &Embedder) -> Result<()> {
+    // 1. Get ayahs with tafsir
+    let mut response = db
+        .query("SELECT id, surah_number, ayah_number, tafsir_en FROM ayah WHERE tafsir_en IS NOT NONE AND tafsir_en != ''")
+        .await?;
+    let ayahs: Vec<AyahForTafsir> = response.take(0)?;
+
+    let total_ayahs = ayahs.len();
+    if total_ayahs == 0 {
+        println!("   No ayahs with tafsir found");
+        return Ok(());
+    }
+
+    println!("   Found {} ayahs with tafsir, chunking...", total_ayahs);
+
+    let pb = indicatif::ProgressBar::new(total_ayahs as u64);
+    pb.set_style(
+        indicatif::ProgressStyle::default_bar()
+            .template("   {bar:40.cyan/blue} {pos}/{len} ayahs chunked ({eta})")
+            .unwrap(),
+    );
+
+    let mut total_chunks_created: usize = 0;
+
+    for ayah in &ayahs {
+        let ayah_id = match &ayah.id {
+            Some(id) => id.clone(),
+            None => continue,
+        };
+
+        // Check if chunks already exist for this ayah
+        let mut count_res = db
+            .query("SELECT count() FROM tafsir_chunk WHERE ayah_id = $id GROUP ALL")
+            .bind(("id", ayah_id.clone()))
+            .await?;
+        let counts: Vec<CountResult> = count_res.take(0)?;
+        if counts.first().map(|c| c.count).unwrap_or(0) > 0 {
+            pb.inc(1);
+            continue;
+        }
+
+        let tafsir = match &ayah.tafsir_en {
+            Some(t) => t,
+            None => continue,
+        };
+
+        let clean = strip_html(tafsir);
+        let chunks = chunk_tafsir(&clean, 1500, 200);
+
+        for (idx, chunk_text) in chunks.iter().enumerate() {
+            db.query(
+                "CREATE tafsir_chunk SET ayah_id = $ayah_id, chunk_index = $idx, chunk_text = $text",
+            )
+            .bind(("ayah_id", ayah_id.clone()))
+            .bind(("idx", idx as i64))
+            .bind(("text", chunk_text.clone()))
+            .await?
+            .check()?;
+            total_chunks_created += 1;
+        }
+
+        pb.inc(1);
+    }
+    pb.finish_with_message("done");
+    println!("   ✓ {} tafsir chunks created", total_chunks_created);
+
+    // 2. Embed all chunks without embeddings
+    let mut response = db
+        .query("SELECT id FROM tafsir_chunk WHERE embedding IS NONE")
+        .await?;
+    let chunks_to_embed: Vec<ChunkForEmbed> = response.take(0)?;
+
+    let total_embed = chunks_to_embed.len();
+    if total_embed == 0 {
+        println!("   All tafsir chunks already have embeddings");
+        return Ok(());
+    }
+
+    println!("   Embedding {} tafsir chunks...", total_embed);
+
+    // We need to fetch chunk details for embedding text construction.
+    // Query in batches to build the prefix text.
+    #[derive(Debug, SurrealValue)]
+    struct ChunkDetail {
+        id: Option<RecordId>,
+        ayah_id: Option<RecordId>,
+        chunk_text: String,
+    }
+
+    let mut detail_response = db
+        .query("SELECT id, ayah_id, chunk_text FROM tafsir_chunk WHERE embedding IS NONE")
+        .await?;
+    let chunk_details: Vec<ChunkDetail> = detail_response.take(0)?;
+
+    // Build a lookup from ayah record id -> (surah_number, ayah_number)
+    let mut ayah_lookup: std::collections::HashMap<String, (i64, i64)> =
+        std::collections::HashMap::new();
+    for ayah in &ayahs {
+        if let Some(id) = &ayah.id {
+            ayah_lookup.insert(format!("{:?}", id), (ayah.surah_number, ayah.ayah_number));
+        }
+    }
+
+    let pb = indicatif::ProgressBar::new(total_embed as u64);
+    pb.set_style(
+        indicatif::ProgressStyle::default_bar()
+            .template("   {bar:40.green/black} {pos}/{len} chunk embeddings ({eta})")
+            .unwrap(),
+    );
+
+    for batch in chunk_details.chunks(BATCH_SIZE) {
+        let texts: Vec<String> = batch
+            .iter()
+            .map(|c| {
+                let (surah, ayah_num) = c
+                    .ayah_id
+                    .as_ref()
+                    .and_then(|aid| ayah_lookup.get(&format!("{:?}", aid)))
+                    .copied()
+                    .unwrap_or((0, 0));
+                format!(
+                    "passage: Tafsir Ibn Kathir on Quran {}:{}: {}",
+                    surah, ayah_num, c.chunk_text
+                )
+            })
+            .collect();
+
+        let text_refs: Vec<&str> = texts.iter().map(|s| s.as_str()).collect();
+        let embeddings = embedder.embed(&text_refs)?;
+
+        for (chunk, embedding) in batch.iter().zip(embeddings.into_iter()) {
+            if let Some(id) = &chunk.id {
+                db.query("UPDATE $id SET embedding = $embedding")
+                    .bind(("id", id.clone()))
+                    .bind(("embedding", embedding))
+                    .await?;
+            }
+        }
+
+        pb.inc(batch.len() as u64);
+    }
+
+    pb.finish_with_message("done");
+    println!("   ✓ {} tafsir chunk embeddings generated", total_embed);
+
     Ok(())
 }

@@ -114,6 +114,45 @@ fn normalize_kunya(text: &str) -> String {
     result.join(" ")
 }
 
+/// Check if a normalized Arabic word is a relative reference.
+fn is_relative_ref(bare: &str) -> bool {
+    matches!(
+        bare,
+        "ابي" | "ابيه" | "جده" | "عمه" | "امه" | "اخيه" | "ابيها"
+    )
+}
+
+/// Resolve a relative reference ("his father", "his grandfather", etc.)
+/// against the referent narrator's name.
+///
+/// Tier 1: extract real name from بن patronymic (e.g. "هشام بن عروه" + ابيه → "عروه")
+/// Tier 2: synthetic fallback (e.g. "جابر" + ابيه → "ابو جابر")
+fn resolve_relative(bare: &str, referent_raw: &str) -> Option<String> {
+    let referent_norm = normalize_arabic(referent_raw);
+    let parts: Vec<&str> = referent_norm.split(" بن ").collect();
+
+    match bare {
+        "ابي" | "ابيه" | "ابيها" => {
+            if parts.len() >= 2 {
+                Some(parts[1].to_string())
+            } else {
+                Some(format!("ابو {}", referent_norm))
+            }
+        }
+        "جده" => {
+            if parts.len() >= 3 {
+                Some(parts[2].to_string())
+            } else {
+                Some(format!("جد {}", referent_norm))
+            }
+        }
+        "عمه" => Some(format!("عم {}", referent_norm)),
+        "امه" => Some(format!("ام {}", referent_norm)),
+        "اخيه" => Some(format!("اخ {}", referent_norm)),
+        _ => None,
+    }
+}
+
 /// Mapping of Arabic book names to short English codes (sunnah.com style).
 const BOOK_CODES: &[(&str, &str)] = &[
     ("صحيح البخاري", "bukhari"),
@@ -389,19 +428,31 @@ pub async fn ingest(
             .await?;
 
         // Resolve narrator names and create narrator records + edges.
-        let resolved_chain: Vec<(String, String)> =
-            chain.iter().map(|n| (n.clone(), slug(n))).collect();
+        // First pass: resolve relative references ("his father" → real name or synthetic)
+        let mut last_real_name: Option<String> = None;
+        let resolved_chain: Vec<(String, String)> = chain
+            .iter()
+            .map(|n| {
+                let bare = normalize_arabic(n);
+                if is_relative_ref(&bare) {
+                    if let Some(ref referent) = last_real_name {
+                        if let Some(resolved) = resolve_relative(&bare, referent) {
+                            return (resolved.clone(), slug(&resolved));
+                        }
+                    }
+                    (n.clone(), String::new())
+                } else {
+                    let s = slug(n);
+                    if !s.is_empty() {
+                        last_real_name = Some(n.clone());
+                    }
+                    (n.clone(), s)
+                }
+            })
+            .collect();
 
-        for (name, nslug) in &resolved_chain {
+        for (pos, (name, nslug)) in resolved_chain.iter().enumerate() {
             if nslug.is_empty() {
-                continue;
-            }
-            // Skip relative references ("his father", "his grandfather") — not real narrator names
-            let bare = normalize_arabic(name);
-            if matches!(
-                bare.as_str(),
-                "ابي" | "ابيه" | "جده" | "عمه" | "امه" | "اخيه" | "ابيها"
-            ) {
                 continue;
             }
             if !narrators_created.contains(nslug) {
@@ -425,10 +476,11 @@ pub async fn ingest(
                 narrators_created.insert(nslug.clone());
             }
 
-            // narrates edge
-            db.query("RELATE $from->narrates->$to")
+            // narrates edge with chain position
+            db.query("RELATE $from->narrates->$to SET chain_position = $pos")
                 .bind(("from", rid("narrator", nslug)))
                 .bind(("to", rid("hadith", &hslug)))
+                .bind(("pos", pos as i64))
                 .await
                 .ok();
         }
@@ -455,10 +507,11 @@ pub async fn ingest(
             if last_pos.get(s2) != Some(&(i + 1)) {
                 continue;
             }
-            db.query("RELATE $from->heard_from->$to SET hadith_ref = $href")
+            db.query("RELATE $from->heard_from->$to SET hadith_ref = $href, chain_position = $pos")
                 .bind(("from", rid("narrator", s1)))
                 .bind(("to", rid("narrator", s2)))
                 .bind(("href", rid("hadith", &hslug)))
+                .bind(("pos", i as i64))
                 .await
                 .ok();
             heard_from_count += 1;

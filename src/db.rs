@@ -68,6 +68,7 @@ DEFINE FIELD IF NOT EXISTS narrator_text ON hadith TYPE option<string>;
 DEFINE FIELD IF NOT EXISTS grade         ON hadith TYPE option<string>;
 DEFINE FIELD IF NOT EXISTS book_name    ON hadith TYPE option<string>;
 DEFINE FIELD IF NOT EXISTS matn         ON hadith TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS hadith_type  ON hadith TYPE option<string>;
 DEFINE FIELD IF NOT EXISTS embedding     ON hadith TYPE option<array<float>>;
 DEFINE INDEX IF NOT EXISTS hadith_vec    ON TABLE hadith FIELDS embedding HNSW DIMENSION 384 DIST COSINE;
 DEFINE INDEX IF NOT EXISTS hadith_book   ON TABLE hadith FIELDS book_id;
@@ -150,6 +151,7 @@ DEFINE INDEX IF NOT EXISTS alias_name_idx ON TABLE narrator_alias FIELDS alias_n
 -- "Narrator B heard_from Narrator A" (student -> teacher, toward the Prophet)
 DEFINE TABLE IF NOT EXISTS heard_from TYPE RELATION FROM narrator TO narrator;
 DEFINE FIELD IF NOT EXISTS hadith_ref ON heard_from TYPE option<record<hadith>>;
+DEFINE FIELD IF NOT EXISTS chain_position ON heard_from TYPE option<int>;
 DEFINE INDEX IF NOT EXISTS heard_from_in_idx ON TABLE heard_from FIELDS in;
 DEFINE INDEX IF NOT EXISTS heard_from_out_idx ON TABLE heard_from FIELDS out;
 DEFINE INDEX IF NOT EXISTS heard_from_hadith_ref_idx ON TABLE heard_from FIELDS hadith_ref;
@@ -322,6 +324,38 @@ pub async fn init_quran_similar_schema(db: &Surreal<Db>) -> Result<()> {
     Ok(())
 }
 
+// ── Tafsir Chunk Schema ──
+
+const TAFSIR_CHUNK_SCHEMA: &str = r#"
+DEFINE TABLE IF NOT EXISTS tafsir_chunk SCHEMAFULL;
+DEFINE FIELD IF NOT EXISTS ayah_id      ON tafsir_chunk TYPE record<ayah>;
+DEFINE FIELD IF NOT EXISTS chunk_index  ON tafsir_chunk TYPE int;
+DEFINE FIELD IF NOT EXISTS chunk_text   ON tafsir_chunk TYPE string;
+DEFINE FIELD IF NOT EXISTS embedding    ON tafsir_chunk TYPE option<array<float>>;
+DEFINE INDEX IF NOT EXISTS tafsir_chunk_vec ON TABLE tafsir_chunk FIELDS embedding HNSW DIMENSION 384 DIST COSINE;
+DEFINE INDEX IF NOT EXISTS tafsir_chunk_ayah ON TABLE tafsir_chunk FIELDS ayah_id
+"#;
+
+pub async fn init_tafsir_chunk_schema(db: &Surreal<Db>) -> Result<()> {
+    for (i, stmt) in TAFSIR_CHUNK_SCHEMA
+        .split(';')
+        .map(|s| s.trim())
+        .filter(|s| !s.is_empty() && !s.starts_with("--"))
+        .enumerate()
+    {
+        let sql = format!("{stmt};");
+        if let Err(e) = db.query(&sql).await.and_then(|r| r.check()) {
+            tracing::error!(
+                "Tafsir chunk schema statement {i} failed: {e}\n  SQL: {}",
+                stmt.chars().take(120).collect::<String>()
+            );
+            return Err(e.into());
+        }
+    }
+    tracing::info!("Tafsir chunk schema initialized");
+    Ok(())
+}
+
 pub async fn init_quran_schema(db: &Surreal<Db>) -> Result<()> {
     for (i, stmt) in QURAN_SCHEMA
         .split(';')
@@ -343,6 +377,10 @@ pub async fn init_quran_schema(db: &Surreal<Db>) -> Result<()> {
 }
 
 pub async fn init_quran_fulltext_indexes(db: &Surreal<Db>) -> Result<()> {
+    // Define analyzers + fulltext indexes. Call this BEFORE data ingestion so
+    // the table is empty (instant) and each subsequent insert incrementally
+    // updates the index, avoiding long-running transactions that hit
+    // "memtable history insufficient" errors.
     let stmts = [
         "DEFINE ANALYZER en_analyzer TOKENIZERS blank,class FILTERS lowercase,snowball(english)",
         "DEFINE ANALYZER ar_analyzer TOKENIZERS blank,class",
@@ -351,30 +389,13 @@ pub async fn init_quran_fulltext_indexes(db: &Surreal<Db>) -> Result<()> {
         "DEFINE INDEX IF NOT EXISTS ayah_tafsir_en_search ON TABLE ayah FIELDS tafsir_en FULLTEXT ANALYZER en_analyzer BM25 HIGHLIGHTS",
     ];
     for (i, stmt) in stmts.iter().enumerate() {
-        let mut attempts = 0;
-        loop {
-            match db.query(*stmt).await.and_then(|r| r.check()) {
-                Ok(_) => break,
-                Err(e) => {
-                    let msg = e.to_string();
-                    if msg.contains("already exists") {
-                        break;
-                    }
-                    attempts += 1;
-                    if attempts >= 5 {
-                        tracing::error!("Quran fulltext index {i} failed after {attempts} attempts: {e}");
-                        return Err(e.into());
-                    }
-                    let delay = 500 * attempts;
-                    tracing::warn!("Quran fulltext index {i} retry {attempts}/5 (waiting {delay}ms): {e}");
-                    tokio::time::sleep(std::time::Duration::from_millis(delay)).await;
-                }
+        if let Err(e) = db.query(*stmt).await.and_then(|r| r.check()) {
+            let msg = e.to_string();
+            if msg.contains("already exists") {
+                continue;
             }
-        }
-        // Pause between FULLTEXT index definitions — SurrealDB builds indexes in the
-        // background and concurrent builds on the same table cause memtable conflicts.
-        if i >= 2 {
-            tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+            tracing::error!("Quran fulltext index {i} failed: {e}");
+            return Err(e.into());
         }
     }
     tracing::info!("Quran full-text search indexes initialized");

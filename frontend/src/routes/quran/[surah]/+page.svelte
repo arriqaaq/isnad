@@ -1,18 +1,18 @@
 <script lang="ts">
   import { page } from '$app/state';
-  import { getSurah, getSurahHadithCounts, getSurahSimilarCounts } from '$lib/api';
-  import type { SurahDetailResponse } from '$lib/types';
+  import { getSurah } from '$lib/api';
+  import type { ApiAyah, ApiAyahSearchResult, SurahDetailResponse } from '$lib/types';
   import SurahHeader from '$lib/components/quran/SurahHeader.svelte';
   import AyahCard from '$lib/components/quran/AyahCard.svelte';
+  import AyahSidePanel from '$lib/components/quran/AyahSidePanel.svelte';
   import LoadingSpinner from '$lib/components/common/LoadingSpinner.svelte';
   import RecitationPlayer from '$lib/components/quran/RecitationPlayer.svelte';
   import { preferences } from '$lib/stores/preferences';
 
   let data: SurahDetailResponse | null = $state(null);
-  let hadithCounts: Record<string, number> = $state({});
-  let similarCounts: Record<string, number> = $state({});
   let loading = $state(true);
   let activeAyah = $state(0);
+  let panelAyah: ApiAyah | ApiAyahSearchResult | null = $state(null);
   let playerRef: ReturnType<typeof RecitationPlayer> | undefined = $state(undefined);
 
   let surahNum = $derived(Number(page.params.surah));
@@ -22,14 +22,8 @@
   $effect(() => {
     loading = true;
     activeAyah = 0;
-    Promise.all([
-      getSurah(surahNum),
-      getSurahHadithCounts(surahNum).catch(() => ({})),
-      getSurahSimilarCounts(surahNum).catch(() => ({})),
-    ]).then(([d, hCounts, sCounts]) => {
+    getSurah(surahNum).then((d) => {
       data = d;
-      hadithCounts = hCounts;
-      similarCounts = sCounts;
       loading = false;
 
       // Scroll to specific ayah if ?ayah=N is in the URL
@@ -85,10 +79,9 @@
         <div id="{data.surah.surah_number}:{ayah.ayah_number}">
           <AyahCard
             {ayah}
-            hadithCount={hadithCounts[String(ayah.ayah_number)] ?? 0}
-            similarCount={similarCounts[String(ayah.ayah_number)] ?? 0}
             active={ayah.ayah_number === activeAyah}
             onplay={handleAyahPlay}
+            onopenpanel={(a) => panelAyah = a}
             {reciterFolder}
           />
         </div>
@@ -106,6 +99,10 @@
     </div>
   {/if}
 </div>
+
+{#if panelAyah}
+  <AyahSidePanel ayah={panelAyah} onclose={() => panelAyah = null} />
+{/if}
 
 {#if data}
   <RecitationPlayer

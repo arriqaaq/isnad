@@ -318,6 +318,7 @@
       <div class="footer-brand">
         <span class="footer-logo">Ilm</span>
         <span class="footer-tagline">Islamic Knowledge Platform</span>
+        <span class="footer-author">Built by <a href="https://github.com/arriqaaq" target="_blank" rel="noopener noreferrer">@arriqaaq</a></span>
       </div>
       <div class="footer-links">
         <div class="footer-col">
@@ -776,30 +777,6 @@
     gap: 36px;
     padding: 60px 0 20px;
   }
-  .feat-compact {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-  .feat-compact h3 {
-    font-size: 1.3rem;
-    font-weight: 700;
-    color: var(--text-primary);
-    letter-spacing: -0.3px;
-  }
-  .feat-compact-img {
-    width: 100%;
-    height: 140px;
-    object-fit: cover;
-    border-radius: 10px;
-    border: 1px solid var(--border);
-    margin-bottom: 4px;
-  }
-  .feat-compact p {
-    font-size: 0.92rem;
-    color: var(--text-secondary);
-    line-height: 1.7;
-  }
 
   /* ══════════════════════════════════
      DATA SOURCES
@@ -1105,6 +1082,19 @@
   .footer-tagline {
     font-size: 0.78rem;
     color: var(--text-muted);
+  }
+  .footer-author {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+  .footer-author a {
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 600;
+  }
+  .footer-author a:hover {
+    text-decoration: underline;
   }
   .footer-links {
     display: flex;

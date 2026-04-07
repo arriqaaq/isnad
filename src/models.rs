@@ -53,6 +53,7 @@ pub struct Hadith {
     pub grade: Option<String>,
     pub book_name: Option<String>,
     pub matn: Option<String>,
+    pub hadith_type: Option<String>,
 }
 
 #[derive(Debug, SurrealValue, Serialize, Clone)]
@@ -61,6 +62,35 @@ pub struct Book {
     pub book_number: i64,
     pub name_en: String,
     pub name_ar: Option<String>,
+}
+
+// ── Hadith type classification ──
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum HadithType {
+    /// Chain reaches Prophet via Companion (marfu')
+    Marfu,
+    /// Companion's own statement, no Prophet reference (mawquf)
+    Mawquf,
+    /// Tabi'i claims from Prophet, skipping Companion (mursal)
+    Mursal,
+    /// Divine speech narrated by Prophet (qudsi)
+    Qudsi,
+    /// Statement of a Tabi'i or later generation (maqtu')
+    Maqtu,
+}
+
+impl HadithType {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            HadithType::Marfu => "marfu",
+            HadithType::Mawquf => "mawquf",
+            HadithType::Mursal => "mursal",
+            HadithType::Qudsi => "qudsi",
+            HadithType::Maqtu => "maqtu",
+        }
+    }
 }
 
 // ── Analysis types ──
@@ -149,6 +179,8 @@ pub struct GraphEdgeData {
     pub source: String,
     pub target: String,
     pub label: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub chain_position: Option<i64>,
 }
 
 // ── API response types (RecordId flattened to String) ──
@@ -210,6 +242,7 @@ pub struct ApiHadith {
     pub grade: Option<String>,
     pub book_name: Option<String>,
     pub matn: Option<String>,
+    pub hadith_type: Option<String>,
 }
 
 impl From<Hadith> for ApiHadith {
@@ -225,6 +258,7 @@ impl From<Hadith> for ApiHadith {
             grade: h.grade,
             book_name: h.book_name,
             matn: h.matn,
+            hadith_type: h.hadith_type,
         }
     }
 }

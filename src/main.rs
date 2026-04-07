@@ -66,6 +66,10 @@ enum Commands {
         /// Enrich narrators with biographical data from AR-Sanad dataset (auto-downloads if missing)
         #[arg(long, default_value = "data/ar_sanad_narrators.csv")]
         narrator_bio: Option<String>,
+
+        /// Classify hadith types (marfu/mawquf/mursal/qudsi/maqtu)
+        #[arg(long)]
+        classify_types: bool,
     },
     /// Ingest Quran data (Arabic + English + Tafsir Ibn Kathir)
     IngestQuran {
@@ -278,6 +282,7 @@ async fn async_main() -> Result<()> {
             families,
             juynboll,
             narrator_bio,
+            classify_types,
         } => {
             let db = db::connect(&db_path).await?;
             db::init_schema(&db).await?;
@@ -377,9 +382,16 @@ async fn async_main() -> Result<()> {
                 did_something = true;
             }
 
+            if classify_types {
+                println!("📊 Classifying hadith types...");
+                let count = analysis::hadith_type::classify_hadith_types(&db).await?;
+                println!("   ✓ Classified {count} hadiths");
+                did_something = true;
+            }
+
             if !did_something {
                 tracing::warn!(
-                    "No analysis flags specified. Use --families, --juynboll, or --narrator-bio."
+                    "No analysis flags specified. Use --families, --juynboll, --narrator-bio, or --classify-types."
                 );
             }
         }
@@ -393,8 +405,19 @@ async fn async_main() -> Result<()> {
             let db = db::connect(&db_path).await?;
             db::init_schema(&db).await?;
             db::init_quran_schema(&db).await?;
-            quran::ingest::ingest(&db, &file).await?;
+            db::init_tafsir_chunk_schema(&db).await?;
+            // Define fulltext indexes BEFORE ingesting data — on an empty table
+            // this is instant, and subsequent inserts incrementally update the
+            // index. This avoids the "memtable history insufficient" error that
+            // occurs when building a fulltext index over thousands of rows in a
+            // single long-running transaction after ingestion.
             db::init_quran_fulltext_indexes(&db).await?;
+            quran::ingest::ingest(&db, &file).await?;
+
+            // Chunk and embed tafsir texts
+            println!("📝 Chunking and embedding tafsir texts...");
+            let embedder = embed::Embedder::new()?;
+            quran::ingest::embed_tafsir_chunks(&db, &embedder).await?;
 
             tracing::info!("Quran ingestion complete");
         }
@@ -441,6 +464,7 @@ async fn async_main() -> Result<()> {
             db::init_quran_schema(&db).await?;
             db::init_quran_word_schema(&db).await?;
             db::init_quran_similar_schema(&db).await?;
+            db::init_tafsir_chunk_schema(&db).await?;
             db::init_reciter_schema(&db).await?;
             quran::audio::init_reciters(&db).await?;
             db::init_fulltext_indexes(&db).await?;

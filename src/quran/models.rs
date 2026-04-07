@@ -77,7 +77,6 @@ pub struct ApiAyah {
     pub text_ar: String,
     pub text_en: Option<String>,
     pub tafsir_en: Option<String>,
-
 }
 
 impl From<Ayah> for ApiAyah {
@@ -89,7 +88,6 @@ impl From<Ayah> for ApiAyah {
             text_ar: a.text_ar,
             text_en: a.text_en,
             tafsir_en: a.tafsir_en,
-
         }
     }
 }

@@ -91,6 +91,25 @@
       <h2>Narrator Chain</h2>
       <ChainView data={graphData} />
     </section>
+
+    {#if data.linked_ayahs && data.linked_ayahs.length > 0}
+      <section class="section">
+        <h2>Referenced Quran Verses</h2>
+        <div class="ayah-list">
+          {#each data.linked_ayahs as ayah}
+            <a href="/quran/{ayah.surah_number}" class="ayah-item">
+              <div class="ayah-meta">
+                <span class="ayah-ref">{ayah.surah_number}:{ayah.ayah_number}</span>
+              </div>
+              <div class="ayah-text arabic" dir="rtl">{ayah.text_ar}</div>
+              {#if ayah.text_en}
+                <div class="ayah-text-en">{ayah.text_en}</div>
+              {/if}
+            </a>
+          {/each}
+        </div>
+      </section>
+    {/if}
   {:else}
     <div class="empty">Hadith not found.</div>
   {/if}
@@ -154,4 +173,35 @@
   .section h2 { margin-bottom: 12px; }
   .chips { display: flex; flex-wrap: wrap; gap: 8px; }
   .empty { text-align: center; color: var(--text-muted); padding: 40px; }
+
+  .ayah-list { display: flex; flex-direction: column; gap: 10px; }
+  .ayah-item {
+    display: block;
+    padding: 12px 16px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    text-decoration: none;
+    color: inherit;
+    transition: border-color 0.15s;
+  }
+  .ayah-item:hover { border-color: var(--accent); }
+  .ayah-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .ayah-ref {
+    font-size: 0.75rem;
+    font-weight: 600;
+    font-family: var(--font-mono);
+    color: var(--accent);
+  }
+  .ayah-text {
+    font-size: 1.15rem;
+    line-height: 2.2;
+    color: var(--text-primary);
+  }
+  .ayah-text-en {
+    font-size: 0.85rem;
+    line-height: 1.6;
+    color: var(--text-secondary);
+    margin-top: 6px;
+  }
 </style>

@@ -7,10 +7,9 @@ use serde::Deserialize;
 
 use crate::models::{ApiHadith, ApiHadithSearchResult};
 use crate::quran::models::{
-    ApiAyah, ApiAyahSearchResult, ApiPhraseWithAyahs, ApiQuranWord, ApiReciter,
-    ApiSimilarAyah, ApiSurah, Ayah, AyahSimilarResponse,
-    QuranPhrase, QuranSearchResponse, QuranStatsResponse, QuranWord, Reciter, RootSearchResponse,
-    Surah, SurahDetailResponse,
+    ApiAyah, ApiAyahSearchResult, ApiPhraseWithAyahs, ApiQuranWord, ApiReciter, ApiSimilarAyah,
+    ApiSurah, Ayah, AyahSimilarResponse, QuranPhrase, QuranSearchResponse, QuranStatsResponse,
+    QuranWord, Reciter, RootSearchResponse, Surah, SurahDetailResponse,
 };
 use crate::rag::ChatChunk;
 
@@ -150,7 +149,10 @@ pub async fn quran_search(
             crate::quran::search::search_ayahs_hybrid(&state.db, &state.embedder, &query, limit, 0)
                 .await
         }
-        "tafsir" => crate::quran::search::search_ayahs_tafsir(&state.db, &query, limit, 0).await,
+        "tafsir" => {
+            crate::quran::search::search_ayahs_tafsir(&state.db, &state.embedder, &query, limit, 0)
+                .await
+        }
         _ => crate::quran::search::search_ayahs_text(&state.db, &query, limit, 0).await,
     };
 
@@ -651,4 +653,3 @@ pub async fn phrase_detail(
         ayah_keys,
     }))
 }
-

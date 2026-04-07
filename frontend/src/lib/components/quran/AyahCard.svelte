@@ -1,13 +1,10 @@
 <script lang="ts">
-  import type { ApiAyah, ApiAyahSearchResult, ApiQuranWord, CCManuscript, AyahHadithResponse, AyahSimilarResponse } from '$lib/types';
-  import { getAyahHadiths, getAyahWords, getAyahManuscripts, getAyahSimilar } from '$lib/api';
+  import type { ApiAyah, ApiAyahSearchResult, ApiQuranWord } from '$lib/types';
+  import { getAyahWords } from '$lib/api';
   import { truncate } from '$lib/utils';
   import { preferences } from '$lib/stores/preferences';
   import { fetchGlyphData, loadPageFont, getPageFontFamily, getVerseGlyph } from '$lib/quranFonts';
-  import AyahHadithList from './AyahHadithList.svelte';
   import WordMorphology from './WordMorphology.svelte';
-  import ManuscriptCard from './ManuscriptCard.svelte';
-  import SimilarAyahs from './SimilarAyahs.svelte';
 
   // QCF glyph state
   let glyphText: string | null = $state(null);
@@ -15,14 +12,12 @@
   let glyphFontFamily: string = $state('');
   let glyphReady = $state(false);
 
-  // Load glyphs when font mode is madani/tajweed
   $effect(() => {
     const mode = $preferences.quranFont;
     if (mode === 'uthmani') {
       glyphReady = false;
       return;
     }
-    // Fetch glyph data + load page font
     const chapter = ayah.surah_number;
     const verse = ayah.ayah_number;
     fetchGlyphData(chapter).then(async () => {
@@ -33,19 +28,16 @@
       glyphFontFamily = getPageFontFamily(glyph.page);
       await loadPageFont(glyph.page, mode);
       glyphReady = true;
-    }).catch(() => {
-      glyphReady = false;
-    });
+    }).catch(() => { glyphReady = false; });
   });
 
-  let { ayah, showScore = false, compact = false, hadithCount = 0, similarCount = 0, active = false, onplay, reciterFolder }: {
+  let { ayah, showScore = false, compact = false, active = false, onplay, onopenpanel, reciterFolder }: {
     ayah: ApiAyah | ApiAyahSearchResult;
     showScore?: boolean;
     compact?: boolean;
-    hadithCount?: number;
-    similarCount?: number;
     active?: boolean;
     onplay?: (ayah: number) => void;
+    onopenpanel?: (ayah: ApiAyah | ApiAyahSearchResult) => void;
     reciterFolder?: string;
   } = $props();
 
@@ -68,82 +60,26 @@
     wordAudio.play().catch(() => {});
   }
 
-  let showTafsir = $state(false);
-  let showHadiths = $state(false);
+  // State
   let showWords = $state(false);
-  let showManuscripts = $state(false);
-  let hadithData: AyahHadithResponse | null = $state(null);
-  let hadithLoading = $state(false);
   let words: ApiQuranWord[] | null = $state(null);
-  let wordsLoading = $state(false);
   let selectedWord: ApiQuranWord | null = $state(null);
-  let manuscriptData: CCManuscript[] | null = $state(null);
-  let manuscriptLoading = $state(false);
-  let showSimilar = $state(false);
-  let similarData: AyahSimilarResponse | null = $state(null);
-  let similarLoading = $state(false);
-
   let score = $derived('score' in ayah ? (ayah as ApiAyahSearchResult).score : null);
 
-  async function toggleHadiths() {
-    showHadiths = !showHadiths;
-    if (showHadiths && !hadithData && !hadithLoading) {
-      hadithLoading = true;
-      try {
-        hadithData = await getAyahHadiths(ayah.surah_number, ayah.ayah_number, true);
-      } catch (e) {
-        console.error('Failed to load hadiths:', e);
-      } finally {
-        hadithLoading = false;
-      }
+  // Eagerly preload word data (for hover/click on default Arabic view)
+  $effect(() => {
+    if (!compact && !words) {
+      getAyahWords(ayah.surah_number, ayah.ayah_number)
+        .then(w => { words = w; })
+        .catch(() => {});
     }
-  }
-
-  async function toggleWords() {
-    showWords = !showWords;
-    if (showWords && !words && !wordsLoading) {
-      wordsLoading = true;
-      try {
-        words = await getAyahWords(ayah.surah_number, ayah.ayah_number);
-      } catch (e) {
-        console.error('Failed to load words:', e);
-      } finally {
-        wordsLoading = false;
-      }
-    }
-  }
-
-  async function toggleManuscripts() {
-    showManuscripts = !showManuscripts;
-    if (showManuscripts && !manuscriptData && !manuscriptLoading) {
-      manuscriptLoading = true;
-      try {
-        manuscriptData = await getAyahManuscripts(ayah.surah_number, ayah.ayah_number);
-      } catch (e) {
-        console.error('Failed to load manuscripts:', e);
-      } finally {
-        manuscriptLoading = false;
-      }
-    }
-  }
-
-  async function toggleSimilar() {
-    showSimilar = !showSimilar;
-    if (showSimilar && !similarData && !similarLoading) {
-      similarLoading = true;
-      try {
-        similarData = await getAyahSimilar(ayah.surah_number, ayah.ayah_number);
-      } catch (e) {
-        console.error('Failed to load similar ayahs:', e);
-      } finally {
-        similarLoading = false;
-      }
-    }
-  }
+  });
 </script>
 
 <div class="ayah-card" class:compact class:active>
+  <!-- Arabic text: always render as interactive word spans when data is loaded -->
   {#if showWords && words}
+    <!-- Detailed word-by-word grid mode -->
     <div class="word-grid" dir="rtl">
       {#each words as word}
         <button
@@ -159,13 +95,26 @@
         </button>
       {/each}
     </div>
-  {:else if showWords && wordsLoading}
-    <div class="words-loading">Loading word data...</div>
   {:else}
+    <!-- Default view: interactive inline word spans or plain text fallback -->
     <div class="ayah-arabic" dir="rtl" style="font-size: {$preferences.arabicFontSize}rem">
       {#if $preferences.quranFont !== 'uthmani' && glyphReady && glyphText}
         <span class="arabic-text qcf-text" style="font-family: {glyphFontFamily}">{glyphText}</span>
+      {:else if words}
+        <!-- Interactive words: each word is a hoverable/clickable span -->
+        {#each words as word}
+          <span
+            class="word-inline"
+            title={word.translation ?? ''}
+            role="button"
+            tabindex="0"
+            onclick={() => { playWordAudio(word); selectedWord = word; }}
+            onkeydown={(e) => { if (e.key === 'Enter') { playWordAudio(word); selectedWord = word; } }}
+          >{word.text_ar}</span>{' '}
+        {/each}
+        <span class="verse-badge">{ayah.ayah_number}</span>
       {:else}
+        <!-- Fallback: plain text while words load -->
         <span class="arabic-text">{ayah.text_ar}</span>
         <span class="verse-badge">{ayah.ayah_number}</span>
       {/if}
@@ -204,74 +153,18 @@
       &#8595;
     </a>
     {#if !compact}
-      <button class="words-toggle" class:active-toggle={showWords} onclick={toggleWords}>
+      <button class="words-toggle" class:active-toggle={showWords} onclick={() => showWords = !showWords}>
         Words
       </button>
     {/if}
-    {#if hadithCount > 0}
-      <button class="hadith-toggle" onclick={toggleHadiths}>
-        {showHadiths ? 'Hide' : 'Show'} Hadith ({hadithCount})
-      </button>
-    {/if}
-    {#if ayah.tafsir_en}
-      <button class="tafsir-toggle" onclick={() => showTafsir = !showTafsir}>
-        {showTafsir ? 'Hide' : 'Show'} Tafsir
-      </button>
-    {/if}
-    {#if !compact}
-      <button class="manuscripts-toggle" class:active-toggle={showManuscripts} onclick={toggleManuscripts}>
-        Manuscripts
-      </button>
-    {/if}
-    {#if similarCount > 0}
-      <button class="similar-toggle" class:active-toggle={showSimilar} onclick={toggleSimilar}>
-        Similar ({similarCount})
+    {#if !compact && onopenpanel}
+      <button class="detail-toggle" onclick={() => onopenpanel(ayah)}>
+        Details
       </button>
     {/if}
   </div>
 
-  {#if showHadiths}
-    <div class="hadith-block">
-      {#if hadithLoading}
-        <div class="hadith-loading">Loading hadiths...</div>
-      {:else if hadithData}
-        <AyahHadithList data={hadithData} />
-      {/if}
-    </div>
-  {/if}
 
-  {#if showTafsir && ayah.tafsir_en}
-    <div class="tafsir-block">
-      <div class="tafsir-label">Tafsir Ibn Kathir</div>
-      <div class="tafsir-text">{@html ayah.tafsir_en}</div>
-    </div>
-  {/if}
-
-  {#if showManuscripts}
-    <div class="manuscript-block">
-      {#if manuscriptLoading}
-        <div class="manuscript-loading">Loading manuscripts...</div>
-      {:else if manuscriptData && manuscriptData.length > 0}
-        <div class="manuscript-scroll">
-          {#each manuscriptData as ms}
-            <ManuscriptCard manuscript={ms} />
-          {/each}
-        </div>
-      {:else if manuscriptData}
-        <div class="manuscript-empty">No manuscripts found for this verse.</div>
-      {/if}
-    </div>
-  {/if}
-
-  {#if showSimilar}
-    <div class="similar-block">
-      {#if similarLoading}
-        <div class="similar-loading">Loading similar ayahs...</div>
-      {:else if similarData}
-        <SimilarAyahs data={similarData} />
-      {/if}
-    </div>
-  {/if}
 </div>
 
 <style>
@@ -298,6 +191,16 @@
     letter-spacing: 0;
     word-spacing: 0.08em;
   }
+  .word-inline {
+    color: var(--text-primary);
+    cursor: pointer;
+    border-radius: 2px;
+    padding: 0 1px;
+    transition: background 0.15s;
+  }
+  .word-inline:hover {
+    background: var(--accent-muted);
+  }
   .verse-badge {
     display: inline;
     font-size: 0.65em;
@@ -317,6 +220,7 @@
     align-items: center;
     gap: 12px;
     padding: 0 8px;
+    flex-wrap: wrap;
   }
   .verse-ref {
     font-size: 0.75rem;
@@ -375,11 +279,6 @@
     font-family: var(--font-mono);
     font-weight: 600;
   }
-  .words-loading {
-    padding: 16px 8px;
-    font-size: 0.85rem;
-    color: var(--text-muted);
-  }
   .transliteration-line {
     font-size: 0.8rem;
     color: var(--text-muted);
@@ -409,7 +308,7 @@
   .download-btn {
     font-size: 0.85rem;
   }
-  .words-toggle, .tafsir-toggle, .hadith-toggle, .manuscripts-toggle, .similar-toggle {
+  .words-toggle, .detail-toggle {
     font-size: 0.75rem;
     color: var(--accent);
     background: none;
@@ -419,109 +318,18 @@
     cursor: pointer;
     transition: all var(--transition);
   }
-  .words-toggle.active-toggle, .manuscripts-toggle.active-toggle, .similar-toggle.active-toggle {
+  .words-toggle.active-toggle {
     background: var(--accent);
     color: var(--bg-primary);
   }
-  .words-toggle:hover, .tafsir-toggle:hover, .hadith-toggle:hover, .manuscripts-toggle:hover, .similar-toggle:hover {
+  .words-toggle:hover, .detail-toggle:hover {
     background: var(--accent-muted);
   }
-  .hadith-block {
-    margin-top: 12px;
-    padding: 16px;
-    background: var(--bg-hover);
-    border-radius: var(--radius);
-    border-left: 3px solid var(--success);
-  }
-  .hadith-loading {
-    font-size: 0.85rem;
-    color: var(--text-muted);
-  }
-  .manuscript-block {
-    margin-top: 12px;
-    padding: 16px;
-    background: var(--bg-hover);
-    border-radius: var(--radius);
-    border-left: 3px solid var(--accent);
-  }
-  .manuscript-scroll {
-    display: flex;
-    overflow-x: auto;
-    gap: 12px;
-    padding-bottom: 8px;
-  }
-  .manuscript-loading, .manuscript-empty {
-    font-size: 0.85rem;
-    color: var(--text-muted);
-  }
-  .similar-block {
-    margin-top: 12px;
-    padding: 16px;
-    background: var(--bg-hover);
-    border-radius: var(--radius);
-    border-left: 3px solid #2196F3;
-  }
-  .similar-loading {
-    font-size: 0.85rem;
-    color: var(--text-muted);
-  }
-  .tafsir-block {
-    margin-top: 12px;
-    padding: 16px;
-    background: var(--bg-hover);
-    border-radius: var(--radius);
-    border-left: 3px solid var(--accent);
-  }
-  .tafsir-label {
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: var(--accent);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-bottom: 8px;
-  }
-  .tafsir-text {
-    font-size: 0.85rem;
-    line-height: 1.7;
-    color: var(--text-secondary);
-    max-height: 400px;
-    overflow-y: auto;
-  }
-  /* Tafsir HTML content styling */
-  .tafsir-text :global(h2.title) {
-    font-size: 1rem;
-    font-weight: 700;
-    color: var(--text-primary);
-    margin: 16px 0 8px;
-    border-bottom: 1px solid var(--border);
-    padding-bottom: 4px;
-  }
-  .tafsir-text :global(h2.title:first-child) {
-    margin-top: 0;
-  }
-  .tafsir-text :global(p) {
-    margin: 8px 0;
-    line-height: 1.7;
-  }
-  .tafsir-text :global(div.text_uthmani) {
-    font-size: 1.1rem;
-    text-align: right;
-    direction: rtl;
-    color: var(--text-primary);
-    margin: 8px 0;
-    padding: 8px;
-    background: var(--bg-surface);
-    border-radius: var(--radius-sm);
-  }
-
-  /* Tajweed color coding */
-  /* Mobile responsive */
   @media (max-width: 640px) {
     .ayah-card { padding: 14px 0; }
     .ayah-arabic { padding: 0 12px; }
     .ayah-translation { padding: 0 12px; }
-    .ayah-footer { padding: 0 12px; flex-wrap: wrap; }
-    .tafsir-block, .hadith-block { margin-left: 12px; margin-right: 12px; }
+    .ayah-footer { padding: 0 12px; }
+    .hadith-block { margin-left: 12px; margin-right: 12px; }
   }
-
 </style>

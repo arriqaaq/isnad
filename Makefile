@@ -37,26 +37,31 @@ list-books:
 ingest-test:
 	cargo run -- ingest --limit 5 --translate --translate-model qwen3:8b
 
-# Full hadith pipeline: ingest all 6 books + human translations + narrator bios + families + transmission analysis
+# Full hadith pipeline: ingest all 6 books + human translations + narrator bios + type classification + families + transmission analysis
 hadith-full:
 	@echo ""
 	@echo "═══════════════════════════════════════"
-	@echo "  Step 1/4: Ingesting hadith data"
+	@echo "  Step 1/5: Ingesting hadith data"
 	@echo "═══════════════════════════════════════"
 	cargo run -- ingest
 	@echo ""
 	@echo "═══════════════════════════════════════"
-	@echo "  Step 2/4: Enriching narrator bios"
+	@echo "  Step 2/5: Enriching narrator bios"
 	@echo "═══════════════════════════════════════"
 	cargo run -- analyze --narrator-bio data/ar_sanad_narrators.csv
 	@echo ""
 	@echo "═══════════════════════════════════════"
-	@echo "  Step 3/4: Computing hadith families"
+	@echo "  Step 3/5: Classifying hadith types"
+	@echo "═══════════════════════════════════════"
+	cargo run -- analyze --classify-types
+	@echo ""
+	@echo "═══════════════════════════════════════"
+	@echo "  Step 4/5: Computing hadith families"
 	@echo "═══════════════════════════════════════"
 	cargo run -- analyze --families
 	@echo ""
 	@echo "═══════════════════════════════════════"
-	@echo "  Step 4/4: Transmission analysis"
+	@echo "  Step 5/5: Transmission analysis"
 	@echo "═══════════════════════════════════════"
 	cargo run -- analyze --juynboll
 	@echo ""

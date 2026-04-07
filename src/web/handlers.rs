@@ -203,7 +203,7 @@ pub async fn hadith_detail(
     let narrators = match state
         .db
         .query("SELECT <-narrates<-narrator.* AS narrators FROM $rid")
-        .bind(("rid", hrid))
+        .bind(("rid", hrid.clone()))
         .await
     {
         Ok(mut r) => {
@@ -216,9 +216,34 @@ pub async fn hadith_detail(
         }
     };
 
+    // Get linked Quran verses (reverse lookup on references_hadith)
+    let linked_ayahs: Vec<crate::quran::models::ApiAyah> = match state
+        .db
+        .query(
+            "SELECT in.id AS id, in.surah_number AS surah_number, in.ayah_number AS ayah_number, \
+             in.text_ar AS text_ar, in.text_en AS text_en, in.tafsir_en AS tafsir_en \
+             FROM references_hadith WHERE out = $rid ORDER BY surah_number, ayah_number",
+        )
+        .bind(("rid", hrid.clone()))
+        .await
+    {
+        Ok(mut r) => {
+            let ayahs: Vec<crate::quran::models::Ayah> = r.take(0).unwrap_or_default();
+            ayahs
+                .into_iter()
+                .map(crate::quran::models::ApiAyah::from)
+                .collect()
+        }
+        Err(e) => {
+            tracing::error!("Linked ayahs query failed: {e}");
+            vec![]
+        }
+    };
+
     Ok(Json(serde_json::json!({
         "hadith": ApiHadith::from(hadith),
-        "narrators": narrators.into_iter().map(ApiNarrator::from).collect::<Vec<_>>()
+        "narrators": narrators.into_iter().map(ApiNarrator::from).collect::<Vec<_>>(),
+        "linked_ayahs": linked_ayahs
     })))
 }
 
@@ -374,7 +399,7 @@ pub async fn chain_graph_data(
 
     let edges: Vec<HeardFromEdge> = match state
         .db
-        .query("SELECT in AS in_id, out AS out_id FROM heard_from WHERE hadith_ref = $rid")
+        .query("SELECT in AS in_id, out AS out_id, chain_position FROM heard_from WHERE hadith_ref = $rid ORDER BY chain_position")
         .bind(("rid", hrid))
         .await
     {
@@ -416,6 +441,7 @@ pub async fn chain_graph_data(
                 source: record_id_string(&edge.in_id),
                 target: record_id_string(&edge.out_id),
                 label: "heard from".into(),
+                chain_position: edge.chain_position,
             },
         });
     }
@@ -522,6 +548,7 @@ pub async fn narrator_graph_data(
                         source: nid_str.clone(),
                         target: tid_str,
                         label: "heard from".into(),
+                        chain_position: None,
                     },
                 });
             }
@@ -548,6 +575,7 @@ pub async fn narrator_graph_data(
                         source: sid_str,
                         target: nid_str.clone(),
                         label: "heard from".into(),
+                        chain_position: None,
                     },
                 });
             }
@@ -1091,6 +1119,7 @@ struct StudentsResult {
 struct HeardFromEdge {
     in_id: RecordId,
     out_id: RecordId,
+    chain_position: Option<i64>,
 }
 
 // ── Unified Quran & Sunnah endpoints ──
