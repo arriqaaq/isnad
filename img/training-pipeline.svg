@@ -10,7 +10,7 @@
   <circle cx="56" cy="36" r="15" fill="#d63384"/>
   <text x="56" y="41" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="12" font-weight="700" fill="#ffffff">1</text>
   <text x="84" y="32" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="13" font-weight="700" fill="#1a1a2e">Raw Data</text>
-  <text x="84" y="48" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="11" fill="#9ca3af">Sanadset 368K hadiths · QUL 6,236 ayahs · Sunnah.com 33K translations · AR-Sanad 18K narrators</text>
+  <text x="84" y="48" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="11" fill="#9ca3af">SemanticHadith 34K hadiths · QUL 6,236 ayahs · Sunnah.com 33K translations</text>
 
   <!-- Connector -->
   <line x1="350" y1="62" x2="350" y2="80" stroke="#d63384" stroke-width="2" opacity="0.4"/>

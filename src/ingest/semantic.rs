@@ -90,6 +90,17 @@ fn parse_year(s: &str) -> Option<i64> {
     s.trim().parse().ok()
 }
 
+/// Map SemanticHadith type names to proper mustalah al-hadith terminology.
+fn map_hadith_type(raw: &str) -> &str {
+    match raw {
+        "elevated" => "مرفوع",
+        "stopped" => "موقوف",
+        "sacred" => "قدسي",
+        "severed" => "مقطوع",
+        other => other,
+    }
+}
+
 /// Fix English hadith text: normalize honorifics to use ﷺ symbol.
 fn fix_english_text(text: &str) -> String {
     text.replace("Allah's Apostle", "Allah's Messenger (ﷺ)")
@@ -346,7 +357,14 @@ pub async fn ingest(
         .bind(("text_en", text_en))
         .bind(("narrator_text", narrator_text))
         .bind(("book_name", hadith.book_name.clone()))
-        .bind(("hadith_type", hadith.hadith_type.clone()))
+        .bind((
+            "hadith_type",
+            hadith
+                .hadith_type
+                .as_deref()
+                .map(map_hadith_type)
+                .map(String::from),
+        ))
         .bind(("topics", hadith.topics.clone().unwrap_or_default()))
         .bind((
             "quran_verses",

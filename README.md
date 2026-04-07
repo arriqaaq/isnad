@@ -55,7 +55,7 @@ make dev                      # start server at localhost:3000
 
 | Dataset | Records | Content |
 |---|---|---|
-| [Sanadset 650K](https://data.mendeley.com/datasets/5xth87zwb5/4) | 368K hadiths | Arabic text + pre-parsed narrator chains from 926 books |
+| [SemanticHadith KG V2](https://github.com/A-Kamran/SemanticHadith-V2) | 34K hadiths | Knowledge graph with narrator chains across 6 canonical collections |
 | [Sunnah.com](https://huggingface.co/datasets/meeAtif/hadith_datasets) | 33K translations | Human English for 6 canonical collections |
 | [QUL (Tarteel)](https://qul.tarteel.ai/) | 6,236 ayahs | QPC Hafs Arabic + Sahih International English |
 | [Tafsir Ibn Kathir](https://qul.tarteel.ai/resources/tafsir/35) | 6,236 ayahs | Classical exegesis in English (HTML) |
@@ -69,7 +69,7 @@ All datasets are auto-downloaded on first run. See [DATA_SOURCES.md](docs/DATA_S
   <img src="img/ingest-pipeline.svg" alt="Ingest pipeline" width="700">
 </p>
 
-Parses the Sanadset CSV, builds the narrator graph, generates embeddings, and merges human English translations from sunnah.com. Use `--translate` to fill gaps with Ollama.
+Parses the SemanticHadith KG, builds the narrator graph, generates embeddings, and merges human English translations from sunnah.com. Use `--translate` to fill gaps with Ollama.
 
 ## Search
 

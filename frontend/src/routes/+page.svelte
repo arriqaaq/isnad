@@ -199,9 +199,9 @@
       </div>
       <div class="source-grid">
         <div class="source-card animate-on-scroll stagger-1" use:inview>
-          <div class="source-num">368K</div>
-          <h4>Sanadset 650K</h4>
-          <p>Hadith records with pre-parsed narrator chains from 926 books</p>
+          <div class="source-num">34K</div>
+          <h4>SemanticHadith KG</h4>
+          <p>Hadiths with narrator chains and knowledge graph from 6 canonical collections</p>
         </div>
         <div class="source-card animate-on-scroll stagger-2" use:inview>
           <div class="source-num">6,236</div>
@@ -287,7 +287,7 @@
           <h3 class="hood-subtitle animate-on-scroll" use:inview>Training Pipeline</h3>
           <div class="pipeline-grid">
             {#each [
-              { n: '1', title: 'Raw Data', desc: 'Sanadset 368K · QUL · Sunnah.com' },
+              { n: '1', title: 'Raw Data', desc: 'SemanticHadith 34K · QUL · Sunnah.com' },
               { n: '2', title: 'Parse & Enrich', desc: 'Join translations + narrator bios + tafsir' },
               { n: '3', title: 'Generate QA', desc: 'ChatML pairs matching RAG prompt pattern' },
               { n: '4', title: 'LoRA Fine-tune', desc: 'MLX on Phi-4-mini / Qwen' },
