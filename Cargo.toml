@@ -47,3 +47,8 @@ clap = { version = "4", features = ["derive", "env"] }
 
 # Regex
 regex = "1"
+
+# Optimize dependencies in dev builds — SurrealDB's HNSW and query engine
+# use deep call stacks that overflow when compiled at opt-level 0.
+[profile.dev.package."*"]
+opt-level = 2

@@ -7,9 +7,9 @@ use serde::Deserialize;
 
 use crate::models::{ApiHadith, ApiHadithSearchResult};
 use crate::quran::models::{
-    ApiAyah, ApiAyahSearchResult, ApiPhraseWithAyahs, ApiQuranWord, ApiReciter, ApiSimilarAyah,
-    ApiSurah, Ayah, AyahSimilarResponse, QuranPhrase, QuranSearchResponse, QuranStatsResponse,
-    QuranWord, Reciter, RootSearchResponse, Surah, SurahDetailResponse,
+    AYAH_FIELDS, ApiAyah, ApiAyahSearchResult, ApiPhraseWithAyahs, ApiQuranWord, ApiReciter,
+    ApiSimilarAyah, ApiSurah, Ayah, AyahSimilarResponse, QuranPhrase, QuranSearchResponse,
+    QuranStatsResponse, QuranWord, Reciter, RootSearchResponse, Surah, SurahDetailResponse,
 };
 use crate::rag::ChatChunk;
 
@@ -97,26 +97,20 @@ pub async fn surah_detail(
     State(state): State<AppState>,
     Path(number): Path<i64>,
 ) -> Result<Json<SurahDetailResponse>, StatusCode> {
-    // Get surah
+    // Single multi-statement query instead of 2 sequential round trips
     let mut res = state
         .db
-        .query("SELECT * FROM surah WHERE surah_number = $num LIMIT 1")
+        .query(format!(
+            "SELECT * FROM surah WHERE surah_number = $num LIMIT 1; \
+             SELECT {AYAH_FIELDS} FROM ayah WHERE surah_number = $num ORDER BY ayah_number ASC"
+        ))
         .bind(("num", number))
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
     let surah: Option<Surah> = res.take(0).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let surah = surah.ok_or(StatusCode::NOT_FOUND)?;
-
-    // Get ayahs for this surah
-    let mut res2 = state
-        .db
-        .query("SELECT * FROM ayah WHERE surah_number = $num ORDER BY ayah_number ASC")
-        .bind(("num", number))
-        .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let ayahs: Vec<Ayah> = res2
-        .take(0)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let ayahs: Vec<Ayah> = res.take(1).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     Ok(Json(SurahDetailResponse {
         surah: ApiSurah::from(surah),
@@ -179,7 +173,7 @@ pub async fn ayah_browse(
     let (sql, needs_surah) = if let Some(surah) = params.surah {
         (
             format!(
-                "SELECT * FROM ayah WHERE surah_number = $surah \
+                "SELECT {AYAH_FIELDS} FROM ayah WHERE surah_number = $surah \
                  ORDER BY ayah_number ASC LIMIT {limit} START {offset}"
             ),
             Some(surah),
@@ -187,7 +181,7 @@ pub async fn ayah_browse(
     } else {
         (
             format!(
-                "SELECT * FROM ayah ORDER BY surah_number ASC, ayah_number ASC \
+                "SELECT {AYAH_FIELDS} FROM ayah ORDER BY surah_number ASC, ayah_number ASC \
                  LIMIT {limit} START {offset}"
             ),
             None,

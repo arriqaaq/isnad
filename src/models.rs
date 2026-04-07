@@ -57,7 +57,16 @@ pub struct Hadith {
     pub topics: Option<Vec<String>>,
     pub quran_verses: Option<Vec<String>>,
     pub chapter_name: Option<String>,
+    pub family_id: Option<RecordId>,
 }
+
+/// Hadith fields excluding `embedding` — use instead of `SELECT *`.
+pub const HADITH_FIELDS: &str = "id, hadith_number, book_id, chapter_id, text_ar, text_en, \
+    narrator_text, grade, book_name, matn, hadith_type, topics, quran_verses, chapter_name, family_id";
+
+/// Subset for search results (lighter weight).
+pub const HADITH_SEARCH_FIELDS: &str =
+    "id, hadith_number, book_id, text_ar, text_en, narrator_text";
 
 #[derive(Debug, SurrealValue, Serialize, Clone)]
 pub struct Book {

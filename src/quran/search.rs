@@ -7,13 +7,20 @@ use surrealdb::types::SurrealValue;
 use crate::db::Db;
 use crate::embed::Embedder;
 
-use super::models::AyahSearchResult;
+use super::models::{AYAH_SEARCH_FIELDS, AyahSearchResult};
 
 /// Result from search::rrf() — contains id and fused score.
 #[derive(Debug, SurrealValue)]
 struct RrfResult {
     id: Option<surrealdb::types::RecordId>,
     rrf_score: Option<f64>,
+}
+
+/// Result from KNN vector search — contains id and precomputed distance.
+#[derive(Debug, SurrealValue)]
+struct KnnResult {
+    id: Option<surrealdb::types::RecordId>,
+    distance: Option<f64>,
 }
 
 /// Escape a user query for safe inlining in SurrealQL string literals.
@@ -61,7 +68,9 @@ pub async fn search_ayahs_text(
     let ids: Vec<surrealdb::types::RecordId> = fused.iter().filter_map(|r| r.id.clone()).collect();
 
     let mut fetch_resp = db
-        .query("SELECT *, 0.0 AS score FROM ayah WHERE id IN $ids")
+        .query(format!(
+            "SELECT {AYAH_SEARCH_FIELDS}, 0.0 AS score FROM ayah WHERE id IN $ids"
+        ))
         .bind(("ids", ids))
         .await?;
     let mut results: Vec<AyahSearchResult> = fetch_resp.take(0)?;
@@ -88,6 +97,9 @@ pub async fn search_ayahs_text(
 }
 
 /// Semantic search for ayahs using vector similarity.
+///
+/// Uses 2-step KNN approach: get IDs + precomputed distance, then fetch records.
+/// Avoids vector::similarity::cosine() in SELECT which overflows the stack.
 pub async fn search_ayahs_semantic(
     db: &Surreal<Db>,
     embedder: &Embedder,
@@ -97,12 +109,42 @@ pub async fn search_ayahs_semantic(
     let query_vec = embedder.embed_single(query)?;
 
     let sql = format!(
-        "SELECT *, vector::similarity::cosine(embedding, $query_vec) AS score FROM ayah \
-         WHERE embedding <|{limit},80|> $query_vec \
-         ORDER BY score DESC"
+        "SELECT id, vector::distance::knn() AS distance \
+         FROM ayah WHERE embedding <|{limit},80|> $query_vec"
     );
     let mut response = db.query(&sql).bind(("query_vec", query_vec)).await?;
-    let results: Vec<AyahSearchResult> = response.take(0)?;
+    let knn: Vec<KnnResult> = response.take(0)?;
+
+    if knn.is_empty() {
+        return Ok(vec![]);
+    }
+
+    let ids: Vec<surrealdb::types::RecordId> = knn.iter().filter_map(|r| r.id.clone()).collect();
+    let mut fetch = db
+        .query(format!(
+            "SELECT {AYAH_SEARCH_FIELDS}, 0.0 AS score FROM ayah WHERE id IN $ids"
+        ))
+        .bind(("ids", ids))
+        .await?;
+    let mut results: Vec<AyahSearchResult> = fetch.take(0)?;
+
+    #[allow(clippy::mutable_key_type)]
+    let score_map: std::collections::HashMap<_, _> = knn
+        .into_iter()
+        .filter_map(|r| Some((r.id?, 1.0 - r.distance.unwrap_or(0.0))))
+        .collect();
+    for a in &mut results {
+        if let Some(ref aid) = a.id {
+            a.score = score_map.get(aid).copied();
+        }
+    }
+    results.sort_by(|a, b| {
+        b.score
+            .unwrap_or(0.0)
+            .partial_cmp(&a.score.unwrap_or(0.0))
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
+
     Ok(results)
 }
 
@@ -142,7 +184,9 @@ pub async fn search_ayahs_hybrid(
     let ids: Vec<surrealdb::types::RecordId> = fused.iter().filter_map(|r| r.id.clone()).collect();
 
     let mut fetch_response = db
-        .query("SELECT *, 0.0 AS score FROM ayah WHERE id IN $ids")
+        .query(format!(
+            "SELECT {AYAH_SEARCH_FIELDS}, 0.0 AS score FROM ayah WHERE id IN $ids"
+        ))
         .bind(("ids", ids))
         .await?;
     let mut ayahs: Vec<AyahSearchResult> = fetch_response.take(0)?;
@@ -178,7 +222,7 @@ async fn search_ayahs_tafsir_bm25(
     // TODO(surrealdb#7199): use bind variables instead of inline literals
     let safe_q = escape_surql(query);
     let sql = format!(
-        "SELECT *, search::score(1) AS score FROM ayah \
+        "SELECT {AYAH_SEARCH_FIELDS}, search::score(1) AS score FROM ayah \
          WHERE tafsir_en @1@ '{safe_q}' \
          ORDER BY score DESC \
          LIMIT {limit} START {offset}"
@@ -248,7 +292,9 @@ async fn search_ayahs_tafsir_semantic(
         sorted.iter().map(|(k, _, sc)| (k.clone(), *sc)).collect();
 
     let mut fetch_resp = db
-        .query("SELECT *, 0.0 AS score FROM ayah WHERE id IN $ids")
+        .query(format!(
+            "SELECT {AYAH_SEARCH_FIELDS}, 0.0 AS score FROM ayah WHERE id IN $ids"
+        ))
         .bind(("ids", ids))
         .await?;
     let mut results: Vec<AyahSearchResult> = fetch_resp.take(0)?;
@@ -334,7 +380,9 @@ pub async fn search_ayahs_tafsir(
     let score_map: HashMap<String, f64> = fused.into_iter().collect();
 
     let mut fetch_resp = db
-        .query("SELECT *, 0.0 AS score FROM ayah WHERE id IN $ids")
+        .query(format!(
+            "SELECT {AYAH_SEARCH_FIELDS}, 0.0 AS score FROM ayah WHERE id IN $ids"
+        ))
         .bind(("ids", ids))
         .await?;
     let mut results: Vec<AyahSearchResult> = fetch_resp.take(0)?;

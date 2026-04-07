@@ -11,8 +11,8 @@ use crate::analysis;
 use crate::models::{
     ApiBook, ApiHadith, ApiHadithFamily, ApiHadithSearchResult, ApiNarrator,
     ApiNarratorSearchResult, ApiNarratorWithCount, Book, GraphData, GraphEdge, GraphEdgeData,
-    GraphNode, GraphNodeData, Hadith, HadithFamily, Narrator, PaginatedResponse, StatsResponse,
-    record_id_key_string, record_id_string,
+    GraphNode, GraphNodeData, HADITH_FIELDS, Hadith, HadithFamily, Narrator, PaginatedResponse,
+    StatsResponse, record_id_key_string, record_id_string,
 };
 use crate::rag::ChatChunk;
 
@@ -155,12 +155,12 @@ pub async fn hadith_list(
 
     let query = if let Some(book_id) = params.book {
         format!(
-            "SELECT * FROM hadith WHERE book_id = {book_id} \
+            "SELECT {HADITH_FIELDS} FROM hadith WHERE book_id = {book_id} \
              ORDER BY hadith_number ASC LIMIT {limit} START {offset}"
         )
     } else {
         format!(
-            "SELECT * FROM hadith ORDER BY hadith_number ASC \
+            "SELECT {HADITH_FIELDS} FROM hadith ORDER BY hadith_number ASC \
              LIMIT {limit} START {offset}"
         )
     };
@@ -187,10 +187,18 @@ pub async fn hadith_detail(
 ) -> Result<impl IntoResponse, StatusCode> {
     let hrid = rid("hadith", &id);
 
+    // Single multi-statement query instead of 4 sequential round trips
     let mut res = state
         .db
-        .query("SELECT * FROM $rid")
-        .bind(("rid", hrid.clone()))
+        .query(format!(
+            "SELECT {HADITH_FIELDS} FROM $rid; \
+             SELECT <-narrates<-narrator.* AS narrators FROM $rid; \
+             SELECT in.id AS id, in.surah_number AS surah_number, in.ayah_number AS ayah_number, \
+               in.text_ar AS text_ar, in.text_en AS text_en, in.tafsir_en AS tafsir_en \
+               FROM references_hadith WHERE out = $rid ORDER BY surah_number, ayah_number; \
+             SELECT ->similar_to->hadith.{{{HADITH_FIELDS}}} AS hadiths FROM $rid;"
+        ))
+        .bind(("rid", hrid))
         .await
         .map_err(|e| {
             tracing::error!("Hadith detail query failed: {e}");
@@ -200,67 +208,28 @@ pub async fn hadith_detail(
     let hadith: Option<Hadith> = res.take(0).unwrap_or(None);
     let hadith = hadith.ok_or(StatusCode::NOT_FOUND)?;
 
-    let narrators = match state
-        .db
-        .query("SELECT <-narrates<-narrator.* AS narrators FROM $rid")
-        .bind(("rid", hrid.clone()))
-        .await
-    {
-        Ok(mut r) => {
-            let result: Option<NarratorsResult> = r.take(0).unwrap_or(None);
-            result.map(|r| r.narrators).unwrap_or_default()
-        }
-        Err(e) => {
-            tracing::error!("Narrator query for hadith failed: {e}");
-            vec![]
-        }
+    let narrators: Vec<Narrator> = {
+        let result: Option<NarratorsResult> = res.take(1).unwrap_or(None);
+        result.map(|r| r.narrators).unwrap_or_default()
     };
 
-    // Get linked Quran verses (reverse lookup on references_hadith)
-    let linked_ayahs: Vec<crate::quran::models::ApiAyah> = match state
-        .db
-        .query(
-            "SELECT in.id AS id, in.surah_number AS surah_number, in.ayah_number AS ayah_number, \
-             in.text_ar AS text_ar, in.text_en AS text_en, in.tafsir_en AS tafsir_en \
-             FROM references_hadith WHERE out = $rid ORDER BY surah_number, ayah_number",
-        )
-        .bind(("rid", hrid.clone()))
-        .await
-    {
-        Ok(mut r) => {
-            let ayahs: Vec<crate::quran::models::Ayah> = r.take(0).unwrap_or_default();
-            ayahs
-                .into_iter()
-                .map(crate::quran::models::ApiAyah::from)
-                .collect()
-        }
-        Err(e) => {
-            tracing::error!("Linked ayahs query failed: {e}");
-            vec![]
-        }
+    let linked_ayahs: Vec<crate::quran::models::ApiAyah> = {
+        let ayahs: Vec<crate::quran::models::Ayah> = res.take(2).unwrap_or_default();
+        ayahs
+            .into_iter()
+            .map(crate::quran::models::ApiAyah::from)
+            .collect()
     };
 
-    // Get similar hadiths
-    let similar_hadiths: Vec<ApiHadith> = match state
-        .db
-        .query("SELECT ->similar_to->hadith.* AS hadiths FROM $rid")
-        .bind(("rid", hrid.clone()))
-        .await
-    {
-        Ok(mut r) => {
-            #[derive(Debug, SurrealValue)]
-            struct HadithsResult {
-                hadiths: Vec<Hadith>,
-            }
-            let result: Option<HadithsResult> = r.take(0).unwrap_or(None);
-            result
-                .map(|r| r.hadiths.into_iter().map(ApiHadith::from).collect())
-                .unwrap_or_default()
+    let similar_hadiths: Vec<ApiHadith> = {
+        #[derive(Debug, SurrealValue)]
+        struct HadithsResult {
+            hadiths: Vec<Hadith>,
         }
-        Err(e) => {
-            tracing::error!("Similar hadiths query failed: {e}");
-            vec![]
-        }
+        let result: Option<HadithsResult> = res.take(3).unwrap_or(None);
+        result
+            .map(|r| r.hadiths.into_iter().map(ApiHadith::from).collect())
+            .unwrap_or_default()
     };
 
     Ok(Json(serde_json::json!({
@@ -350,10 +319,12 @@ pub async fn narrator_detail(
     let (narrator, hadiths, teachers, students) = match state
         .db
         .query(
-            "SELECT * FROM $rid; \
-             SELECT ->narrates->hadith.* AS hadiths FROM $rid; \
-             SELECT array::distinct(array::filter(->heard_from->narrator.*, |$v| $v IS NOT NONE)) AS teachers FROM $rid; \
-             SELECT array::distinct(array::filter(<-heard_from<-narrator.*, |$v| $v IS NOT NONE)) AS students FROM $rid;",
+            &format!(
+                "SELECT * FROM $rid; \
+                 SELECT ->narrates->hadith.{{{HADITH_FIELDS}}} AS hadiths FROM $rid; \
+                 SELECT array::distinct(array::filter(->heard_from->narrator.*, |$v| $v IS NOT NONE)) AS teachers FROM $rid; \
+                 SELECT array::distinct(array::filter(<-heard_from<-narrator.*, |$v| $v IS NOT NONE)) AS students FROM $rid;"
+            ),
         )
         .bind(("rid", nrid))
         .await
@@ -845,33 +816,7 @@ pub async fn family_detail(
     State(state): State<AppState>,
     Path(id): Path<String>,
 ) -> Result<impl IntoResponse, StatusCode> {
-    // Get family
-    let mut res = state
-        .db
-        .query("SELECT * FROM $rid")
-        .bind(("rid", rid("hadith_family", &id)))
-        .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let family: Option<HadithFamily> =
-        res.take(0).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let family = family.ok_or(StatusCode::NOT_FOUND)?;
-
-    // Get hadiths in family
-    let mut res = state
-        .db
-        .query("SELECT * FROM hadith WHERE family_id = $fid ORDER BY hadith_number ASC")
-        .bind(("fid", rid("hadith_family", &id)))
-        .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let hadiths: Vec<Hadith> = res.take(0).unwrap_or_default();
-
-    // Get CL/PCL analysis results
-    let mut res = state
-        .db
-        .query("SELECT * FROM cl_analysis WHERE family = $fid ORDER BY rank ASC")
-        .bind(("fid", rid("hadith_family", &id)))
-        .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let fid = rid("hadith_family", &id);
 
     #[derive(Debug, SurrealValue, serde::Serialize)]
     struct ClAnalysisRow {
@@ -889,9 +834,7 @@ pub async fn family_detail(
         family_status: String,
         rank: i64,
     }
-    let analysis: Vec<ClAnalysisRow> = res.take(0).unwrap_or_default();
 
-    // Get Juynboll falsifiability analysis
     #[derive(Debug, SurrealValue, serde::Serialize)]
     struct JuynbollRow {
         has_reliable_bypass: bool,
@@ -903,13 +846,26 @@ pub async fn family_detail(
         upstream_reliable_ratio: f64,
         upstream_branching_points: i64,
     }
+
+    // Single multi-statement query instead of 4 sequential round trips
     let mut res = state
         .db
-        .query("SELECT * FROM juynboll_analysis WHERE family = $fid LIMIT 1")
-        .bind(("fid", rid("hadith_family", &id)))
+        .query(format!(
+            "SELECT * FROM $fid; \
+             SELECT {HADITH_FIELDS} FROM hadith WHERE family_id = $fid ORDER BY hadith_number ASC; \
+             SELECT * FROM cl_analysis WHERE family = $fid ORDER BY rank ASC; \
+             SELECT * FROM juynboll_analysis WHERE family = $fid LIMIT 1;"
+        ))
+        .bind(("fid", fid))
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let juynboll: Option<JuynbollRow> = res.take(0).unwrap_or(None);
+
+    let family: Option<HadithFamily> =
+        res.take(0).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let family = family.ok_or(StatusCode::NOT_FOUND)?;
+    let hadiths: Vec<Hadith> = res.take(1).unwrap_or_default();
+    let analysis: Vec<ClAnalysisRow> = res.take(2).unwrap_or_default();
+    let juynboll: Option<JuynbollRow> = res.take(3).unwrap_or(None);
 
     Ok(Json(serde_json::json!({
         "family": ApiHadithFamily::from(family),
@@ -1022,23 +978,19 @@ pub async fn matn_diff_handler(
     let a_id = params.a.ok_or(StatusCode::BAD_REQUEST)?;
     let b_id = params.b.ok_or(StatusCode::BAD_REQUEST)?;
 
-    // Fetch both hadiths
+    // Fetch both hadiths in a single multi-statement query
     let mut res = state
         .db
-        .query("SELECT * FROM $rid")
-        .bind(("rid", rid("hadith", &a_id)))
+        .query(format!(
+            "SELECT {HADITH_FIELDS} FROM $rid_a; SELECT {HADITH_FIELDS} FROM $rid_b;"
+        ))
+        .bind(("rid_a", rid("hadith", &a_id)))
+        .bind(("rid_b", rid("hadith", &b_id)))
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let hadith_a: Option<Hadith> = res.take(0).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let hadith_a = hadith_a.ok_or(StatusCode::NOT_FOUND)?;
-
-    let mut res = state
-        .db
-        .query("SELECT * FROM $rid")
-        .bind(("rid", rid("hadith", &b_id)))
-        .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let hadith_b: Option<Hadith> = res.take(0).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let hadith_b: Option<Hadith> = res.take(1).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let hadith_b = hadith_b.ok_or(StatusCode::NOT_FOUND)?;
 
     // Use Arabic text (or English fallback) for diffing

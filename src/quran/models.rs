@@ -3,6 +3,13 @@ use surrealdb::types::{RecordId, SurrealValue};
 
 use crate::models::record_id_key_string;
 
+/// Ayah fields excluding `embedding` — use instead of `SELECT *`.
+pub const AYAH_FIELDS: &str = "id, surah_number, ayah_number, text_ar, text_ar_simple, \
+    text_en, tafsir_en, juz, hizb";
+
+/// Subset for search results (lighter weight).
+pub const AYAH_SEARCH_FIELDS: &str = "id, surah_number, ayah_number, text_ar, text_en, tafsir_en";
+
 // ── Database record types ──
 
 #[derive(Debug, SurrealValue, Serialize, Clone)]

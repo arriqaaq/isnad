@@ -112,7 +112,7 @@ enum Commands {
 }
 
 fn main() -> Result<()> {
-    let stack_size = 128 * 1024 * 1024; // 128 MB — SurrealDB recursive operations need deep stacks
+    let stack_size = 64 * 1024 * 1024; // 128 MB — SurrealDB recursive operations need deep stacks
     eprintln!("Starting tokio runtime with {stack_size} byte worker thread stacks");
     tokio::runtime::Builder::new_multi_thread()
         .enable_all()

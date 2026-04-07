@@ -15,19 +15,6 @@ const CONTEXT_AYAH_COUNT: usize = 4;
 const CONTEXT_HADITH_COUNT: usize = 4;
 const MAX_TAFSIR_CHARS: usize = 1000;
 
-/// Narrator info returned from chain query.
-#[derive(Debug, SurrealValue)]
-struct ChainNarrator {
-    name_ar: Option<String>,
-    name_en: String,
-}
-
-/// Result of the narrator chain query for a hadith.
-#[derive(Debug, SurrealValue)]
-struct ChainResult {
-    narrators: Vec<ChainNarrator>,
-}
-
 #[derive(Serialize)]
 struct ChatRequest {
     model: String,
@@ -89,36 +76,57 @@ impl OllamaClient {
             context.push('\n');
         }
 
-        // 3. Build Hadith context with narrator chains
+        // 3. Batch-fetch narrator chains for all hadith sources (avoids N+1)
+        let hids: Vec<surrealdb::types::RecordId> =
+            hadith_sources.iter().filter_map(|h| h.id.clone()).collect();
+
+        #[derive(Debug, SurrealValue)]
+        struct NarratesRow {
+            hadith: surrealdb::types::RecordId,
+            name_ar: Option<String>,
+            name_en: String,
+        }
+
+        let chain_map: std::collections::HashMap<String, Vec<String>> = if !hids.is_empty() {
+            match db
+                .query(
+                    "SELECT out AS hadith, in.name_ar AS name_ar, in.name_en AS name_en \
+                     FROM narrates WHERE out IN $hids",
+                )
+                .bind(("hids", hids))
+                .await
+            {
+                Ok(mut res) => {
+                    let rows: Vec<NarratesRow> = res.take(0).unwrap_or_default();
+                    let mut map: std::collections::HashMap<String, Vec<String>> =
+                        std::collections::HashMap::new();
+                    for row in rows {
+                        let hkey = record_id_string(&row.hadith);
+                        let name = row.name_ar.unwrap_or(row.name_en);
+                        map.entry(hkey).or_default().push(name);
+                    }
+                    map
+                }
+                Err(e) => {
+                    tracing::error!("Batch narrator chain query failed: {e}");
+                    std::collections::HashMap::new()
+                }
+            }
+        } else {
+            std::collections::HashMap::new()
+        };
+
+        // Build Hadith context with narrator chains
         context.push_str("## Relevant Hadiths:\n\n");
         for h in &hadith_sources {
             let narrator = h.narrator_text.as_deref().unwrap_or("Unknown narrator");
 
-            // Fetch narrator chain via graph traversal
-            let chain_str = if let Some(ref hid) = h.id {
-                let rid_str = record_id_string(hid);
-                let chain_result: Result<Option<ChainResult>, _> = db
-                    .query(
-                        "SELECT <-narrates<-narrator.{name_ar, name_en} AS narrators FROM type::thing($rid)",
-                    )
-                    .bind(("rid", rid_str))
-                    .await
-                    .and_then(|mut r| r.take(0));
-
-                match chain_result {
-                    Ok(Some(cr)) if !cr.narrators.is_empty() => {
-                        let names: Vec<String> = cr
-                            .narrators
-                            .iter()
-                            .map(|n| n.name_ar.clone().unwrap_or_else(|| n.name_en.clone()))
-                            .collect();
-                        format!("Chain of narration: {}", names.join(" → "))
-                    }
-                    _ => String::new(),
-                }
-            } else {
-                String::new()
-            };
+            let chain_str =
+                h.id.as_ref()
+                    .and_then(|hid| chain_map.get(&record_id_string(hid)))
+                    .filter(|names| !names.is_empty())
+                    .map(|names| format!("Chain of narration: {}", names.join(" → ")))
+                    .unwrap_or_default();
 
             context.push_str(&format!("Hadith #{} — {}\n", h.hadith_number, narrator));
             if !chain_str.is_empty() {

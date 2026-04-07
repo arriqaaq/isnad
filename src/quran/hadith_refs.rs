@@ -7,6 +7,7 @@ use surrealdb::types::{RecordId, SurrealValue};
 
 use crate::db::Db;
 use crate::ingest::sanadset::make_progress;
+use crate::models::{HADITH_FIELDS, HADITH_SEARCH_FIELDS};
 
 fn rid(table: &str, key: &str) -> RecordId {
     RecordId::new(table, key)
@@ -573,20 +574,18 @@ pub async fn get_curated_hadiths(
 ) -> Result<Vec<crate::models::Hadith>> {
     let ayah_key = format!("{surah}_{ayah}");
 
-    // SurrealDB graph traversal: record->edge->target returns array of target records
-    // We query the edge table directly and fetch the linked hadith records
+    // Two-step to avoid pulling embedding via out.*:
+    // 1. Get linked hadith IDs from edge table
+    // 2. Fetch hadith records with explicit fields
     let mut res = db
-        .query("SELECT out.* FROM references_hadith WHERE in = $ayah_id")
+        .query(format!(
+            "LET $ids = (SELECT VALUE out FROM references_hadith WHERE in = $ayah_id); \
+             SELECT {HADITH_FIELDS} FROM hadith WHERE id IN $ids"
+        ))
         .bind(("ayah_id", rid("ayah", &ayah_key)))
         .await?;
 
-    #[derive(Debug, SurrealValue)]
-    struct OutRow {
-        out: Option<crate::models::Hadith>,
-    }
-
-    let rows: Vec<OutRow> = res.take(0)?;
-    let hadiths: Vec<crate::models::Hadith> = rows.into_iter().filter_map(|r| r.out).collect();
+    let hadiths: Vec<crate::models::Hadith> = res.take(1)?;
 
     Ok(hadiths)
 }
@@ -649,15 +648,50 @@ pub async fn find_semantic_hadiths(
         None => return Ok(Vec::new()),
     };
 
-    // HNSW similarity search against hadith embeddings
-    let sql = format!(
-        "SELECT *, vector::similarity::cosine(embedding, $query_vec) AS score FROM hadith \
-         WHERE embedding <|{limit},80|> $query_vec \
-         ORDER BY score DESC"
-    );
+    // 2-step KNN: get IDs + precomputed distance, then fetch records.
+    // Avoids vector::similarity::cosine() in SELECT which overflows the stack.
+    #[derive(Debug, surrealdb::types::SurrealValue)]
+    struct KnnHit {
+        id: Option<surrealdb::types::RecordId>,
+        distance: Option<f64>,
+    }
 
+    let sql = format!(
+        "SELECT id, vector::distance::knn() AS distance \
+         FROM hadith WHERE embedding <|{limit},80|> $query_vec"
+    );
     let mut res = db.query(&sql).bind(("query_vec", embedding)).await?;
-    let results: Vec<crate::models::HadithSearchResult> = res.take(0)?;
+    let knn: Vec<KnnHit> = res.take(0)?;
+
+    if knn.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    let ids: Vec<surrealdb::types::RecordId> = knn.iter().filter_map(|r| r.id.clone()).collect();
+    let mut fetch = db
+        .query(format!(
+            "SELECT {HADITH_SEARCH_FIELDS}, 0.0 AS score FROM hadith WHERE id IN $ids"
+        ))
+        .bind(("ids", ids))
+        .await?;
+    let mut results: Vec<crate::models::HadithSearchResult> = fetch.take(0)?;
+
+    #[allow(clippy::mutable_key_type)]
+    let score_map: std::collections::HashMap<_, _> = knn
+        .into_iter()
+        .filter_map(|r| Some((r.id?, 1.0 - r.distance.unwrap_or(0.0))))
+        .collect();
+    for h in &mut results {
+        if let Some(ref hid) = h.id {
+            h.score = score_map.get(hid).copied();
+        }
+    }
+    results.sort_by(|a, b| {
+        b.score
+            .unwrap_or(0.0)
+            .partial_cmp(&a.score.unwrap_or(0.0))
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
 
     Ok(results)
 }
