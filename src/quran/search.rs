@@ -16,13 +16,6 @@ struct RrfResult {
     rrf_score: Option<f64>,
 }
 
-/// Result from KNN vector search — contains id and precomputed distance.
-#[derive(Debug, SurrealValue)]
-struct KnnResult {
-    id: Option<surrealdb::types::RecordId>,
-    distance: Option<f64>,
-}
-
 /// Escape a user query for safe inlining in SurrealQL string literals.
 ///
 /// WORKAROUND: SurrealDB BM25 `@N@` operator silently returns 0 results when
@@ -98,8 +91,8 @@ pub async fn search_ayahs_text(
 
 /// Semantic search for ayahs using vector similarity.
 ///
-/// Uses 2-step KNN approach: get IDs + precomputed distance, then fetch records.
-/// Avoids vector::similarity::cosine() in SELECT which overflows the stack.
+/// Single-step KNN with cosine similarity scoring. Uses explicit field selection
+/// (not `SELECT *`) to avoid pulling the embedding column through the result set.
 pub async fn search_ayahs_semantic(
     db: &Surreal<Db>,
     embedder: &Embedder,
@@ -109,42 +102,12 @@ pub async fn search_ayahs_semantic(
     let query_vec = embedder.embed_single(query)?;
 
     let sql = format!(
-        "SELECT id, vector::distance::knn() AS distance \
-         FROM ayah WHERE embedding <|{limit},80|> $query_vec"
+        "SELECT {AYAH_SEARCH_FIELDS}, vector::similarity::cosine(embedding, $query_vec) AS score \
+         FROM ayah WHERE embedding <|{limit},80|> $query_vec \
+         ORDER BY score DESC"
     );
     let mut response = db.query(&sql).bind(("query_vec", query_vec)).await?;
-    let knn: Vec<KnnResult> = response.take(0)?;
-
-    if knn.is_empty() {
-        return Ok(vec![]);
-    }
-
-    let ids: Vec<surrealdb::types::RecordId> = knn.iter().filter_map(|r| r.id.clone()).collect();
-    let mut fetch = db
-        .query(format!(
-            "SELECT {AYAH_SEARCH_FIELDS}, 0.0 AS score FROM ayah WHERE id IN $ids"
-        ))
-        .bind(("ids", ids))
-        .await?;
-    let mut results: Vec<AyahSearchResult> = fetch.take(0)?;
-
-    #[allow(clippy::mutable_key_type)]
-    let score_map: std::collections::HashMap<_, _> = knn
-        .into_iter()
-        .filter_map(|r| Some((r.id?, 1.0 - r.distance.unwrap_or(0.0))))
-        .collect();
-    for a in &mut results {
-        if let Some(ref aid) = a.id {
-            a.score = score_map.get(aid).copied();
-        }
-    }
-    results.sort_by(|a, b| {
-        b.score
-            .unwrap_or(0.0)
-            .partial_cmp(&a.score.unwrap_or(0.0))
-            .unwrap_or(std::cmp::Ordering::Equal)
-    });
-
+    let results: Vec<AyahSearchResult> = response.take(0)?;
     Ok(results)
 }
 

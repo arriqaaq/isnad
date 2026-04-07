@@ -46,6 +46,7 @@ pub async fn search_unified(
     db: &Surreal<Db>,
     embedder: &Embedder,
     query: &str,
+    search_type: &str,
     limit: usize,
     page: usize,
 ) -> Result<UnifiedSearchResponse> {
@@ -54,17 +55,35 @@ pub async fn search_unified(
     let fetch_per_source = page * limit + 1;
 
     tracing::debug!(
-        "unified search: query={query:?} limit={limit} page={page} fetch_per_source={fetch_per_source}"
+        "unified search: query={query:?} type={search_type} limit={limit} page={page} fetch_per_source={fetch_per_source}"
     );
 
     // Run searches sequentially to avoid doubling HNSW stack usage on one worker thread
-    let hadiths = crate::search::search_hadiths_hybrid(db, embedder, query, fetch_per_source, 0)
-        .await
-        .unwrap_or_default();
+    let hadiths = match search_type {
+        "semantic" => crate::search::search_hadiths_semantic(db, embedder, query, fetch_per_source)
+            .await
+            .unwrap_or_default(),
+        "text" => crate::search::search_hadiths_text(db, query, fetch_per_source, 0)
+            .await
+            .unwrap_or_default(),
+        _ => crate::search::search_hadiths_hybrid(db, embedder, query, fetch_per_source, 0)
+            .await
+            .unwrap_or_default(),
+    };
 
-    let ayahs = crate::quran::search::search_ayahs_hybrid(db, embedder, query, fetch_per_source, 0)
-        .await
-        .unwrap_or_default();
+    let ayahs = match search_type {
+        "semantic" => {
+            crate::quran::search::search_ayahs_semantic(db, embedder, query, fetch_per_source)
+                .await
+                .unwrap_or_default()
+        }
+        "text" => crate::quran::search::search_ayahs_text(db, query, fetch_per_source, 0)
+            .await
+            .unwrap_or_default(),
+        _ => crate::quran::search::search_ayahs_hybrid(db, embedder, query, fetch_per_source, 0)
+            .await
+            .unwrap_or_default(),
+    };
 
     let quran_count = ayahs.len();
     let hadith_count = hadiths.len();
@@ -106,7 +125,7 @@ pub async fn search_unified(
 
     Ok(UnifiedSearchResponse {
         query: query.to_string(),
-        search_type: "hybrid".to_string(),
+        search_type: search_type.to_string(),
         results,
         quran_count,
         hadith_count,

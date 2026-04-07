@@ -1109,13 +1109,14 @@ pub async fn unified_search(
     Query(params): Query<SearchParams>,
 ) -> impl IntoResponse {
     let query = params.q.unwrap_or_default();
+    let search_type = params.search_type.unwrap_or_else(|| "hybrid".into());
     let limit = params.limit.unwrap_or(20);
     let page = params.page.unwrap_or(1).max(1);
 
     if query.is_empty() {
         return Json(serde_json::json!({
             "query": query,
-            "search_type": "hybrid",
+            "search_type": search_type,
             "results": [],
             "quran_count": 0,
             "hadith_count": 0,
@@ -1124,7 +1125,16 @@ pub async fn unified_search(
         }));
     }
 
-    match crate::unified::search_unified(&state.db, &state.embedder, &query, limit, page).await {
+    match crate::unified::search_unified(
+        &state.db,
+        &state.embedder,
+        &query,
+        &search_type,
+        limit,
+        page,
+    )
+    .await
+    {
         Ok(response) => Json(serde_json::to_value(response).unwrap()),
         Err(e) => {
             tracing::error!("Unified search failed: {e}");

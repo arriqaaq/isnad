@@ -15,13 +15,6 @@ struct RrfResult {
     rrf_score: Option<f64>,
 }
 
-/// Result from KNN vector search — contains id and precomputed distance.
-#[derive(Debug, SurrealValue)]
-struct KnnResult {
-    id: Option<surrealdb::types::RecordId>,
-    distance: Option<f64>,
-}
-
 /// Escape a user query for safe inlining in SurrealQL string literals.
 ///
 /// WORKAROUND: SurrealDB BM25 `@N@` operator silently returns 0 results when
@@ -94,12 +87,8 @@ pub async fn search_hadiths_text(
 
 /// Semantic search for hadiths using vector similarity.
 ///
-/// Uses a 2-step approach matching the hybrid search pattern:
-/// (1) KNN search returns IDs + precomputed distance via vector::distance::knn()
-/// (2) Fetch full records by ID
-/// This avoids vector::similarity::cosine(embedding, $query_vec) in SELECT which
-/// forces SurrealDB to load full embeddings through its expression evaluator and
-/// overflows the stack on large tables.
+/// Single-step KNN with cosine similarity scoring. Uses explicit field selection
+/// (not `SELECT *`) to avoid pulling the embedding column through the result set.
 pub async fn search_hadiths_semantic(
     db: &Surreal<Db>,
     embedder: &Embedder,
@@ -108,46 +97,13 @@ pub async fn search_hadiths_semantic(
 ) -> Result<Vec<HadithSearchResult>> {
     let query_vec = embedder.embed_single(query)?;
 
-    // Step 1: KNN search — get IDs + precomputed distance
     let sql = format!(
-        "SELECT id, vector::distance::knn() AS distance \
-         FROM hadith WHERE embedding <|{limit},80|> $query_vec"
+        "SELECT {HADITH_SEARCH_FIELDS}, vector::similarity::cosine(embedding, $query_vec) AS score \
+         FROM hadith WHERE embedding <|{limit},80|> $query_vec \
+         ORDER BY score DESC"
     );
     let mut response = db.query(&sql).bind(("query_vec", query_vec)).await?;
-    let knn: Vec<KnnResult> = response.take(0)?;
-
-    if knn.is_empty() {
-        return Ok(vec![]);
-    }
-
-    // Step 2: Fetch full records by ID
-    let ids: Vec<surrealdb::types::RecordId> = knn.iter().filter_map(|r| r.id.clone()).collect();
-    let mut fetch = db
-        .query(format!(
-            "SELECT {HADITH_SEARCH_FIELDS}, 0.0 AS score FROM hadith WHERE id IN $ids"
-        ))
-        .bind(("ids", ids))
-        .await?;
-    let mut results: Vec<HadithSearchResult> = fetch.take(0)?;
-
-    // Attach scores (cosine similarity = 1 - cosine distance)
-    #[allow(clippy::mutable_key_type)]
-    let score_map: HashMap<_, _> = knn
-        .into_iter()
-        .filter_map(|r| Some((r.id?, 1.0 - r.distance.unwrap_or(0.0))))
-        .collect();
-    for h in &mut results {
-        if let Some(ref hid) = h.id {
-            h.score = score_map.get(hid).copied();
-        }
-    }
-    results.sort_by(|a, b| {
-        b.score
-            .unwrap_or(0.0)
-            .partial_cmp(&a.score.unwrap_or(0.0))
-            .unwrap_or(std::cmp::Ordering::Equal)
-    });
-
+    let results: Vec<HadithSearchResult> = response.take(0)?;
     Ok(results)
 }
 
