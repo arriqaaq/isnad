@@ -21,8 +21,15 @@
     {/if}
   </div>
 
+  {#if narrator.kunya}
+    <div class="kunya" dir="rtl">{narrator.kunya}</div>
+  {/if}
+
   <div class="card-footer">
     <span class="hadith-count mono">{narrator.hadith_count} hadiths</span>
+    {#if narrator.death_year}
+      <span class="death-year mono">d. {narrator.death_year} AH</span>
+    {/if}
   </div>
 </a>
 
@@ -62,10 +69,29 @@
     min-width: 0;
   }
 
-  .card-footer { margin-top: 8px; }
+  .kunya {
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    margin-top: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .card-footer {
+    margin-top: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
 
   .hadith-count {
     color: var(--text-muted);
     font-size: 0.8rem;
+  }
+
+  .death-year {
+    color: var(--text-muted);
+    font-size: 0.75rem;
   }
 </style>

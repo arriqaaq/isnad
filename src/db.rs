@@ -68,7 +68,10 @@ DEFINE FIELD IF NOT EXISTS narrator_text ON hadith TYPE option<string>;
 DEFINE FIELD IF NOT EXISTS grade         ON hadith TYPE option<string>;
 DEFINE FIELD IF NOT EXISTS book_name    ON hadith TYPE option<string>;
 DEFINE FIELD IF NOT EXISTS matn         ON hadith TYPE option<string>;
-DEFINE FIELD IF NOT EXISTS hadith_type  ON hadith TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS hadith_type   ON hadith TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS topics        ON hadith TYPE option<array<string>>;
+DEFINE FIELD IF NOT EXISTS quran_verses  ON hadith TYPE option<array<string>>;
+DEFINE FIELD IF NOT EXISTS chapter_name  ON hadith TYPE option<string>;
 DEFINE FIELD IF NOT EXISTS embedding     ON hadith TYPE option<array<float>>;
 DEFINE INDEX IF NOT EXISTS hadith_vec    ON TABLE hadith FIELDS embedding HNSW DIMENSION 384 DIST COSINE;
 DEFINE INDEX IF NOT EXISTS hadith_book   ON TABLE hadith FIELDS book_id;
@@ -77,6 +80,9 @@ DEFINE TABLE IF NOT EXISTS book SCHEMAFULL;
 DEFINE FIELD IF NOT EXISTS book_number ON book TYPE int;
 DEFINE FIELD IF NOT EXISTS name_en     ON book TYPE string;
 DEFINE FIELD IF NOT EXISTS name_ar     ON book TYPE option<string>;
+
+-- Similar hadith edges (from SemanticHadith KG)
+DEFINE TABLE IF NOT EXISTS similar_to SCHEMALESS;
 
 -- === ANALYSIS TABLES ===
 

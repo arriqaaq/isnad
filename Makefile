@@ -1,4 +1,4 @@
-.PHONY: build frontend backend server dev stop ingest ingest-test ingest-full list-books hadith-full hadith-ingest quran-prepare quran-prepare-deps quran-ingest quran-hadith-refs quran-morphology quran-similar quran quran-full quran-check analyze analyze-bio analyze-families analyze-transmission pipeline-check pipeline-test pipeline-full clean
+.PHONY: build frontend backend server dev stop semantic-download semantic-extract semantic-verify semantic-setup ingest ingest-test ingest-full hadith-full hadith-ingest sanadset-download quran-prepare quran-prepare-deps quran-ingest quran-hadith-refs quran-morphology quran-similar quran quran-full quran-check analyze analyze-families analyze-transmission pipeline-check pipeline-test pipeline-full clean
 
 # SurrealDB HNSW index traversal needs extra stack space
 export RUST_MIN_STACK=8388608
@@ -29,39 +29,48 @@ dev: build
 stop:
 	@pkill -f "target/debug/hadith serve" 2>/dev/null && echo "Server stopped" || echo "No server running"
 
-# List available books in dataset
-list-books:
-	cargo run -- ingest --list-books
+# === SemanticHadith KG data preparation (one-time) ===
 
-# Quick test ingest (5 per book, with translation via qwen3:8b)
+# Download SemanticHadith KG V2 TTL (one-time, ~27MB compressed)
+semantic-download:
+	@mkdir -p /tmp
+	curl -L -o /tmp/SemanticHadithKGV2.ttl.zip \
+		https://github.com/A-Kamran/SemanticHadith-V2/raw/main/SemanticHadithKGV2.ttl.zip
+	cd /tmp && unzip -o SemanticHadithKGV2.ttl.zip
+	@echo "✓ SemanticHadith TTL extracted to /tmp/SemanticHadithKGV2.ttl"
+
+# Extract TTL to JSON (one-time, requires rdflib: pip install rdflib)
+semantic-extract:
+	python3 scripts/build_semantic_data.py
+
+# Verify extracted data
+semantic-verify:
+	python3 scripts/verify_semantic_data.py
+
+# Full SemanticHadith setup (download + extract + verify)
+semantic-setup: semantic-download semantic-extract semantic-verify
+
+# === Hadith ingestion ===
+
+# Quick test ingest (5 per book)
 ingest-test:
-	cargo run -- ingest --limit 5 --translate --translate-model qwen3:8b
+	cargo run -- ingest --limit 5
 
-# Full hadith pipeline: ingest all 6 books + human translations + narrator bios + type classification + families + transmission analysis
+# Full hadith pipeline: ingest all 6 books + families + transmission analysis
 hadith-full:
 	@echo ""
 	@echo "═══════════════════════════════════════"
-	@echo "  Step 1/5: Ingesting hadith data"
+	@echo "  Step 1/3: Ingesting hadith data"
 	@echo "═══════════════════════════════════════"
 	cargo run -- ingest
 	@echo ""
 	@echo "═══════════════════════════════════════"
-	@echo "  Step 2/5: Enriching narrator bios"
-	@echo "═══════════════════════════════════════"
-	cargo run -- analyze --narrator-bio data/ar_sanad_narrators.csv
-	@echo ""
-	@echo "═══════════════════════════════════════"
-	@echo "  Step 3/5: Classifying hadith types"
-	@echo "═══════════════════════════════════════"
-	cargo run -- analyze --classify-types
-	@echo ""
-	@echo "═══════════════════════════════════════"
-	@echo "  Step 4/5: Computing hadith families"
+	@echo "  Step 2/3: Computing hadith families"
 	@echo "═══════════════════════════════════════"
 	cargo run -- analyze --families
 	@echo ""
 	@echo "═══════════════════════════════════════"
-	@echo "  Step 5/5: Transmission analysis"
+	@echo "  Step 3/3: Transmission analysis"
 	@echo "═══════════════════════════════════════"
 	cargo run -- analyze --juynboll
 	@echo ""
@@ -71,13 +80,21 @@ hadith-full:
 hadith-ingest:
 	cargo run -- ingest
 
-# Full ingest of 6 major books with translation via qwen3:8b
+# Full ingest with Ollama translation for remaining gaps
 ingest-full:
 	cargo run -- ingest --translate --translate-model qwen3:8b
 
-# Ingest with human English translations (no Ollama needed)
+# Ingest with sunnah.com English translations (no Ollama needed)
 ingest:
 	cargo run -- ingest
+
+# Download Sanadset dataset (reference only — not used in current pipeline)
+sanadset-download:
+	@echo "Downloading Sanadset 650K (reference dataset, not used in current pipeline)..."
+	@mkdir -p data
+	curl -L -o /tmp/sanadset.zip "https://data.mendeley.com/public-api/zip/5xth87zwb5/download/5"
+	cd /tmp && unzip -o sanadset.zip -d sanadset_tmp && mv sanadset_tmp/*.csv data/sanadset.csv
+	@echo "✓ Sanadset downloaded to data/sanadset.csv"
 
 # === Quran ingestion ===
 
@@ -181,17 +198,13 @@ quran-full: quran-check quran data/quran-morphology.txt data/morphology-terms-ar
 
 # === Analyze phase (runs on already-ingested data) ===
 
-# Enrich narrators with AR-Sanad biographical data (auto-downloads dataset)
-analyze-bio:
-	cargo run -- analyze --narrator-bio data/ar_sanad_narrators.csv
-
 # Compute hadith families from embedding similarity
 analyze-families:
 	cargo run -- analyze --families
 
-# Run all analysis: narrator bios + families
+# Run all analysis: families
 analyze:
-	cargo run -- analyze --narrator-bio data/ar_sanad_narrators.csv --families
+	cargo run -- analyze --families
 
 # Run transmission integrity analysis (CL/PCL + structural falsifiability tests)
 analyze-transmission:
@@ -200,7 +213,7 @@ analyze-transmission:
 # Full pipeline: ingest 100 per book + all analysis
 pipeline-test:
 	cargo run -- ingest --limit 100
-	cargo run -- analyze --narrator-bio data/ar_sanad_narrators.csv --families
+	cargo run -- analyze --families
 	cargo run -- analyze --juynboll
 
 # === Full pipeline (everything from scratch) ===
@@ -210,7 +223,7 @@ pipeline-check:
 	@echo "Checking required data files..."
 	@ok=true; \
 	echo "── Hadith ──"; \
-	test -f data/sanadset.csv                           && echo "  ✓ data/sanadset.csv" || echo "  ○ data/sanadset.csv (will auto-download from Mendeley)"; \
+	test -f data/semantic_hadith.json                    && echo "  ✓ data/semantic_hadith.json" || { echo "  ✗ data/semantic_hadith.json (run: make semantic-setup)"; ok=false; }; \
 	echo "── Quran ──"; \
 	test -f data/quran.csv                              && echo "  ✓ data/quran.csv" || echo "  ○ data/quran.csv (will auto-generate via quran-prepare)"; \
 	test -f data/quran-morphology.txt                   && echo "  ✓ data/quran-morphology.txt" || echo "  ○ data/quran-morphology.txt (will auto-download)"; \

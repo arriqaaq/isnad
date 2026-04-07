@@ -15,23 +15,11 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    /// Ingest hadith data from a Sanadset CSV file
+    /// Ingest hadith data from SemanticHadith KG (6 major books with identified narrators)
     Ingest {
-        /// Path to Sanadset CSV file
-        #[arg(long, default_value = "data/sanadset.csv")]
+        /// Path to SemanticHadith JSON data file
+        #[arg(long, default_value = "data/semantic_hadith.json")]
         file: String,
-
-        /// List all available books and exit
-        #[arg(long)]
-        list_books: bool,
-
-        /// Comma-separated book numbers to load (from --list-books output)
-        #[arg(long)]
-        books: Option<String>,
-
-        /// Load all books (not just the default 6)
-        #[arg(long)]
-        all: bool,
 
         /// Max hadiths per book (for testing). Omit to load all.
         #[arg(long)]
@@ -62,14 +50,6 @@ enum Commands {
         /// Run Juynboll falsifiability analysis on CL candidates
         #[arg(long)]
         juynboll: bool,
-
-        /// Enrich narrators with biographical data from AR-Sanad dataset (auto-downloads if missing)
-        #[arg(long, default_value = "data/ar_sanad_narrators.csv")]
-        narrator_bio: Option<String>,
-
-        /// Classify hadith types (marfu/mawquf/mursal/qudsi/maqtu)
-        #[arg(long)]
-        classify_types: bool,
     },
     /// Ingest Quran data (Arabic + English + Tafsir Ibn Kathir)
     IngestQuran {
@@ -131,85 +111,6 @@ enum Commands {
     },
 }
 
-const SANADSET_ZIP_URL: &str = "https://data.mendeley.com/public-api/zip/5xth87zwb5/download/5";
-
-async fn download_sanadset(target_path: &str) -> Result<()> {
-    use futures::StreamExt;
-    use indicatif::{ProgressBar, ProgressStyle};
-    use std::io::Write;
-
-    let data_dir = std::path::Path::new(target_path)
-        .parent()
-        .unwrap_or(std::path::Path::new("data"));
-    std::fs::create_dir_all(data_dir)?;
-
-    let zip_path = data_dir.join("sanadset.zip");
-
-    // Download with progress bar
-    println!("📥 Downloading Sanadset dataset from Mendeley Data...");
-    let response = reqwest::get(SANADSET_ZIP_URL).await?;
-    if !response.status().is_success() {
-        anyhow::bail!("Download failed: HTTP {}", response.status());
-    }
-
-    let total = response.content_length().unwrap_or(0);
-    let pb = ProgressBar::new(total);
-    pb.set_style(
-        ProgressStyle::default_bar()
-            .template("   {bar:40.cyan/blue} {bytes}/{total_bytes} ({eta})")
-            .unwrap(),
-    );
-
-    let mut file = std::fs::File::create(&zip_path)?;
-    let mut stream = response.bytes_stream();
-    while let Some(chunk) = stream.next().await {
-        let chunk = chunk?;
-        pb.inc(chunk.len() as u64);
-        file.write_all(&chunk)?;
-    }
-    pb.finish_with_message("downloaded");
-    println!("   ✓ Downloaded {} MB", total / 1_000_000);
-
-    // Unzip — find the largest CSV (that's the sanadset data)
-    println!("📦 Extracting...");
-    let file = std::fs::File::open(&zip_path)?;
-    let mut archive = zip::ZipArchive::new(file)?;
-
-    // List all CSVs and pick the largest one
-    let mut largest_idx: Option<usize> = None;
-    let mut largest_size: u64 = 0;
-    for i in 0..archive.len() {
-        let entry = archive.by_index(i)?;
-        let name = entry.name().to_string();
-        let size = entry.size();
-        if name.ends_with(".csv") {
-            println!("   found: {} ({} MB)", name, size / 1_000_000);
-            if size > largest_size {
-                largest_size = size;
-                largest_idx = Some(i);
-            }
-        }
-    }
-
-    if let Some(idx) = largest_idx {
-        let mut entry = archive.by_index(idx)?;
-        let name = entry.name().to_string();
-        let mut out = std::fs::File::create(target_path)?;
-        std::io::copy(&mut entry, &mut out)?;
-        println!(
-            "   ✓ Extracted {name} ({} MB) → {target_path}",
-            largest_size / 1_000_000
-        );
-    } else {
-        anyhow::bail!("No CSV file found in the downloaded zip");
-    }
-
-    // Cleanup zip
-    std::fs::remove_file(&zip_path).ok();
-    tracing::info!("Dataset ready at {target_path}");
-    Ok(())
-}
-
 fn main() -> Result<()> {
     let stack_size = 128 * 1024 * 1024; // 128 MB — SurrealDB recursive operations need deep stacks
     eprintln!("Starting tokio runtime with {stack_size} byte worker thread stacks");
@@ -233,36 +134,28 @@ async fn async_main() -> Result<()> {
     match cli.command {
         Commands::Ingest {
             file,
-            list_books,
-            books,
-            all,
             limit,
             translate,
             translate_model,
             db_path,
         } => {
-            // Auto-download sanadset if file doesn't exist
-            let file = if !std::path::Path::new(&file).exists() {
-                tracing::info!("Dataset not found at {file}, downloading...");
-                download_sanadset(&file).await?;
-                file
-            } else {
-                file
-            };
-
-            if list_books {
-                ingest::sanadset::print_book_list(&file)?;
-                return Ok(());
+            if !std::path::Path::new(&file).exists() {
+                anyhow::bail!(
+                    "SemanticHadith JSON not found at {file}\n\
+                     Run: make semantic-download && make semantic-extract"
+                );
             }
-
-            let selected = ingest::sanadset::resolve_books(&file, books.as_deref(), all)?;
-            tracing::info!("Selected {} books for ingestion", selected.len());
 
             let db = db::connect(&db_path).await?;
             db::init_schema(&db).await?;
-            ingest::sanadset::ingest(&db, &file, &selected, limit).await?;
+            // Define fulltext indexes BEFORE ingesting data — on an empty table
+            // this is instant, and subsequent inserts incrementally update the
+            // index. This avoids the "memtable history insufficient" error that
+            // occurs when building a fulltext index over thousands of rows.
+            db::init_fulltext_indexes(&db).await?;
+            ingest::semantic::ingest(&db, &file, limit).await?;
 
-            // Always merge human translations from sunnah.com (free, instant)
+            // Merge human English translations from sunnah.com (better quality)
             println!("🌐 Merging human English translations from sunnah.com...");
             ingest::sanadset::merge_human_translations(&db).await?;
 
@@ -272,17 +165,12 @@ async fn async_main() -> Result<()> {
                 ingest::sanadset::translate_all(&db, &translate_model).await?;
             }
 
-            // Create BM25 full-text indexes after data is loaded
-            db::init_fulltext_indexes(&db).await?;
-
             tracing::info!("Ingestion complete");
         }
         Commands::Analyze {
             db_path,
             families,
             juynboll,
-            narrator_bio,
-            classify_types,
         } => {
             let db = db::connect(&db_path).await?;
             db::init_schema(&db).await?;
@@ -376,23 +264,8 @@ async fn async_main() -> Result<()> {
                 did_something = true;
             }
 
-            if let Some(bio_path) = narrator_bio {
-                println!("📚 Enriching narrators with AR-Sanad biographical data...");
-                ingest::narrator_bio::ingest_narrator_bios(&db, &bio_path).await?;
-                did_something = true;
-            }
-
-            if classify_types {
-                println!("📊 Classifying hadith types...");
-                let count = analysis::hadith_type::classify_hadith_types(&db).await?;
-                println!("   ✓ Classified {count} hadiths");
-                did_something = true;
-            }
-
             if !did_something {
-                tracing::warn!(
-                    "No analysis flags specified. Use --families, --juynboll, --narrator-bio, or --classify-types."
-                );
+                tracing::warn!("No analysis flags specified. Use --families or --juynboll.");
             }
         }
         Commands::IngestQuran { file, db_path } => {
@@ -467,10 +340,6 @@ async fn async_main() -> Result<()> {
             db::init_tafsir_chunk_schema(&db).await?;
             db::init_reciter_schema(&db).await?;
             quran::audio::init_reciters(&db).await?;
-            db::init_fulltext_indexes(&db).await?;
-            db::backfill_narrator_hadith_counts(&db).await?;
-            // Quran fulltext indexes are created during ingest-quran, not here.
-            // Creating them on an empty table with option<string> fields causes errors.
             web::serve(db, port, ollama_url, ollama_model).await?;
         }
     }

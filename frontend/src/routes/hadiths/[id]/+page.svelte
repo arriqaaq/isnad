@@ -46,14 +46,29 @@
         {:else}
           <Badge text="Book {data.hadith.book_id}" />
         {/if}
+        {#if data.hadith.hadith_type}
+          <Badge text={data.hadith.hadith_type} variant="default" />
+        {/if}
         {#if data.hadith.grade}
           <Badge text={data.hadith.grade} variant="success" />
         {/if}
       </div>
     </div>
 
+    {#if data.hadith.chapter_name}
+      <div class="chapter-name">{data.hadith.chapter_name}</div>
+    {/if}
+
     {#if data.hadith.narrator_text}
       <div class="narrator-text">{data.hadith.narrator_text}</div>
+    {/if}
+
+    {#if data.hadith.topics && data.hadith.topics.length > 0}
+      <div class="topics">
+        {#each data.hadith.topics as topic}
+          <Badge text={topic} variant="default" />
+        {/each}
+      </div>
     {/if}
 
     <div class="text-section">
@@ -104,6 +119,28 @@
               <div class="ayah-text arabic" dir="rtl">{ayah.text_ar}</div>
               {#if ayah.text_en}
                 <div class="ayah-text-en">{ayah.text_en}</div>
+              {/if}
+            </a>
+          {/each}
+        </div>
+      </section>
+    {/if}
+    {#if data.similar_hadiths && data.similar_hadiths.length > 0}
+      <section class="section">
+        <h2>Similar Hadiths</h2>
+        <div class="similar-list">
+          {#each data.similar_hadiths as similar}
+            <a href="/hadiths/{similar.id}" class="similar-item">
+              <div class="similar-meta">
+                <span class="similar-ref">#{similar.hadith_number}</span>
+                {#if similar.book_name}
+                  <Badge text={similar.book_name} variant="accent" />
+                {/if}
+              </div>
+              {#if similar.text_en}
+                <div class="similar-text">{similar.text_en.slice(0, 150)}...</div>
+              {:else if similar.text_ar}
+                <div class="similar-text arabic" dir="rtl">{similar.text_ar.slice(0, 150)}...</div>
               {/if}
             </a>
           {/each}
@@ -172,6 +209,40 @@
   .section { margin-bottom: 24px; }
   .section h2 { margin-bottom: 12px; }
   .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chapter-name {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    margin-bottom: 12px;
+    font-style: italic;
+  }
+
+  .topics { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+
+  .similar-list { display: flex; flex-direction: column; gap: 8px; }
+  .similar-item {
+    display: block;
+    padding: 12px 16px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    text-decoration: none;
+    color: inherit;
+    transition: border-color 0.15s;
+  }
+  .similar-item:hover { border-color: var(--accent); }
+  .similar-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .similar-ref {
+    font-size: 0.75rem;
+    font-weight: 600;
+    font-family: var(--font-mono);
+    color: var(--accent);
+  }
+  .similar-text {
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: var(--text-secondary);
+  }
+
   .empty { text-align: center; color: var(--text-muted); padding: 40px; }
 
   .ayah-list { display: flex; flex-direction: column; gap: 10px; }

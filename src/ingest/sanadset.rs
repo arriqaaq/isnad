@@ -114,6 +114,34 @@ fn normalize_kunya(text: &str) -> String {
     result.join(" ")
 }
 
+/// Normalize Arabic text to spaceless form for text matching.
+/// Strips diacritics, normalizes letter variants, removes ALL non-Arabic-letter chars
+/// (spaces, punctuation, digits). Used for hadith text matching between data sources.
+fn normalize_arabic_spaceless(text: &str) -> String {
+    let mut out = String::with_capacity(text.len());
+    for c in text.chars() {
+        let code = c as u32;
+        if (0x064B..=0x065F).contains(&code)
+            || code == 0x0670
+            || code == 0x0640
+            || (0x0610..=0x061A).contains(&code)
+        {
+            continue;
+        }
+        if matches!(c, 'أ' | 'إ' | 'آ' | 'ٱ') {
+            out.push('ا');
+        } else if c == 'ة' {
+            out.push('ه');
+        } else if c == 'ى' {
+            out.push('ي');
+        } else if (0x0620..=0x064A).contains(&code) {
+            out.push(c);
+        }
+        // Skip everything else: spaces, punctuation, digits, non-Arabic
+    }
+    out
+}
+
 /// Check if a normalized Arabic word is a relative reference.
 fn is_relative_ref(bare: &str) -> bool {
     matches!(
@@ -598,20 +626,26 @@ pub async fn merge_human_translations(db: &Surreal<Db>) -> Result<()> {
             }
         }
 
-        // Parse CSV and build normalized_arabic → (english, narrator_en) map
-        // We match by Arabic text similarity because Sanadset and sunnah.com use
-        // different hadith numbering systems (global vs per-book).
+        // Parse CSV and build index for fast text matching.
+        // We match by Arabic text similarity using cascading end-of-text keys
+        // with spaceless normalization (strips all non-Arabic-letter chars).
         let mut reader = csv::ReaderBuilder::new()
             .has_headers(true)
             .flexible(true)
             .from_path(&csv_path)?;
 
         struct Translation {
-            normalized_arabic: String,
             english: String,
             narrator_en: Option<String>,
         }
+
+        // Build index: spaceless_key → translation index
         let mut translations: Vec<Translation> = Vec::new();
+        let mut sun_indices: HashMap<usize, HashMap<String, usize>> = HashMap::new();
+        for klen in [40, 30, 20, 15, 10] {
+            sun_indices.insert(klen, HashMap::new());
+        }
+
         for result in reader.records() {
             let record = match result {
                 Ok(r) => r,
@@ -623,11 +657,36 @@ pub async fn merge_human_translations(db: &Surreal<Db>) -> Result<()> {
                 continue;
             }
             let narrator_en = extract_narrator_en(&english);
+            let idx = translations.len();
+            let spaceless = normalize_arabic_spaceless(arabic);
             translations.push(Translation {
-                normalized_arabic: normalize_arabic(arabic),
                 english,
                 narrator_en,
             });
+
+            // Index end-of-text and mid-text keys at multiple lengths
+            let chars: Vec<char> = spaceless.chars().collect();
+            for klen in [40, 30, 20, 15, 10] {
+                if chars.len() > klen {
+                    let end_key: String = chars[chars.len() - klen..].iter().collect();
+                    sun_indices
+                        .get_mut(&klen)
+                        .unwrap()
+                        .entry(end_key)
+                        .or_insert(idx);
+                    // Also index mid-text key
+                    let mid = chars.len() / 2;
+                    if chars.len() > klen * 2 {
+                        let mid_key: String =
+                            chars[mid - klen / 2..mid + klen / 2].iter().collect();
+                        sun_indices
+                            .get_mut(&klen)
+                            .unwrap()
+                            .entry(mid_key)
+                            .or_insert(idx);
+                    }
+                }
+            }
         }
 
         // Match translations to ingested hadiths by Arabic text similarity
@@ -658,27 +717,38 @@ pub async fn merge_human_translations(db: &Surreal<Db>) -> Result<()> {
                 continue;
             };
 
-            // Normalize the matn (or text_ar) for matching
+            // Normalize text spaceless for matching
             let source_text = h.matn.as_deref().or(h.text_ar.as_deref()).unwrap_or("");
-            let norm = normalize_arabic(source_text);
+            let spaceless = normalize_arabic_spaceless(source_text);
+            let chars: Vec<char> = spaceless.chars().collect();
 
-            // Use chars 20..80 as search key (skip common "رضي الله عنه" prefix)
-            let chars: Vec<char> = norm.chars().collect();
-            let key: String = if chars.len() > 80 {
-                chars[20..80].iter().collect()
-            } else if chars.len() > 30 {
-                chars[10..].iter().collect()
-            } else {
-                norm.clone()
+            // Cascading key match: end40 → end30 → end20 → end15 → end10, plus mid
+            let matched_idx = 'search: {
+                for klen in [40, 30, 20, 15, 10] {
+                    if chars.len() > klen {
+                        let end_key: String = chars[chars.len() - klen..].iter().collect();
+                        if let Some(&idx) = sun_indices.get(&klen).and_then(|m| m.get(&end_key)) {
+                            break 'search Some(idx);
+                        }
+                        // Try mid key
+                        let mid = chars.len() / 2;
+                        if chars.len() > klen * 2 {
+                            let mid_key: String =
+                                chars[mid - klen / 2..mid + klen / 2].iter().collect();
+                            if let Some(&idx) = sun_indices.get(&klen).and_then(|m| m.get(&mid_key))
+                            {
+                                break 'search Some(idx);
+                            }
+                        }
+                    }
+                }
+                None
             };
 
-            // Find the sunnah.com translation whose Arabic contains this key
-            let matched = translations
-                .iter()
-                .find(|t| t.normalized_arabic.contains(&*key));
+            let matched = matched_idx.map(|idx| &translations[idx]);
 
             if let Some(t) = matched {
-                db.query("UPDATE $rid SET text_en = $en")
+                db.query("UPDATE $rid SET text_en = $en WHERE text_en IS NONE")
                     .bind(("rid", id.clone()))
                     .bind(("en", t.english.clone()))
                     .await

@@ -54,6 +54,9 @@ pub struct Hadith {
     pub book_name: Option<String>,
     pub matn: Option<String>,
     pub hadith_type: Option<String>,
+    pub topics: Option<Vec<String>>,
+    pub quran_verses: Option<Vec<String>>,
+    pub chapter_name: Option<String>,
 }
 
 #[derive(Debug, SurrealValue, Serialize, Clone)]
@@ -62,35 +65,6 @@ pub struct Book {
     pub book_number: i64,
     pub name_en: String,
     pub name_ar: Option<String>,
-}
-
-// ── Hadith type classification ──
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
-#[serde(rename_all = "lowercase")]
-pub enum HadithType {
-    /// Chain reaches Prophet via Companion (marfu')
-    Marfu,
-    /// Companion's own statement, no Prophet reference (mawquf)
-    Mawquf,
-    /// Tabi'i claims from Prophet, skipping Companion (mursal)
-    Mursal,
-    /// Divine speech narrated by Prophet (qudsi)
-    Qudsi,
-    /// Statement of a Tabi'i or later generation (maqtu')
-    Maqtu,
-}
-
-impl HadithType {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            HadithType::Marfu => "marfu",
-            HadithType::Mawquf => "mawquf",
-            HadithType::Mursal => "mursal",
-            HadithType::Qudsi => "qudsi",
-            HadithType::Maqtu => "maqtu",
-        }
-    }
 }
 
 // ── Analysis types ──
@@ -243,6 +217,9 @@ pub struct ApiHadith {
     pub book_name: Option<String>,
     pub matn: Option<String>,
     pub hadith_type: Option<String>,
+    pub topics: Option<Vec<String>>,
+    pub quran_verses: Option<Vec<String>>,
+    pub chapter_name: Option<String>,
 }
 
 impl From<Hadith> for ApiHadith {
@@ -259,6 +236,9 @@ impl From<Hadith> for ApiHadith {
             book_name: h.book_name,
             matn: h.matn,
             hadith_type: h.hadith_type,
+            topics: h.topics,
+            quran_verses: h.quran_verses,
+            chapter_name: h.chapter_name,
         }
     }
 }
@@ -289,6 +269,8 @@ pub struct ApiNarratorWithCount {
     pub name_en: String,
     pub generation: Option<String>,
     pub bio: Option<String>,
+    pub kunya: Option<String>,
+    pub death_year: Option<i64>,
     pub hadith_count: i64,
 }
 

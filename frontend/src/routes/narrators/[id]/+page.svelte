@@ -136,6 +136,9 @@
             <span class="kunya">({data.narrator.kunya})</span>
           {/if}
         </h1>
+        {#if data.narrator.aliases && data.narrator.aliases.length > 0}
+          <p class="aliases" dir="rtl">{data.narrator.aliases.join(' / ')}</p>
+        {/if}
         {#if data.narrator.birth_year || data.narrator.death_year}
           <p class="dates">
             {#if data.narrator.birth_year}{data.narrator.birth_year}{/if}
@@ -311,6 +314,7 @@
   .narrator-view { padding: 24px; max-width: 1200px; }
   .view-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
   .kunya { color: var(--text-muted); font-weight: normal; font-size: 0.85em; }
+  .aliases { color: var(--text-secondary); font-size: 0.85rem; margin-top: 2px; }
   .dates { color: var(--text-muted); font-size: 0.85rem; margin-top: 2px; }
   .badges { display: flex; gap: 8px; flex-wrap: wrap; }
   .location-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }

@@ -240,10 +240,34 @@ pub async fn hadith_detail(
         }
     };
 
+    // Get similar hadiths
+    let similar_hadiths: Vec<ApiHadith> = match state
+        .db
+        .query("SELECT ->similar_to->hadith.* AS hadiths FROM $rid")
+        .bind(("rid", hrid.clone()))
+        .await
+    {
+        Ok(mut r) => {
+            #[derive(Debug, SurrealValue)]
+            struct HadithsResult {
+                hadiths: Vec<Hadith>,
+            }
+            let result: Option<HadithsResult> = r.take(0).unwrap_or(None);
+            result
+                .map(|r| r.hadiths.into_iter().map(ApiHadith::from).collect())
+                .unwrap_or_default()
+        }
+        Err(e) => {
+            tracing::error!("Similar hadiths query failed: {e}");
+            vec![]
+        }
+    };
+
     Ok(Json(serde_json::json!({
         "hadith": ApiHadith::from(hadith),
         "narrators": narrators.into_iter().map(ApiNarrator::from).collect::<Vec<_>>(),
-        "linked_ayahs": linked_ayahs
+        "linked_ayahs": linked_ayahs,
+        "similar_hadiths": similar_hadiths
     })))
 }
 
@@ -303,6 +327,8 @@ pub async fn narrator_list(
             name_en: n.name_en,
             generation: n.generation,
             bio: n.bio,
+            kunya: n.kunya,
+            death_year: n.death_year,
             hadith_count: n.hadith_count.unwrap_or(0),
         })
         .collect();
@@ -1092,6 +1118,8 @@ pub struct NarratorWithCount {
     pub search_name: Option<String>,
     pub generation: Option<String>,
     pub bio: Option<String>,
+    pub kunya: Option<String>,
+    pub death_year: Option<i64>,
     pub hadith_count: Option<i64>,
 }
 

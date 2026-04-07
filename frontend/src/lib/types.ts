@@ -9,6 +9,10 @@ export interface ApiHadith {
   grade: string | null;
   book_name: string | null;
   matn: string | null;
+  hadith_type: string | null;
+  topics: string[] | null;
+  quran_verses: string[] | null;
+  chapter_name: string | null;
 }
 
 export interface ApiNarrator {
@@ -44,6 +48,8 @@ export interface ApiNarratorWithCount {
   name_en: string;
   generation: string | null;
   bio: string | null;
+  kunya: string | null;
+  death_year: number | null;
   hadith_count: number;
 }
 
@@ -88,6 +94,7 @@ export interface HadithDetailResponse {
   hadith: ApiHadith;
   narrators: ApiNarrator[];
   linked_ayahs: ApiAyah[];
+  similar_hadiths: ApiHadith[];
 }
 
 export interface NarratorDetailResponse {
