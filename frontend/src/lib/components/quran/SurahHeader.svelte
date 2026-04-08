@@ -36,7 +36,7 @@
     margin-bottom: 24px;
   }
   .header-card {
-    background: var(--accent-muted);
+    background: var(--bg-secondary);
     border: 1px solid var(--border);
     border-radius: 16px;
     padding: 28px 32px 20px;

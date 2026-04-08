@@ -35,25 +35,29 @@ pub async fn search_ayahs_text(
     db: &Surreal<Db>,
     query: &str,
     limit: usize,
-    _offset: usize,
+    offset: usize,
 ) -> Result<Vec<AyahSearchResult>> {
     let normalized_ar = crate::quran::ingest::strip_arabic_diacritics(query);
     // TODO(surrealdb#7199): use bind variables instead of inline literals
     let safe_q = escape_surql(query);
     let safe_ar = escape_surql(&normalized_ar);
 
+    let fetch_count = limit + offset;
     let sql = format!(
         "LET $en = SELECT id, search::score(1) AS ft_score \
              FROM ayah WHERE text_en @1@ '{safe_q}' \
-             ORDER BY ft_score DESC LIMIT {limit}; \
+             ORDER BY ft_score DESC LIMIT {fetch_count}; \
          LET $ar = SELECT id, search::score(2) AS ft_score \
              FROM ayah WHERE text_ar_simple @2@ '{safe_ar}' \
-             ORDER BY ft_score DESC LIMIT {limit}; \
-         RETURN search::rrf([$en, $ar], {limit}, 60)"
+             ORDER BY ft_score DESC LIMIT {fetch_count}; \
+         LET $lem = SELECT id, search::score(3) AS ft_score \
+             FROM ayah WHERE text_ar_lemma @3@ '{safe_ar}' \
+             ORDER BY ft_score DESC LIMIT {fetch_count}; \
+         RETURN search::rrf([$en, $ar, $lem], {fetch_count}, 60)"
     );
 
     let mut response = db.query(&sql).await?;
-    let fused: Vec<RrfResult> = response.take(2)?;
+    let fused: Vec<RrfResult> = response.take(3)?;
     if fused.is_empty() {
         return Ok(vec![]);
     }
@@ -86,7 +90,7 @@ pub async fn search_ayahs_text(
             .unwrap_or(std::cmp::Ordering::Equal)
     });
 
-    Ok(results)
+    Ok(results.into_iter().skip(offset).take(limit).collect())
 }
 
 /// Semantic search for ayahs using vector similarity.
@@ -98,17 +102,19 @@ pub async fn search_ayahs_semantic(
     embedder: &Embedder,
     query: &str,
     limit: usize,
+    offset: usize,
 ) -> Result<Vec<AyahSearchResult>> {
     let query_vec = embedder.embed_single(query)?;
 
+    let fetch_count = limit + offset;
     let sql = format!(
         "SELECT {AYAH_SEARCH_FIELDS}, vector::similarity::cosine(embedding, $query_vec) AS score \
-         FROM ayah WHERE embedding <|{limit},80|> $query_vec \
+         FROM ayah WHERE embedding <|{fetch_count},80|> $query_vec \
          ORDER BY score DESC"
     );
     let mut response = db.query(&sql).bind(("query_vec", query_vec)).await?;
     let results: Vec<AyahSearchResult> = response.take(0)?;
-    Ok(results)
+    Ok(results.into_iter().skip(offset).take(limit).collect())
 }
 
 /// Hybrid search combining BM25 full-text and vector similarity via Reciprocal Rank Fusion.
@@ -117,7 +123,7 @@ pub async fn search_ayahs_hybrid(
     embedder: &Embedder,
     query: &str,
     limit: usize,
-    _offset: usize,
+    offset: usize,
 ) -> Result<Vec<AyahSearchResult>> {
     let query_vec = embedder.embed_single(query)?;
     let normalized_ar = crate::quran::ingest::strip_arabic_diacritics(query);
@@ -125,21 +131,25 @@ pub async fn search_ayahs_hybrid(
     let safe_q = escape_surql(query);
     let safe_ar = escape_surql(&normalized_ar);
 
+    let fetch_count = limit + offset;
     let sql = format!(
         "LET $vs = SELECT id, vector::distance::knn() AS distance \
-             FROM ayah WHERE embedding <|{limit},80|> $query_vec; \
+             FROM ayah WHERE embedding <|{fetch_count},80|> $query_vec; \
          LET $ft = SELECT id, search::score(1) AS ft_score \
              FROM ayah WHERE text_en @1@ '{safe_q}' \
-             ORDER BY ft_score DESC LIMIT {limit}; \
+             ORDER BY ft_score DESC LIMIT {fetch_count}; \
          LET $ar = SELECT id, search::score(2) AS ft_score \
              FROM ayah WHERE text_ar_simple @2@ '{safe_ar}' \
-             ORDER BY ft_score DESC LIMIT {limit}; \
-         RETURN search::rrf([$vs, $ft, $ar], {limit}, 60)"
+             ORDER BY ft_score DESC LIMIT {fetch_count}; \
+         LET $lem = SELECT id, search::score(3) AS ft_score \
+             FROM ayah WHERE text_ar_lemma @3@ '{safe_ar}' \
+             ORDER BY ft_score DESC LIMIT {fetch_count}; \
+         RETURN search::rrf([$vs, $ft, $ar, $lem], {fetch_count}, 60)"
     );
 
     let mut response = db.query(&sql).bind(("query_vec", query_vec)).await?;
 
-    let fused: Vec<RrfResult> = response.take(3)?;
+    let fused: Vec<RrfResult> = response.take(4)?;
     if fused.is_empty() {
         return Ok(vec![]);
     }
@@ -172,7 +182,7 @@ pub async fn search_ayahs_hybrid(
             .unwrap_or(std::cmp::Ordering::Equal)
     });
 
-    Ok(ayahs)
+    Ok(ayahs.into_iter().skip(offset).take(limit).collect())
 }
 
 /// BM25 full-text search within Tafsir Ibn Kathir text.

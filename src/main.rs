@@ -50,6 +50,10 @@ enum Commands {
         /// Run Juynboll falsifiability analysis on CL candidates
         #[arg(long)]
         juynboll: bool,
+
+        /// Skip families larger than this (degenerate clusters hang analysis)
+        #[arg(long, default_value = "500")]
+        max_family_size: usize,
     },
     /// Ingest Quran data (Arabic + English + Tafsir Ibn Kathir)
     IngestQuran {
@@ -171,6 +175,7 @@ async fn async_main() -> Result<()> {
             db_path,
             families,
             juynboll,
+            max_family_size,
         } => {
             let db = db::connect(&db_path).await?;
             db::init_schema(&db).await?;
@@ -190,23 +195,28 @@ async fn async_main() -> Result<()> {
 
                 // Get all families
                 #[derive(Debug, SurrealValue)]
-                struct IdOnly {
+                struct FamilyRow {
                     id: Option<RecordId>,
+                    variant_count: Option<i64>,
                 }
+                eprintln!("   [debug] querying hadith_family...");
                 let mut res = db
                     .query(
                         "SELECT id, variant_count FROM hadith_family ORDER BY variant_count DESC",
                     )
                     .await?;
-                let family_rows: Vec<IdOnly> = res.take(0)?;
+                let family_rows: Vec<FamilyRow> = res.take(0)?;
+                eprintln!("   [debug] found {} families", family_rows.len());
 
                 // Check which families are already analyzed (resume support)
                 #[derive(Debug, SurrealValue)]
                 struct FamilyRef {
                     family: RecordId,
                 }
+                eprintln!("   [debug] querying juynboll_analysis for resume...");
                 let mut done_res = db.query("SELECT family FROM juynboll_analysis").await?;
                 let done_rows: Vec<FamilyRef> = done_res.take(0)?;
+                eprintln!("   [debug] {} already done", done_rows.len());
                 let already_done: std::collections::HashSet<String> = done_rows
                     .iter()
                     .map(|r| hadith::models::record_id_key_string(&r.family))
@@ -225,8 +235,10 @@ async fn async_main() -> Result<()> {
                         .template("   {bar:40.green/black} {pos}/{len} families ({eta})")
                         .unwrap(),
                 );
+                eprintln!("   [debug] starting analysis of {remaining} families...");
                 let mut cl_families = 0usize;
                 let mut juynboll_families = 0usize;
+                let mut processed = 0usize;
                 for row in &family_rows {
                     let fid = row
                         .id
@@ -235,6 +247,16 @@ async fn async_main() -> Result<()> {
                         .unwrap_or_default();
                     if fid.is_empty() || already_done.contains(&fid) {
                         continue;
+                    }
+                    let vcount = row.variant_count.unwrap_or(0) as usize;
+                    if vcount > max_family_size {
+                        eprintln!("   [skip] {fid}: {vcount} hadiths (exceeds --max-family-size {max_family_size})");
+                        pb.inc(1);
+                        continue;
+                    }
+                    processed += 1;
+                    if processed <= 3 || processed % 50 == 0 {
+                        eprintln!("   [debug] analyzing family {processed}/{remaining}: {fid}");
                     }
                     let result =
                         analysis::cl_pcl::analyze_family(&db, &fid, "structural_only").await?;
@@ -342,6 +364,7 @@ async fn async_main() -> Result<()> {
             let db = db::connect(&db_path).await?;
             db::init_quran_word_schema(&db).await?;
             quran::morphology::ingest_morphology(&db, &file, &qul_dir).await?;
+            quran::morphology::build_ayah_lemma_text(&db).await?;
             tracing::info!("Morphology ingestion complete");
         }
         Commands::IngestQuranSimilar { qul_dir, db_path } => {

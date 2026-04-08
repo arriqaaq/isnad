@@ -62,7 +62,12 @@ pub async fn embed_all_hadiths(db: &Surreal<Db>) -> Result<()> {
             .iter()
             .map(|h| {
                 let narrator = h.narrator_text.as_deref().unwrap_or("");
-                let text = h.text_en.as_deref().or(h.text_ar.as_deref()).unwrap_or("");
+                let text = match (h.text_ar.as_deref(), h.text_en.as_deref()) {
+                    (Some(ar), Some(en)) => format!("{} {}", ar, en),
+                    (Some(ar), None) => ar.to_string(),
+                    (None, Some(en)) => en.to_string(),
+                    (None, None) => String::new(),
+                };
                 // E5 models require "passage: " prefix for document embeddings
                 format!("passage: {} {}", narrator, text)
             })

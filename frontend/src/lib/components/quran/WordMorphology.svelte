@@ -35,9 +35,7 @@
   );
 </script>
 
-<!-- svelte-ignore a11y_click_events_have_key_events -->
-<!-- svelte-ignore a11y_no_static_element_interactions -->
-<div class="morph-backdrop" onclick={handleBackdrop}>
+<div class="morph-inline">
   <div class="morph-popup">
     <button class="morph-close" onclick={onclose}>&times;</button>
 
@@ -94,24 +92,16 @@
 </div>
 
 <style>
-  .morph-backdrop {
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.4);
-    z-index: 1000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  .morph-inline {
+    padding: 8px;
   }
   .morph-popup {
     background: var(--bg-primary);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     padding: 24px;
-    min-width: 280px;
-    max-width: 400px;
     position: relative;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
   }
   .morph-close {
     position: absolute;

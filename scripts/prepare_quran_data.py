@@ -5,7 +5,7 @@ merge them into a single CSV for Rust ingestion.
 
 Sources (all from https://qul.tarteel.ai/resources):
   - qul/qpc-hafs.json: Arabic (QPC Hafs), dict keyed by "surah:ayah"
-  - qul/en-sahih-international-simple.json: English (Sahih International), dict keyed by "surah:ayah"
+  - qul/taqi-ud-din-al-hilali-muhsin-khan-simple.json: English (Muhsin Khan & Hilali), dict keyed by "surah:ayah"
   - qul/en-tafisr-ibn-kathir.json: Tafsir Ibn Kathir (English HTML), dict keyed by "surah:ayah"
 
 Output: data/quran.csv with columns: surah,ayah,text_ar,text_en,tafsir_en
@@ -38,8 +38,8 @@ def load_qpc_arabic(path: str = "qul/qpc-hafs.json") -> dict[tuple[int, int], st
     return result
 
 
-def load_qpc_english(path: str = "qul/en-sahih-international-simple.json") -> dict[tuple[int, int], str]:
-    """Load English translation from QUL Sahih International JSON.
+def load_qpc_english(path: str = "qul/taqi-ud-din-al-hilali-muhsin-khan-simple.json") -> dict[tuple[int, int], str]:
+    """Load English translation from QUL Muhsin Khan & Hilali JSON.
 
     Returns {(surah, ayah): text_en}.
     """

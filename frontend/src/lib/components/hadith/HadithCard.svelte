@@ -75,6 +75,7 @@
 
   .text-ar {
     color: var(--text-secondary);
+    font-family: var(--font-arabic-text);
     font-size: 0.95rem;
     opacity: 0.8;
   }

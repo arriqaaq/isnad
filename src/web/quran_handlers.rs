@@ -29,6 +29,7 @@ pub struct QuranSearchParams {
     #[serde(rename = "type")]
     pub search_type: Option<String>,
     pub limit: Option<usize>,
+    pub page: Option<usize>,
 }
 
 #[derive(Deserialize)]
@@ -128,26 +129,48 @@ pub async fn quran_search(
             query,
             search_type: "text".into(),
             ayahs: vec![],
+            page: 1,
+            has_more: false,
         }));
     }
 
     let limit = params.limit.unwrap_or(20);
+    let page = params.page.unwrap_or(1);
+    let offset = (page - 1) * limit;
     let search_type = params.search_type.as_deref().unwrap_or("text");
 
     let results = match search_type {
         "semantic" => {
-            crate::quran::search::search_ayahs_semantic(&state.db, &state.embedder, &query, limit)
-                .await
+            crate::quran::search::search_ayahs_semantic(
+                &state.db,
+                &state.embedder,
+                &query,
+                limit,
+                offset,
+            )
+            .await
         }
         "hybrid" => {
-            crate::quran::search::search_ayahs_hybrid(&state.db, &state.embedder, &query, limit, 0)
-                .await
+            crate::quran::search::search_ayahs_hybrid(
+                &state.db,
+                &state.embedder,
+                &query,
+                limit,
+                offset,
+            )
+            .await
         }
         "tafsir" => {
-            crate::quran::search::search_ayahs_tafsir(&state.db, &state.embedder, &query, limit, 0)
-                .await
+            crate::quran::search::search_ayahs_tafsir(
+                &state.db,
+                &state.embedder,
+                &query,
+                limit,
+                offset,
+            )
+            .await
         }
-        _ => crate::quran::search::search_ayahs_text(&state.db, &query, limit, 0).await,
+        _ => crate::quran::search::search_ayahs_text(&state.db, &query, limit, offset).await,
     };
 
     let ayahs = results.map_err(|e| {
@@ -155,10 +178,14 @@ pub async fn quran_search(
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
+    let has_more = ayahs.len() == limit;
+
     Ok(Json(QuranSearchResponse {
         query,
         search_type: search_type.to_string(),
         ayahs: ayahs.into_iter().map(ApiAyahSearchResult::from).collect(),
+        page,
+        has_more,
     }))
 }
 

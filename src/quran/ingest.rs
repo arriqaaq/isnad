@@ -178,7 +178,10 @@ async fn embed_all_ayahs(db: &Surreal<Db>) -> Result<()> {
                     .get(a.surah_number as usize)
                     .copied()
                     .unwrap_or("Unknown");
-                let text = a.text_en.as_deref().unwrap_or(&a.text_ar);
+                let text = match a.text_en.as_deref() {
+                    Some(en) => format!("{} {}", a.text_ar, en),
+                    None => a.text_ar.clone(),
+                };
                 // E5 models require "passage: " prefix for document embeddings
                 format!(
                     "passage: Quran {} {}:{}: {}",

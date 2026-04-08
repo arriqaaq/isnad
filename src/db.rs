@@ -54,6 +54,7 @@ DEFINE FIELD IF NOT EXISTS tags           ON narrator TYPE option<array<string>>
 DEFINE FIELD IF NOT EXISTS reliability_rating ON narrator TYPE option<string>;
 DEFINE FIELD IF NOT EXISTS reliability_prior  ON narrator TYPE option<float>;
 DEFINE FIELD IF NOT EXISTS reliability_source ON narrator TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS ibn_hajar_rank     ON narrator TYPE option<string>;
 -- Pre-computed count of hadiths narrated (see backfill_narrator_hadith_counts)
 DEFINE FIELD IF NOT EXISTS hadith_count       ON narrator TYPE option<int>;
 DEFINE INDEX IF NOT EXISTS narrator_name ON TABLE narrator FIELDS name_en;
@@ -190,6 +191,7 @@ DEFINE FIELD IF NOT EXISTS surah_number    ON ayah TYPE int;
 DEFINE FIELD IF NOT EXISTS ayah_number     ON ayah TYPE int;
 DEFINE FIELD IF NOT EXISTS text_ar         ON ayah TYPE string;
 DEFINE FIELD IF NOT EXISTS text_ar_simple  ON ayah TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS text_ar_lemma   ON ayah TYPE option<string>;
 DEFINE FIELD IF NOT EXISTS text_en         ON ayah TYPE option<string>;
 DEFINE FIELD IF NOT EXISTS tafsir_en       ON ayah TYPE option<string>;
 DEFINE FIELD IF NOT EXISTS juz             ON ayah TYPE option<int>;
@@ -392,6 +394,7 @@ pub async fn init_quran_fulltext_indexes(db: &Surreal<Db>) -> Result<()> {
         "DEFINE ANALYZER ar_analyzer TOKENIZERS blank,class",
         "DEFINE INDEX IF NOT EXISTS ayah_text_en_search ON TABLE ayah FIELDS text_en FULLTEXT ANALYZER en_analyzer BM25 HIGHLIGHTS",
         "DEFINE INDEX IF NOT EXISTS ayah_text_ar_search ON TABLE ayah FIELDS text_ar_simple FULLTEXT ANALYZER ar_analyzer BM25 HIGHLIGHTS",
+        "DEFINE INDEX IF NOT EXISTS ayah_text_ar_lemma_search ON TABLE ayah FIELDS text_ar_lemma FULLTEXT ANALYZER ar_analyzer BM25 HIGHLIGHTS",
         "DEFINE INDEX IF NOT EXISTS ayah_tafsir_en_search ON TABLE ayah FIELDS tafsir_en FULLTEXT ANALYZER en_analyzer BM25 HIGHLIGHTS",
     ];
     for (i, stmt) in stmts.iter().enumerate() {

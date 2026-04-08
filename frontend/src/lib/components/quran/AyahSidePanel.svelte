@@ -18,8 +18,30 @@
   let similarData: AyahSimilarResponse | null = $state(null);
   let similarLoading = $state(true);
 
+  // Panel position & size state
+  let panelX = $state(window.innerWidth - 620);
+  let panelY = $state(0);
+  let panelW = $state(600);
+  let panelH = $state(window.innerHeight);
+
+  // Drag state
+  let dragging = $state(false);
+  let dragStartX = 0;
+  let dragStartY = 0;
+  let dragStartPanelX = 0;
+  let dragStartPanelY = 0;
+
+  // Resize state
+  let resizing = $state(false);
+  let resizeEdge = '';
+  let resizeStartX = 0;
+  let resizeStartY = 0;
+  let resizeStartW = 0;
+  let resizeStartH = 0;
+  let resizeStartPanelX = 0;
+  let resizeStartPanelY = 0;
+
   onMount(() => {
-    // Load all data in parallel
     getAyahManuscripts(ayah.surah_number, ayah.ayah_number)
       .then(data => { manuscripts = data; })
       .catch(() => {})
@@ -34,7 +56,68 @@
       .then(data => { similarData = data; })
       .catch(() => {})
       .finally(() => { similarLoading = false; });
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
   });
+
+  function startDrag(e: MouseEvent) {
+    dragging = true;
+    dragStartX = e.clientX;
+    dragStartY = e.clientY;
+    dragStartPanelX = panelX;
+    dragStartPanelY = panelY;
+    e.preventDefault();
+  }
+
+  function startResize(e: MouseEvent, edge: string) {
+    resizing = true;
+    resizeEdge = edge;
+    resizeStartX = e.clientX;
+    resizeStartY = e.clientY;
+    resizeStartW = panelW;
+    resizeStartH = panelH;
+    resizeStartPanelX = panelX;
+    resizeStartPanelY = panelY;
+    e.preventDefault();
+    e.stopPropagation();
+  }
+
+  function handleMouseMove(e: MouseEvent) {
+    if (dragging) {
+      panelX = Math.max(0, Math.min(window.innerWidth - 100, dragStartPanelX + e.clientX - dragStartX));
+      panelY = Math.max(0, Math.min(window.innerHeight - 50, dragStartPanelY + e.clientY - dragStartY));
+    } else if (resizing) {
+      const dx = e.clientX - resizeStartX;
+      const dy = e.clientY - resizeStartY;
+
+      if (resizeEdge.includes('w')) {
+        const newW = Math.max(320, resizeStartW - dx);
+        panelX = resizeStartPanelX + (resizeStartW - newW);
+        panelW = newW;
+      }
+      if (resizeEdge.includes('e')) {
+        panelW = Math.max(320, resizeStartW + dx);
+      }
+      if (resizeEdge.includes('n')) {
+        const newH = Math.max(200, resizeStartH - dy);
+        panelY = resizeStartPanelY + (resizeStartH - newH);
+        panelH = newH;
+      }
+      if (resizeEdge.includes('s')) {
+        panelH = Math.max(200, resizeStartH + dy);
+      }
+    }
+  }
+
+  function handleMouseUp() {
+    dragging = false;
+    resizing = false;
+  }
 
   function handleBackdrop(e: MouseEvent) {
     if ((e.target as HTMLElement).classList.contains('panel-backdrop')) {
@@ -46,10 +129,27 @@
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div class="panel-backdrop" onclick={handleBackdrop}>
-  <div class="side-panel">
-    <div class="panel-header">
+  <div
+    class="side-panel"
+    class:is-moving={dragging || resizing}
+    style="left: {panelX}px; top: {panelY}px; width: {panelW}px; height: {panelH}px;"
+  >
+    <!-- Resize handles -->
+    <div class="resize-handle resize-n" onmousedown={(e) => startResize(e, 'n')}></div>
+    <div class="resize-handle resize-s" onmousedown={(e) => startResize(e, 's')}></div>
+    <div class="resize-handle resize-w" onmousedown={(e) => startResize(e, 'w')}></div>
+    <div class="resize-handle resize-e" onmousedown={(e) => startResize(e, 'e')}></div>
+    <div class="resize-handle resize-nw" onmousedown={(e) => startResize(e, 'nw')}></div>
+    <div class="resize-handle resize-ne" onmousedown={(e) => startResize(e, 'ne')}></div>
+    <div class="resize-handle resize-sw" onmousedown={(e) => startResize(e, 'sw')}></div>
+    <div class="resize-handle resize-se" onmousedown={(e) => startResize(e, 'se')}></div>
+
+    <div class="panel-header" onmousedown={startDrag}>
       <span class="panel-ref">{ayah.surah_number}:{ayah.ayah_number}</span>
-      <button class="panel-close" onclick={onclose}>&times;</button>
+      <div class="header-actions">
+        <span class="drag-hint">⠿</span>
+        <button class="panel-close" onclick={onclose}>&times;</button>
+      </div>
     </div>
 
     <div class="panel-content">
@@ -115,26 +215,45 @@
 
   .side-panel {
     position: fixed;
-    right: 0;
-    top: 0;
-    height: 100vh;
-    width: 600px;
-    max-width: 100vw;
     background: var(--bg-primary);
-    border-left: 1px solid var(--border);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
     box-shadow: -4px 0 24px rgba(0, 0, 0, 0.15);
     display: flex;
     flex-direction: column;
     animation: slideIn 0.2s ease-out;
+    min-width: 320px;
+    min-height: 200px;
+  }
+
+  .side-panel.is-moving {
+    user-select: none;
+    transition: none;
   }
 
   .panel-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 16px 20px;
+    padding: 12px 20px;
     border-bottom: 1px solid var(--border);
     flex-shrink: 0;
+    cursor: grab;
+  }
+  .panel-header:active {
+    cursor: grabbing;
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .drag-hint {
+    color: var(--text-muted);
+    font-size: 1rem;
+    opacity: 0.5;
   }
 
   .panel-ref {
@@ -220,9 +339,23 @@
     border-radius: var(--radius-sm);
   }
 
+  /* Resize handles */
+  .resize-handle {
+    position: absolute;
+    z-index: 10;
+  }
+  .resize-n { top: -3px; left: 8px; right: 8px; height: 6px; cursor: n-resize; }
+  .resize-s { bottom: -3px; left: 8px; right: 8px; height: 6px; cursor: s-resize; }
+  .resize-w { left: -3px; top: 8px; bottom: 8px; width: 6px; cursor: w-resize; }
+  .resize-e { right: -3px; top: 8px; bottom: 8px; width: 6px; cursor: e-resize; }
+  .resize-nw { top: -3px; left: -3px; width: 12px; height: 12px; cursor: nw-resize; }
+  .resize-ne { top: -3px; right: -3px; width: 12px; height: 12px; cursor: ne-resize; }
+  .resize-sw { bottom: -3px; left: -3px; width: 12px; height: 12px; cursor: sw-resize; }
+  .resize-se { bottom: -3px; right: -3px; width: 12px; height: 12px; cursor: se-resize; }
+
   @keyframes slideIn {
-    from { transform: translateX(100%); }
-    to { transform: translateX(0); }
+    from { transform: translateX(40px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
   }
 
   @keyframes fadeIn {
@@ -232,7 +365,12 @@
 
   @media (max-width: 640px) {
     .side-panel {
-      width: 100vw;
+      left: 0 !important;
+      top: 0 !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      border-radius: 0;
     }
+    .resize-handle { display: none; }
   }
 </style>

@@ -26,7 +26,7 @@ impl OllamaClient {
         impl Stream<Item = Result<bytes::Bytes, reqwest::Error>> + use<>,
     )> {
         // 1. Retrieve relevant ayahs via semantic search
-        let sources = search_ayahs_semantic(db, embedder, question, CONTEXT_AYAH_COUNT).await?;
+        let sources = search_ayahs_semantic(db, embedder, question, CONTEXT_AYAH_COUNT, 0).await?;
 
         // 2. Build context from retrieved ayahs with tafsir
         let mut context = String::new();

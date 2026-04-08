@@ -8,8 +8,11 @@ Source: https://github.com/A-Kamran/SemanticHadith-V2
 Paper:  Journal of Web Semantics, 2023
 """
 
+import ast
+import csv
 import json
 import os
+import re
 import sys
 import time
 from collections import defaultdict
@@ -17,6 +20,7 @@ from collections import defaultdict
 from rdflib import Graph, Namespace
 
 TTL_PATH = "/tmp/SemanticHadithKGV2.ttl"
+AR_SANAD_PATH = "data/ar_sanad_narrators.csv"
 OUTPUT_PATH = "data/semantic_hadith.json"
 
 SH = Namespace("http://www.semantichadith.com/ontology/")
@@ -44,6 +48,158 @@ def clean_literal(value):
 def local_name(uri):
     """Extract local name from a full URI."""
     return str(uri).split("/")[-1]
+
+
+def normalize_ar(text: str) -> str:
+    """Normalize Arabic for matching: strip diacritics, unify letter variants."""
+    t = re.sub(r"[\u0610-\u061A\u0640\u064B-\u065F\u0670\u06D6-\u06ED]", "", text)
+    t = re.sub(r"[إأآٱ]", "ا", t)
+    t = t.replace("ة", "ه").replace("ى", "ي")
+    return " ".join(t.split())
+
+
+def classify_rank(rank: str) -> str | None:
+    """Classify an Ibn Hajar rank into a mustalah category.
+    Sahabi → thiqah (companions are trustworthy by default)."""
+    if not rank or rank == "-":
+        return None
+    r = rank.strip()
+    # Companions → thiqah by default
+    if any(
+        w in r
+        for w in [
+            "صحابي", "صحابية", "صحب", "صحبة", "رؤية", "بدر", "المؤمنين",
+            "العشرة", "كبار الصح", "النقباء", "المهاجرين", "بيعة الرضوان",
+            "أحد", "وفد", "الفتح", "مخضرم", "سيد",
+        ]
+    ):
+        return "thiqah"
+    # Trustworthy
+    if any(w in r for w in ["ثقة", "ثقه", "ثبت", "حافظ", "حجة", "إمام", "متقن", "وثق", "بأس"]):
+        return "thiqah"
+    # Truthful / acceptable
+    if any(w in r for w in ["صدوق", "صالح"]):
+        return "saduq"
+    if any(w in r for w in ["مقبول"]):
+        return "maqbul"
+    # Unknown
+    if any(w in r for w in ["مجهول", "مستور", "لا يعرف", "لا تعرف", "مبهم", "لا أعرفه"]):
+        return "majhul"
+    # Weak
+    if any(w in r for w in ["ضعيف", "لين", "ضعف", "ليس بالقوي", "سيء الحفظ"]):
+        return "daif"
+    # Abandoned / denounced
+    if any(w in r for w in ["متروك", "كذب", "وضع", "منكر", "هالك", "ساقط", "تكذيب", "تركه"]):
+        return "matruk"
+    return None
+
+
+def enrich_with_reliability(narrators: dict, ar_sanad_path: str):
+    """Match SemanticHadith narrators to ar_sanad_narrators and add Ibn Hajar grades."""
+    csv.field_size_limit(sys.maxsize)
+
+    # Build ar_sanad index
+    ar_exact: dict[str, set[str]] = defaultdict(set)  # normalized form → set of ar_ids
+    ar_names: dict[str, str] = {}  # ar_id → normalized full name
+    ar_ranks: dict[str, str] = {}  # ar_id → raw rank text
+
+    with open(ar_sanad_path, encoding="utf-8") as f:
+        for row in csv.DictReader(f):
+            ar_id = row["id"]
+            name = normalize_ar(row["name"].strip())
+            rank = row.get("Ibnhajar_rank", "-").strip()
+            ar_names[ar_id] = name
+            ar_ranks[ar_id] = rank
+
+            if name:
+                ar_exact[name].add(ar_id)
+            try:
+                for alias in ast.literal_eval(row.get("namings", "[]")):
+                    na = normalize_ar(alias.strip())
+                    if na:
+                        ar_exact[na].add(ar_id)
+            except (ValueError, SyntaxError):
+                pass
+            kunia = row.get("kunia", "").strip()
+            if kunia and kunia != "-":
+                nk = normalize_ar(kunia)
+                if nk:
+                    ar_exact[nk].add(ar_id)
+
+    # 3-pass matching
+    matched = 0
+    has_grade = 0
+
+    for hn, rec in narrators.items():
+        pop = normalize_ar(rec.get("popularName", ""))
+        full = normalize_ar(rec.get("name", ""))
+
+        # Pass 1: exact match
+        hits: set[str] = set()
+        for form in [pop, full]:
+            if form and form in ar_exact:
+                hits.update(ar_exact[form])
+
+        # Pass 2: if ambiguous, filter using multiple signals
+        if len(hits) > 1:
+            # Strategy A: find candidates that match BOTH pop and full name
+            if pop and full:
+                pop_ids = ar_exact.get(pop, set())
+                full_match_ids = set()
+                for ar_id in hits:
+                    ar_name = ar_names.get(ar_id, "")
+                    if ar_name and (ar_name in full or full in ar_name):
+                        full_match_ids.add(ar_id)
+                both = pop_ids & full_match_ids & hits
+                if len(both) == 1:
+                    hits = both
+
+            # Strategy B: filter using full genealogical name substring
+            if len(hits) > 1 and full and len(full) > 10:
+                filtered = set()
+                for ar_id in hits:
+                    ar_name = ar_names.get(ar_id, "")
+                    if ar_name and (ar_name in full or full in ar_name):
+                        filtered.add(ar_id)
+                    elif ar_name:
+                        sh_words = full.split()[:3]
+                        ar_words = ar_name.split()[:3]
+                        if len(sh_words) >= 3 and sh_words == ar_words:
+                            filtered.add(ar_id)
+                if len(filtered) == 1:
+                    hits = filtered
+                elif len(filtered) > 1:
+                    hits = filtered
+
+        # Pass 3: if unmatched, substring containment
+        if len(hits) == 0:
+            for form in [pop, full]:
+                if not form or len(form) < 8:
+                    continue
+                for ar_form, ar_ids in ar_exact.items():
+                    if len(ar_ids) == 1 and len(ar_form) > 8:
+                        if form in ar_form or ar_form in form:
+                            hits.update(ar_ids)
+                            break
+                if hits:
+                    break
+
+        # Apply grade if uniquely matched
+        if len(hits) == 1:
+            ar_id = next(iter(hits))
+            rank_text = ar_ranks.get(ar_id, "")
+            grade = classify_rank(rank_text)
+            if rank_text and rank_text != "-":
+                rec["ibnHajarRank"] = rank_text
+            if grade:
+                rec["reliabilityGrade"] = grade
+                has_grade += 1
+            matched += 1
+
+    print(
+        f"  Matched: {matched}/{len(narrators)} ({100*matched/len(narrators):.1f}%), "
+        f"with grade: {has_grade}"
+    )
 
 
 def main():
@@ -240,6 +396,14 @@ def main():
         f"{sum(1 for t in texts.values() if 'ar' in t)} with Arabic, "
         f"{sum(1 for t in texts.values() if 'en' in t)} with English"
     )
+
+    # ── Match narrators to ar_sanad for Ibn Hajar reliability grades ───────
+
+    if os.path.exists(AR_SANAD_PATH):
+        print(f"Matching narrators to ar_sanad for reliability grades...")
+        enrich_with_reliability(narrators, AR_SANAD_PATH)
+    else:
+        print(f"  Skipping reliability grades ({AR_SANAD_PATH} not found)")
 
     # ── Assemble output ─────────────────────────────────────────────────────
 

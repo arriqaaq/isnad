@@ -131,6 +131,8 @@ pub struct QuranSearchResponse {
     pub query: String,
     pub search_type: String,
     pub ayahs: Vec<ApiAyahSearchResult>,
+    pub page: usize,
+    pub has_more: bool,
 }
 
 #[derive(Debug, Serialize)]

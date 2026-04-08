@@ -43,7 +43,7 @@ impl OllamaClient {
     )> {
         // 1. Retrieve from both sources sequentially (HNSW needs deep stack)
         let ayah_sources =
-            crate::quran::search::search_ayahs_semantic(db, embedder, question, CONTEXT_AYAH_COUNT)
+            crate::quran::search::search_ayahs_semantic(db, embedder, question, CONTEXT_AYAH_COUNT, 0)
                 .await
                 .unwrap_or_default();
         let hadith_sources =

@@ -480,6 +480,7 @@ pub(crate) async fn build_family_graph(
     let family_rid = RecordId::new("hadith_family", family_id);
 
     // 1. Get all hadiths in this family
+    let t = std::time::Instant::now();
     let mut res = db
         .query("SELECT id FROM hadith WHERE family_id = $fid")
         .bind(("fid", family_rid.clone()))
@@ -490,6 +491,7 @@ pub(crate) async fn build_family_graph(
         id: Option<RecordId>,
     }
     let hadith_ids: Vec<IdOnly> = res.take(0)?;
+    eprintln!("     [db] {family_id} q1 hadiths: {:?}, {} rows", t.elapsed(), hadith_ids.len());
 
     if hadith_ids.len() < 2 {
         return Ok(None);
@@ -501,36 +503,29 @@ pub(crate) async fn build_family_graph(
         .collect();
 
     // 2. Fetch all heard_from edges for these hadiths
+    let t = std::time::Instant::now();
+    let hids: Vec<RecordId> = hadith_ids.iter().filter_map(|h| h.id.clone()).collect();
     let mut res = db
         .query(
             "SELECT in AS student, out AS teacher, hadith_ref \
              FROM heard_from WHERE hadith_ref IN $hids",
         )
-        .bind((
-            "hids",
-            hadith_ids
-                .iter()
-                .filter_map(|h| h.id.clone())
-                .collect::<Vec<RecordId>>(),
-        ))
+        .bind(("hids", hids.clone()))
         .await?;
     let edges: Vec<HeardFromRow> = res.take(0)?;
+    eprintln!("     [db] {family_id} q2 heard_from: {:?}, {} rows", t.elapsed(), edges.len());
 
-    // 3. Fetch narrates edges to know which narrators appear in which hadiths
+    // 3. Fetch narrates edges
+    let t = std::time::Instant::now();
     let mut res = db
         .query(
             "SELECT in AS narrator, out AS hadith \
              FROM narrates WHERE out IN $hids",
         )
-        .bind((
-            "hids",
-            hadith_ids
-                .iter()
-                .filter_map(|h| h.id.clone())
-                .collect::<Vec<RecordId>>(),
-        ))
+        .bind(("hids", hids))
         .await?;
     let narrates: Vec<NarratesRow> = res.take(0)?;
+    eprintln!("     [db] {family_id} q3 narrates: {:?}, {} rows", t.elapsed(), narrates.len());
 
     // 4. Fetch narrator bio data for provenance + reliability
     let narrator_ids: HashSet<String> = {
@@ -545,16 +540,25 @@ pub(crate) async fn build_family_graph(
         ids
     };
 
+    let t = std::time::Instant::now();
     let mut bio_map: HashMap<String, NarratorBio> = HashMap::new();
     let narrator_rids: Vec<RecordId> = narrator_ids
         .iter()
         .map(|nid| RecordId::new("narrator", nid.as_str()))
         .collect();
-    let mut res = db
-        .query("SELECT id, bio, generation, reliability_prior FROM narrator WHERE id IN $ids")
-        .bind(("ids", narrator_rids))
-        .await?;
-    let bios: Vec<NarratorBio> = res.take(0)?;
+    let narrator_count = narrator_rids.len();
+    eprintln!("     [db] {family_id} q4 narrator bios: {narrator_count} IDs to fetch");
+    // Chunk large IN queries to avoid SurrealDB performance cliff
+    let mut bios: Vec<NarratorBio> = Vec::new();
+    for chunk in narrator_rids.chunks(200) {
+        let mut res = db
+            .query("SELECT id, bio, generation, reliability_prior FROM narrator WHERE id IN $ids")
+            .bind(("ids", chunk.to_vec()))
+            .await?;
+        let chunk_bios: Vec<NarratorBio> = res.take(0)?;
+        bios.extend(chunk_bios);
+    }
+    eprintln!("     [db] {family_id} q4 narrator bios: {:?}, {} rows", t.elapsed(), bios.len());
     for bio in bios {
         if let Some(ref id) = bio.id {
             let key = crate::models::record_id_key_string(id);
@@ -624,6 +628,7 @@ pub async fn analyze_family(
     family_id: &str,
     profile: &str, // "structural_only" or "reliability_weighted"
 ) -> Result<FamilyAnalysisResult> {
+    let t0 = std::time::Instant::now();
     let mut graph = match build_family_graph(db, family_id).await? {
         Some(g) => g,
         None => {
@@ -636,9 +641,14 @@ pub async fn analyze_family(
             });
         }
     };
+    let t1 = std::time::Instant::now();
+    eprintln!("     [debug] {family_id}: build_graph={:?}, nodes={}, edges={}, variants={}",
+        t1 - t0, graph.nodes.len(), graph.edges.len(), graph.variant_ids.len());
 
     // 6. Compute features
     let features = graph.compute_features();
+    let t2 = std::time::Instant::now();
+    eprintln!("     [debug] {family_id}: compute_features={:?}", t2 - t1);
 
     // 7. Generate candidates
     let mut cl_candidates: Vec<String> = Vec::new();

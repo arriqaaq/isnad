@@ -73,7 +73,7 @@ pub async fn search_unified(
 
     let ayahs = match search_type {
         "semantic" => {
-            crate::quran::search::search_ayahs_semantic(db, embedder, query, fetch_per_source)
+            crate::quran::search::search_ayahs_semantic(db, embedder, query, fetch_per_source, 0)
                 .await
                 .unwrap_or_default()
         }

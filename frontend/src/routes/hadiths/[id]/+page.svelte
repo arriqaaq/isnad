@@ -196,6 +196,7 @@
     border: 1px solid var(--border);
     border-radius: var(--radius);
     color: var(--text-secondary);
+    font-family: var(--font-arabic-text);
     font-size: 1.3em;
     line-height: 2.4;
   }

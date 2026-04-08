@@ -39,6 +39,7 @@ pub struct ListParams {
     pub page: Option<usize>,
     pub limit: Option<usize>,
     pub q: Option<String>,
+    pub generation: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -248,42 +249,44 @@ pub async fn narrator_list(
     let limit = params.limit.unwrap_or(50);
     let offset = (page - 1) * limit;
 
-    let narrators: Vec<NarratorWithCount> = if let Some(q) = &params.q {
-        match state
-            .db
-            .query(
-                "SELECT * FROM narrator \
-                 WHERE string::lowercase(name_en) CONTAINS string::lowercase($q) \
-                    OR name_ar CONTAINS $q \
-                 ORDER BY hadith_count DESC LIMIT $limit START $offset",
-            )
-            .bind(("q", q.clone()))
-            .bind(("limit", limit))
-            .bind(("offset", offset))
-            .await
-        {
-            Ok(mut r) => r.take(0).unwrap_or_default(),
-            Err(e) => {
-                tracing::error!("Narrator search query failed: {e}");
-                vec![]
-            }
-        }
+    // Build WHERE clauses dynamically
+    let mut conditions: Vec<String> = Vec::new();
+    if let Some(q) = &params.q {
+        let _ = q; // used via bind
+        conditions.push(
+            "(string::lowercase(name_en) CONTAINS string::lowercase($q) OR name_ar CONTAINS $q)"
+                .to_string(),
+        );
+    }
+    if let Some(generation) = &params.generation {
+        let _ = generation;
+        conditions.push("generation = $generation".to_string());
+    }
+
+    let where_clause = if conditions.is_empty() {
+        String::new()
     } else {
-        match state
-            .db
-            .query(
-                "SELECT * FROM narrator \
-                 ORDER BY hadith_count DESC LIMIT $limit START $offset",
-            )
-            .bind(("limit", limit))
-            .bind(("offset", offset))
-            .await
-        {
-            Ok(mut r) => r.take(0).unwrap_or_default(),
-            Err(e) => {
-                tracing::error!("Narrator list query failed: {e}");
-                vec![]
-            }
+        format!("WHERE {}", conditions.join(" AND "))
+    };
+
+    let query_str = format!(
+        "SELECT * FROM narrator {where_clause} ORDER BY hadith_count DESC LIMIT $limit START $offset"
+    );
+
+    let mut query = state.db.query(&query_str);
+    if let Some(q) = &params.q {
+        query = query.bind(("q", q.clone()));
+    }
+    if let Some(generation) = &params.generation {
+        query = query.bind(("generation", generation.clone()));
+    }
+    query = query.bind(("limit", limit)).bind(("offset", offset));
+
+    let narrators: Vec<NarratorWithCount> = match query.await {
+        Ok(mut r) => r.take(0).unwrap_or_default(),
+        Err(e) => {
+            tracing::error!("Narrator list query failed: {e}");
+            vec![]
         }
     };
 
@@ -298,6 +301,7 @@ pub async fn narrator_list(
             bio: n.bio,
             kunya: n.kunya,
             death_year: n.death_year,
+            reliability_rating: n.reliability_rating,
             hadith_count: n.hadith_count.unwrap_or(0),
         })
         .collect();
@@ -1072,6 +1076,7 @@ pub struct NarratorWithCount {
     pub bio: Option<String>,
     pub kunya: Option<String>,
     pub death_year: Option<i64>,
+    pub reliability_rating: Option<String>,
     pub hadith_count: Option<i64>,
 }
 

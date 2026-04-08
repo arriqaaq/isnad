@@ -33,6 +33,7 @@ export interface ApiNarrator {
   reliability_rating: string | null;
   reliability_prior: number | null;
   reliability_source: string | null;
+  ibn_hajar_rank: string | null;
 }
 
 export interface ApiBook {
@@ -50,6 +51,7 @@ export interface ApiNarratorWithCount {
   bio: string | null;
   kunya: string | null;
   death_year: number | null;
+  reliability_rating: string | null;
   hadith_count: number;
 }
 
@@ -244,6 +246,8 @@ export interface QuranSearchResponse {
   query: string;
   search_type: string;
   ayahs: ApiAyahSearchResult[];
+  page: number;
+  has_more: boolean;
 }
 
 export interface QuranStatsResponse {

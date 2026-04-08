@@ -39,6 +39,7 @@ pub struct Narrator {
     pub reliability_rating: Option<String>,
     pub reliability_prior: Option<f64>,
     pub reliability_source: Option<String>,
+    pub ibn_hajar_rank: Option<String>,
 }
 
 #[derive(Debug, SurrealValue, Serialize, Clone)]
@@ -187,6 +188,7 @@ pub struct ApiNarrator {
     pub reliability_rating: Option<String>,
     pub reliability_prior: Option<f64>,
     pub reliability_source: Option<String>,
+    pub ibn_hajar_rank: Option<String>,
 }
 
 impl From<Narrator> for ApiNarrator {
@@ -209,6 +211,7 @@ impl From<Narrator> for ApiNarrator {
             reliability_rating: n.reliability_rating,
             reliability_prior: n.reliability_prior,
             reliability_source: n.reliability_source,
+            ibn_hajar_rank: n.ibn_hajar_rank,
         }
     }
 }
@@ -280,6 +283,7 @@ pub struct ApiNarratorWithCount {
     pub bio: Option<String>,
     pub kunya: Option<String>,
     pub death_year: Option<i64>,
+    pub reliability_rating: Option<String>,
     pub hadith_count: i64,
 }
 

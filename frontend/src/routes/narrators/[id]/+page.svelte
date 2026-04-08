@@ -152,6 +152,9 @@
         {#if data.narrator.reliability_rating}
           <Badge text={data.narrator.reliability_rating} variant={ratingColor(data.narrator.reliability_rating)} />
         {/if}
+        {#if data.narrator.ibn_hajar_rank}
+          <Badge text={data.narrator.ibn_hajar_rank} variant="default" />
+        {/if}
         {#if data.narrator.generation}
           <Badge text={data.narrator.generation} variant="accent" />
         {/if}

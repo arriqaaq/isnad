@@ -290,9 +290,9 @@
   }
   .audio-btn {
     font-size: 0.75rem;
-    color: var(--accent);
-    background: none;
-    border: 1px solid var(--accent);
+    color: var(--btn-text);
+    background: var(--btn-bg);
+    border: 1px solid var(--btn-border);
     border-radius: var(--radius-sm);
     padding: 2px 8px;
     cursor: pointer;
@@ -303,27 +303,30 @@
     align-items: center;
   }
   .audio-btn:hover {
-    background: var(--accent-muted);
+    background: var(--btn-bg-hover);
+    border-color: var(--btn-border-hover);
   }
   .download-btn {
     font-size: 0.85rem;
   }
   .words-toggle, .detail-toggle {
     font-size: 0.75rem;
-    color: var(--accent);
-    background: none;
-    border: 1px solid var(--accent);
+    color: var(--btn-text);
+    background: var(--btn-bg);
+    border: 1px solid var(--btn-border);
     border-radius: var(--radius-sm);
     padding: 2px 10px;
     cursor: pointer;
     transition: all var(--transition);
   }
   .words-toggle.active-toggle {
-    background: var(--accent);
+    background: var(--btn-text);
     color: var(--bg-primary);
+    border-color: var(--btn-text);
   }
   .words-toggle:hover, .detail-toggle:hover {
-    background: var(--accent-muted);
+    background: var(--btn-bg-hover);
+    border-color: var(--btn-border-hover);
   }
   @media (max-width: 640px) {
     .ayah-card { padding: 14px 0; }

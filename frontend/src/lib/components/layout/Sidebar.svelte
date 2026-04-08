@@ -23,7 +23,7 @@
   function isActive(path: string): boolean {
     const current = page.url.pathname;
     if (path === '/') return current === '/';
-    return current.startsWith(path);
+    return current === path || current.startsWith(path + '/');
   }
 </script>
 

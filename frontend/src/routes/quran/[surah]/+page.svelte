@@ -117,8 +117,8 @@
   .surah-page { padding: 24px; max-width: 800px; margin: 0 auto; padding-bottom: 72px; }
   .surah-nav { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; margin-bottom: 8px; }
   .surah-nav.bottom { margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--border); }
-  .nav-link { font-size: 0.85rem; color: var(--accent); }
-  .nav-link:hover { text-decoration: underline; }
+  .nav-link { font-size: 0.85rem; color: var(--btn-text); }
+  .nav-link:hover { text-decoration: underline; color: var(--text-secondary); }
   .ayah-list { display: flex; flex-direction: column; }
   @media (max-width: 640px) {
     .surah-page { padding: 12px; padding-bottom: 72px; }

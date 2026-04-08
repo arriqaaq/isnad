@@ -386,6 +386,68 @@ pub async fn ingest_morphology(db: &Surreal<Db>, morph_path: &str, qul_dir: &str
     Ok(())
 }
 
+/// Build a lemma-based Arabic text field for each ayah.
+///
+/// Aggregates the lemma of every word in the ayah (from quran_word),
+/// strips diacritics for consistent BM25 matching, and stores the
+/// result in `ayah.text_ar_lemma`. This enables Arabic search to match
+/// inflected forms (e.g., searching عيد matches the verse containing عيدا).
+pub async fn build_ayah_lemma_text(db: &Surreal<Db>) -> Result<()> {
+    use surrealdb::types::SurrealValue;
+
+    #[derive(Debug, SurrealValue)]
+    struct WordLemma {
+        surah_number: i64,
+        ayah_number: i64,
+        word_position: i64,
+        lemma: Option<String>,
+    }
+
+    println!("📝 Building ayah lemma text from morphology data...");
+
+    let mut res = db
+        .query("SELECT surah_number, ayah_number, word_position, lemma FROM quran_word ORDER BY surah_number, ayah_number, word_position")
+        .await?;
+    let words: Vec<WordLemma> = res.take(0)?;
+
+    // Group lemmas by (surah, ayah)
+    let mut ayah_lemmas: HashMap<(i64, i64), Vec<String>> = HashMap::new();
+    for w in &words {
+        if let Some(ref lemma) = w.lemma {
+            let normalized = strip_arabic_diacritics(lemma);
+            if !normalized.is_empty() {
+                ayah_lemmas
+                    .entry((w.surah_number, w.ayah_number))
+                    .or_default()
+                    .push(normalized);
+            }
+        }
+    }
+
+    let total = ayah_lemmas.len();
+    let pb = indicatif::ProgressBar::new(total as u64);
+    pb.set_style(
+        indicatif::ProgressStyle::default_bar()
+            .template("   {bar:40.cyan/blue} {pos}/{len} ayahs ({eta})")
+            .unwrap(),
+    );
+
+    for ((surah, ayah), lemmas) in &ayah_lemmas {
+        let lemma_text = lemmas.join(" ");
+        let key = format!("{}_{}", surah, ayah);
+        db.query("UPDATE $rid SET text_ar_lemma = $lemma_text")
+            .bind(("rid", rid("ayah", &key)))
+            .bind(("lemma_text", lemma_text))
+            .await?
+            .check()?;
+        pb.inc(1);
+    }
+
+    pb.finish_with_message("done");
+    println!("   ✓ {} ayahs updated with lemma text", total);
+    Ok(())
+}
+
 /// Load a QUL JSON file as a serde_json::Value (HashMap-like).
 fn load_qul_json(path: &str) -> Option<serde_json::Value> {
     let content = std::fs::read_to_string(path).ok()?;

@@ -4,6 +4,7 @@
   import { searchQuran, searchByRoot } from '$lib/api';
   import type { QuranSearchResponse, RootSearchResponse } from '$lib/types';
   import AyahCard from '$lib/components/quran/AyahCard.svelte';
+  import Pagination from '$lib/components/common/Pagination.svelte';
   import LoadingSpinner from '$lib/components/common/LoadingSpinner.svelte';
 
   let result: QuranSearchResponse | null = $state(null);
@@ -11,14 +12,17 @@
   let loading = $state(false);
   let query = $state('');
   let searchType: 'text' | 'semantic' | 'hybrid' | 'tafsir' | 'root' = $state('text');
+  let currentPage = $state(1);
 
   let urlQuery = $derived(page.url.searchParams.get('q') || '');
   let urlType = $derived((page.url.searchParams.get('type') as typeof searchType) || 'text');
+  let urlPage = $derived(Number(page.url.searchParams.get('page')) || 1);
 
   $effect(() => {
     if (urlQuery) {
       query = urlQuery;
       searchType = urlType;
+      currentPage = urlPage;
       doSearch();
     }
   });
@@ -32,7 +36,7 @@
       if (searchType === 'root') {
         rootResult = await searchByRoot(query);
       } else {
-        result = await searchQuran(query, searchType as 'text' | 'semantic' | 'hybrid' | 'tafsir');
+        result = await searchQuran(query, searchType as 'text' | 'semantic' | 'hybrid' | 'tafsir', 20, currentPage);
       }
     } catch (e) {
       console.error('Quran search failed:', e);
@@ -43,8 +47,24 @@
 
   function handleSubmit(e: Event) {
     e.preventDefault();
-    window.history.pushState({}, '', `/quran/search?q=${encodeURIComponent(query)}&type=${searchType}`);
+    currentPage = 1;
+    pushUrl();
     doSearch();
+  }
+
+  function changePage(newPage: number) {
+    currentPage = newPage;
+    pushUrl();
+    doSearch();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function pushUrl() {
+    const sp = new URLSearchParams();
+    sp.set('q', query);
+    sp.set('type', searchType);
+    if (currentPage > 1) sp.set('page', String(currentPage));
+    window.history.pushState({}, '', `/quran/search?${sp}`);
   }
 </script>
 
@@ -77,7 +97,7 @@
   {:else if result}
     {#if result.ayahs.length > 0}
       <section class="results-section">
-        <h2>Results ({result.ayahs.length})</h2>
+        <h2>Results</h2>
         <div class="results-list">
           {#each result.ayahs as ayah}
             <a href="/quran/{ayah.surah_number}?ayah={ayah.ayah_number}" class="result-link">
@@ -85,6 +105,7 @@
             </a>
           {/each}
         </div>
+        <Pagination page={result.page} hasMore={result.has_more} onPageChange={changePage} />
       </section>
     {:else}
       <div class="empty">No results found for "{result.query}".</div>
