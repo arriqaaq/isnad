@@ -26,7 +26,7 @@ Rust backend serving a SvelteKit SPA, with SurrealDB as a unified graph + vector
 - **Quran Reader** — 114 surahs with Tajweed Arabic, Sahih International translation, expandable Tafsir Ibn Kathir per ayah
 - **Hadith Explorer** — 368K+ hadiths from 926 books across the 6 canonical collections
 - **Narrator Networks** — 18K+ narrators with interactive Cytoscape.js graph visualization, Ibn Hajar reliability grades
-- **Hybrid Search** — BM25 full-text + 384-dim semantic vectors fused with Reciprocal Rank Fusion
+- **Hybrid Search** — BM25 full-text + 1024-dim semantic vectors fused with Reciprocal Rank Fusion
 - **Ask AI (GraphRAG)** — Natural language Q&A grounded in Quran/Hadith via local Ollama, with isnad-aware context
 - **Early Manuscripts** — Per-ayah high-resolution manuscript images from Corpus Coranicum (Berlin-Brandenburg Academy), viewable with zoom
 - **Isnad Analysis** — Hadith family clustering, mustalah-based chain grading (sahih/hasan/da'eef), transmission breadth (mutawatir/mashhur/aziz/gharib), corroboration detection (mutaba'at/shawahid), word-level matn diffing
@@ -118,7 +118,7 @@ Fine-tune a domain-specific LLM on hadith and Quran data, then deploy it through
 |---|---|---|
 | Backend | Rust, Axum | HTTP server, JSON API |
 | Database | SurrealDB (SurrealKV) | Graph + HNSW vectors + BM25 full-text |
-| Embeddings | FastEmbed (multilingual-e5-small) | 384-dim semantic vectors |
+| Embeddings | FastEmbed (bge-m3) | 1024-dim semantic vectors |
 | Frontend | SvelteKit 2, Svelte 5 | SPA served as static files |
 | Graph Viz | Cytoscape.js | Narrator network visualization |
 | LLM | Ollama (local) | Translation fallback + RAG Q&A |

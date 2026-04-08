@@ -70,7 +70,7 @@
   <!-- FastEmbed card -->
   <rect x="285" y="230" width="140" height="44" rx="10" fill="#ffffff" stroke="#e5e7eb" stroke-width="1" filter="url(#shadow)"/>
   <text x="355" y="249" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="11" font-weight="700" fill="#1a1a2e">FastEmbed</text>
-  <text x="355" y="264" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="9" fill="#9ca3af">query → 384-dim vector</text>
+  <text x="355" y="264" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="9" fill="#9ca3af">query → 1024-dim vector</text>
 
   <!-- Arrow to HNSW -->
   <line x1="425" y1="252" x2="470" y2="252" stroke="#d63384" stroke-width="1.5" opacity="0.4" marker-end="url(#arrow)"/>

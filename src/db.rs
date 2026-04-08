@@ -74,7 +74,7 @@ DEFINE FIELD IF NOT EXISTS topics        ON hadith TYPE option<array<string>>;
 DEFINE FIELD IF NOT EXISTS quran_verses  ON hadith TYPE option<array<string>>;
 DEFINE FIELD IF NOT EXISTS chapter_name  ON hadith TYPE option<string>;
 DEFINE FIELD IF NOT EXISTS embedding     ON hadith TYPE option<array<float>>;
-DEFINE INDEX IF NOT EXISTS hadith_vec    ON TABLE hadith FIELDS embedding HNSW DIMENSION 384 DIST COSINE;
+DEFINE INDEX IF NOT EXISTS hadith_vec    ON TABLE hadith FIELDS embedding HNSW DIMENSION 1024 DIST COSINE;
 DEFINE INDEX IF NOT EXISTS hadith_book   ON TABLE hadith FIELDS book_id;
 
 DEFINE TABLE IF NOT EXISTS book SCHEMAFULL;
@@ -207,7 +207,7 @@ DEFINE FIELD IF NOT EXISTS juz             ON ayah TYPE option<int>;
 DEFINE FIELD IF NOT EXISTS hizb            ON ayah TYPE option<int>;
 
 DEFINE FIELD IF NOT EXISTS embedding       ON ayah TYPE option<array<float>>;
-DEFINE INDEX IF NOT EXISTS ayah_vec        ON TABLE ayah FIELDS embedding HNSW DIMENSION 384 DIST COSINE;
+DEFINE INDEX IF NOT EXISTS ayah_vec        ON TABLE ayah FIELDS embedding HNSW DIMENSION 1024 DIST COSINE;
 DEFINE INDEX IF NOT EXISTS ayah_surah_idx  ON TABLE ayah FIELDS surah_number;
 DEFINE INDEX IF NOT EXISTS ayah_composite  ON TABLE ayah FIELDS surah_number, ayah_number UNIQUE;
 
@@ -349,7 +349,7 @@ DEFINE FIELD IF NOT EXISTS ayah_id      ON tafsir_chunk TYPE record<ayah>;
 DEFINE FIELD IF NOT EXISTS chunk_index  ON tafsir_chunk TYPE int;
 DEFINE FIELD IF NOT EXISTS chunk_text   ON tafsir_chunk TYPE string;
 DEFINE FIELD IF NOT EXISTS embedding    ON tafsir_chunk TYPE option<array<float>>;
-DEFINE INDEX IF NOT EXISTS tafsir_chunk_vec ON TABLE tafsir_chunk FIELDS embedding HNSW DIMENSION 384 DIST COSINE;
+DEFINE INDEX IF NOT EXISTS tafsir_chunk_vec ON TABLE tafsir_chunk FIELDS embedding HNSW DIMENSION 1024 DIST COSINE;
 DEFINE INDEX IF NOT EXISTS tafsir_chunk_ayah ON TABLE tafsir_chunk FIELDS ayah_id
 "#;
 
@@ -477,7 +477,7 @@ DEFINE FIELD IF NOT EXISTS title       ON link_preview TYPE option<string>;
 DEFINE FIELD IF NOT EXISTS description ON link_preview TYPE option<string>;
 DEFINE FIELD IF NOT EXISTS image       ON link_preview TYPE option<string>;
 DEFINE FIELD IF NOT EXISTS domain      ON link_preview TYPE option<string>;
-DEFINE FIELD IF NOT EXISTS fetched_at  ON link_preview TYPE option<datetime>;
+DEFINE FIELD IF NOT EXISTS fetched_at  ON link_preview TYPE option<string>;
 DEFINE INDEX IF NOT EXISTS lp_url ON TABLE link_preview FIELDS url UNIQUE
 "#;
 

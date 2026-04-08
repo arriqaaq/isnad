@@ -7,7 +7,7 @@ This guide covers fine-tuning a lightweight, domain-specific LLM on Islamic text
 The project already uses Ollama for the ask loop (`src/rag.rs`). The flow is:
 
 ```
-User question → FastEmbed (384-dim) → HNSW vector search → top 6 hadiths
+User question → FastEmbed (1024-dim) → HNSW vector search → top 6 hadiths
     → Graph traversal (narrator chains) → Build context
     → POST to Ollama /api/chat (streaming)
     → SSE stream to frontend

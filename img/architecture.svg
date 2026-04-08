@@ -62,7 +62,7 @@
   <rect x="20" y="405" width="350" height="75" rx="12" fill="#ffffff" stroke="#e5e7eb" stroke-width="1" filter="url(#shadow)"/>
   <text x="195" y="427" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="9" font-weight="700" letter-spacing="1.5" fill="#d63384">EMBEDDINGS</text>
   <text x="195" y="447" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="16" font-weight="700" fill="#1a1a2e">FastEmbed</text>
-  <text x="195" y="467" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="11" fill="#9ca3af">multilingual-e5-small · 384-dim</text>
+  <text x="195" y="467" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="11" fill="#9ca3af">bge-m3 · 1024-dim</text>
 
   <!-- Ollama Card -->
   <rect x="390" y="405" width="290" height="75" rx="12" fill="#ffffff" stroke="#e5e7eb" stroke-width="1" filter="url(#shadow)"/>

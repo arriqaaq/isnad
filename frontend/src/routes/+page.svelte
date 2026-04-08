@@ -123,7 +123,7 @@
       </div>
       <div class="feat-text">
         <h3>Intelligent Search</h3>
-        <p>Find verses and hadiths by what they mean, not just keywords. Hybrid search fuses BM25 full-text with 384-dimension semantic vectors across the entire corpus.</p>
+        <p>Find verses and hadiths by what they mean, not just keywords. Hybrid search fuses BM25 full-text with 1024-dimension semantic vectors across the entire corpus.</p>
         <a href="/explore" class="feat-link">Try Search &rarr;</a>
       </div>
     </div>
@@ -278,7 +278,7 @@
             <div class="glass-card animate-on-scroll stagger-4" use:inview>
               <div class="layer-label">Embeddings</div>
               <strong>FastEmbed</strong>
-              <p>multilingual-e5-small · 384-dim</p>
+              <p>bge-m3 · 1024-dim</p>
             </div>
           </div>
         </div>

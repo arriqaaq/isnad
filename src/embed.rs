@@ -15,7 +15,7 @@ pub struct Embedder {
 impl Embedder {
     pub fn new() -> Result<Self> {
         let model = TextEmbedding::try_new(
-            InitOptions::new(EmbeddingModel::MultilingualE5Small).with_show_download_progress(true),
+            InitOptions::new(EmbeddingModel::BGEM3).with_show_download_progress(true),
         )?;
         Ok(Self {
             model: Mutex::new(model),
@@ -29,11 +29,8 @@ impl Embedder {
     }
 
     pub fn embed_single(&self, text: &str) -> Result<Vec<f32>> {
-        // E5 models require "query: " prefix for search queries to separate
-        // the query embedding space from the passage embedding space.
-        let prefixed = format!("query: {text}");
         let mut model = self.model.lock().unwrap();
-        let mut embeddings = model.embed(vec![&prefixed], None)?;
+        let mut embeddings = model.embed(vec![text], None)?;
         Ok(embeddings.remove(0))
     }
 }
@@ -68,8 +65,7 @@ pub async fn embed_all_hadiths(db: &Surreal<Db>) -> Result<()> {
                     (None, Some(en)) => en.to_string(),
                     (None, None) => String::new(),
                 };
-                // E5 models require "passage: " prefix for document embeddings
-                format!("passage: {} {}", narrator, text)
+                format!("{} {}", narrator, text)
             })
             .collect();
 

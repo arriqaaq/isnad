@@ -182,9 +182,8 @@ async fn embed_all_ayahs(db: &Surreal<Db>) -> Result<()> {
                     Some(en) => format!("{} {}", a.text_ar, en),
                     None => a.text_ar.clone(),
                 };
-                // E5 models require "passage: " prefix for document embeddings
                 format!(
-                    "passage: Quran {} {}:{}: {}",
+                    "Quran {} {}:{}: {}",
                     surah_name, a.surah_number, a.ayah_number, text
                 )
             })
@@ -965,7 +964,7 @@ pub async fn embed_tafsir_chunks(db: &Surreal<Db>, embedder: &Embedder) -> Resul
                     .copied()
                     .unwrap_or((0, 0));
                 format!(
-                    "passage: Tafsir Ibn Kathir on Quran {}:{}: {}",
+                    "Tafsir Ibn Kathir on Quran {}:{}: {}",
                     surah, ayah_num, c.chunk_text
                 )
             })

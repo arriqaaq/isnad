@@ -212,7 +212,7 @@ This section describes how the classical principles above are implemented comput
 ### 5.1 Hadith Families
 
 Hadith variants sharing the same original report are grouped into **families** using:
-- **Embedding similarity**: cosine similarity >= 0.85 between 384-dim multilingual-e5-small vectors
+- **Embedding similarity**: cosine similarity >= 0.85 between 1024-dim bge-m3 vectors
 - **Narrator overlap**: shared narrators between chains confirm the grouping
 - **Union-Find clustering**: groups of 2+ hadiths meeting both criteria
 
