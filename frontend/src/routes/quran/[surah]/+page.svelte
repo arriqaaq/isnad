@@ -1,10 +1,11 @@
 <script lang="ts">
   import { page } from '$app/state';
-  import { getSurah } from '$lib/api';
-  import type { ApiAyah, ApiAyahSearchResult, SurahDetailResponse } from '$lib/types';
+  import { getSurah, fetchNoteRefs } from '$lib/api';
+  import type { ApiAyah, ApiAyahSearchResult, SurahDetailResponse, NoteRefsIndicator } from '$lib/types';
   import SurahHeader from '$lib/components/quran/SurahHeader.svelte';
   import AyahCard from '$lib/components/quran/AyahCard.svelte';
   import AyahSidePanel from '$lib/components/quran/AyahSidePanel.svelte';
+  import NoteModal from '$lib/components/notes/NoteModal.svelte';
   import LoadingSpinner from '$lib/components/common/LoadingSpinner.svelte';
   import RecitationPlayer from '$lib/components/quran/RecitationPlayer.svelte';
   import { preferences } from '$lib/stores/preferences';
@@ -13,6 +14,8 @@
   let loading = $state(true);
   let activeAyah = $state(0);
   let panelAyah: ApiAyah | ApiAyahSearchResult | null = $state(null);
+  let noteTarget: { refType: 'ayah'; refId: string; label: string } | null = $state(null);
+  let noteIndicators: NoteRefsIndicator = $state({});
   let playerRef: ReturnType<typeof RecitationPlayer> | undefined = $state(undefined);
 
   let surahNum = $derived(Number(page.params.surah));
@@ -25,6 +28,12 @@
     getSurah(surahNum).then((d) => {
       data = d;
       loading = false;
+
+      // Load note indicators for all ayahs in this surah
+      const refIds = d.ayahs.map((a: ApiAyah) => `${d.surah.surah_number}:${a.ayah_number}`);
+      fetchNoteRefs('ayah', refIds)
+        .then(indicators => { noteIndicators = indicators; })
+        .catch(() => {});
 
       // Scroll to specific ayah if ?ayah=N is in the URL
       if (startingAyah > 0) {
@@ -82,6 +91,8 @@
             active={ayah.ayah_number === activeAyah}
             onplay={handleAyahPlay}
             onopenpanel={(a) => panelAyah = a}
+            onopennote={(a) => { noteTarget = { refType: 'ayah', refId: `${a.surah_number}:${a.ayah_number}`, label: `${a.surah_number}:${a.ayah_number}` }; }}
+            noteIndicator={noteIndicators[`${data.surah.surah_number}:${ayah.ayah_number}`]}
             {reciterFolder}
           />
         </div>
@@ -102,6 +113,15 @@
 
 {#if panelAyah}
   <AyahSidePanel ayah={panelAyah} onclose={() => panelAyah = null} />
+{/if}
+
+{#if noteTarget}
+  <NoteModal
+    refType={noteTarget.refType}
+    refId={noteTarget.refId}
+    refLabel="Quran {noteTarget.refId}"
+    onclose={() => noteTarget = null}
+  />
 {/if}
 
 {#if data}

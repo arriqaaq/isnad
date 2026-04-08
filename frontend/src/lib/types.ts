@@ -400,3 +400,54 @@ export interface AyahSimilarResponse {
   similar: ApiSimilarAyah[];
   phrases: ApiPhraseWithAyahs[];
 }
+
+// ── User Notes ──
+
+export interface NoteRef {
+  ref_type: 'ayah' | 'hadith' | 'narrator';
+  ref_id: string;
+  annotation?: string;
+}
+
+export interface UserNote {
+  id: string;
+  ref_type: 'ayah' | 'hadith' | 'topic';
+  ref_id: string | null;
+  title: string | null;
+  content: string;
+  color: 'yellow' | 'green' | 'blue' | 'pink' | 'purple';
+  tags: string[];
+  refs: NoteRef[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateNoteRequest {
+  ref_type: 'ayah' | 'hadith' | 'topic';
+  ref_id?: string;
+  title?: string;
+  content?: string;
+  color?: string;
+  tags?: string[];
+  refs?: NoteRef[];
+}
+
+export interface UpdateNoteRequest {
+  title?: string;
+  content?: string;
+  color?: string;
+  tags?: string[];
+  refs?: NoteRef[];
+}
+
+export interface LinkPreview {
+  url: string;
+  title: string | null;
+  description: string | null;
+  image: string | null;
+  domain: string | null;
+}
+
+export interface NoteRefsIndicator {
+  [refId: string]: { color: string; count: number };
+}

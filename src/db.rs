@@ -451,6 +451,76 @@ pub async fn init_fulltext_indexes(db: &Surreal<Db>) -> Result<()> {
     Ok(())
 }
 
+// ── User Notes Schema ──
+
+const USER_NOTE_SCHEMA: &str = r#"
+DEFINE TABLE IF NOT EXISTS user_note SCHEMAFULL;
+DEFINE FIELD IF NOT EXISTS device_id   ON user_note TYPE string;
+DEFINE FIELD IF NOT EXISTS ref_type    ON user_note TYPE string;
+DEFINE FIELD IF NOT EXISTS ref_id      ON user_note TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS title       ON user_note TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS content     ON user_note TYPE string;
+DEFINE FIELD IF NOT EXISTS color       ON user_note TYPE string;
+DEFINE FIELD IF NOT EXISTS tags        ON user_note TYPE option<array<string>>;
+DEFINE FIELD IF NOT EXISTS refs        ON user_note TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS created_at  ON user_note TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS updated_at  ON user_note TYPE option<string>;
+DEFINE INDEX IF NOT EXISTS note_device_ref ON TABLE user_note FIELDS device_id, ref_type, ref_id
+"#;
+
+// ── Link Preview Cache Schema ──
+
+const LINK_PREVIEW_SCHEMA: &str = r#"
+DEFINE TABLE IF NOT EXISTS link_preview SCHEMAFULL;
+DEFINE FIELD IF NOT EXISTS url         ON link_preview TYPE string;
+DEFINE FIELD IF NOT EXISTS title       ON link_preview TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS description ON link_preview TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS image       ON link_preview TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS domain      ON link_preview TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS fetched_at  ON link_preview TYPE option<datetime>;
+DEFINE INDEX IF NOT EXISTS lp_url ON TABLE link_preview FIELDS url UNIQUE
+"#;
+
+pub async fn init_user_note_schema(db: &Surreal<Db>) -> Result<()> {
+    for (i, stmt) in USER_NOTE_SCHEMA
+        .split(';')
+        .map(|s| s.trim())
+        .filter(|s| !s.is_empty() && !s.starts_with("--"))
+        .enumerate()
+    {
+        let sql = format!("{stmt};");
+        if let Err(e) = db.query(&sql).await.and_then(|r| r.check()) {
+            tracing::error!(
+                "User note schema statement {i} failed: {e}\n  SQL: {}",
+                stmt.chars().take(120).collect::<String>()
+            );
+            return Err(e.into());
+        }
+    }
+    tracing::info!("User note schema initialized");
+    Ok(())
+}
+
+pub async fn init_link_preview_schema(db: &Surreal<Db>) -> Result<()> {
+    for (i, stmt) in LINK_PREVIEW_SCHEMA
+        .split(';')
+        .map(|s| s.trim())
+        .filter(|s| !s.is_empty() && !s.starts_with("--"))
+        .enumerate()
+    {
+        let sql = format!("{stmt};");
+        if let Err(e) = db.query(&sql).await.and_then(|r| r.check()) {
+            tracing::error!(
+                "Link preview schema statement {i} failed: {e}\n  SQL: {}",
+                stmt.chars().take(120).collect::<String>()
+            );
+            return Err(e.into());
+        }
+    }
+    tracing::info!("Link preview schema initialized");
+    Ok(())
+}
+
 /// Pre-compute hadith_count on every narrator record.
 ///
 /// This avoids expensive `count(->narrates->hadith)` graph traversals on every

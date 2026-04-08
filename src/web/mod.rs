@@ -1,4 +1,5 @@
 pub mod handlers;
+pub mod note_handlers;
 pub mod quran_handlers;
 
 use std::sync::Arc;
@@ -162,6 +163,42 @@ pub async fn serve(
         .route(
             "/api/unified/ask",
             axum::routing::post(handlers::unified_ask),
+        )
+        // Link preview
+        .route(
+            "/api/link-preview",
+            axum::routing::get(handlers::link_preview),
+        )
+        // Notes — specific paths BEFORE {id} to avoid Axum matching
+        .route(
+            "/api/notes",
+            axum::routing::get(note_handlers::list_notes).post(note_handlers::create_note),
+        )
+        .route(
+            "/api/notes/refs",
+            axum::routing::get(note_handlers::bulk_note_refs),
+        )
+        .route(
+            "/api/notes/tags",
+            axum::routing::get(note_handlers::list_tags),
+        )
+        .route(
+            "/api/notes/export",
+            axum::routing::get(note_handlers::export_notes),
+        )
+        .route(
+            "/api/notes/{id}",
+            axum::routing::get(note_handlers::get_note)
+                .put(note_handlers::update_note)
+                .delete(note_handlers::delete_note),
+        )
+        .route(
+            "/api/notes/{id}/refs",
+            axum::routing::put(note_handlers::update_note_refs),
+        )
+        .route(
+            "/api/notes/{id}/refs/{idx}/annotation",
+            axum::routing::put(note_handlers::update_ref_annotation),
         )
         .with_state(state);
 

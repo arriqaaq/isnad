@@ -22,7 +22,14 @@ import type {
   RootSearchResponse,
   AyahSimilarResponse,
   ApiPhraseWithAyahs,
+  UserNote,
+  CreateNoteRequest,
+  UpdateNoteRequest,
+  NoteRef,
+  LinkPreview,
+  NoteRefsIndicator,
 } from './types';
+import { getDeviceId } from './stores/deviceId';
 
 const BASE = '/api';
 
@@ -226,4 +233,118 @@ export async function getAyahSimilar(surah: number, ayah: number): Promise<AyahS
 
 export async function getPhraseDetail(id: string): Promise<ApiPhraseWithAyahs> {
   return get<ApiPhraseWithAyahs>(`/quran/phrases/${encodeURIComponent(id)}`);
+}
+
+// ── Notes API ──
+
+function deviceHeaders(): HeadersInit {
+  return { 'X-Device-Id': getDeviceId() };
+}
+
+async function getWithDevice<T>(path: string): Promise<T> {
+  const res = await fetch(`${BASE}${path}`, { headers: deviceHeaders() });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
+
+async function mutateWithDevice<T>(
+  method: 'POST' | 'PUT' | 'DELETE',
+  path: string,
+  data?: unknown,
+): Promise<T> {
+  const res = await fetch(`${BASE}${path}`, {
+    method,
+    headers: { 'Content-Type': 'application/json', ...deviceHeaders() },
+    body: data ? JSON.stringify(data) : undefined,
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  if (method === 'DELETE') return undefined as T;
+  return res.json();
+}
+
+export async function fetchNotesForRef(
+  refType: string,
+  refId: string,
+): Promise<PaginatedResponse<UserNote>> {
+  return getWithDevice(`/notes?ref_type=${encodeURIComponent(refType)}&ref_id=${encodeURIComponent(refId)}`);
+}
+
+export async function fetchNoteRefs(
+  refType: string,
+  refIds: string[],
+): Promise<NoteRefsIndicator> {
+  if (refIds.length === 0) return {};
+  return getWithDevice(`/notes/refs?ref_type=${encodeURIComponent(refType)}&ref_ids=${refIds.map(encodeURIComponent).join(',')}`);
+}
+
+export async function fetchAllNotes(params?: {
+  ref_type?: string;
+  tag?: string;
+  color?: string;
+  q?: string;
+  page?: number;
+  limit?: number;
+}): Promise<PaginatedResponse<UserNote>> {
+  const sp = new URLSearchParams();
+  if (params?.ref_type) sp.set('ref_type', params.ref_type);
+  if (params?.tag) sp.set('tag', params.tag);
+  if (params?.color) sp.set('color', params.color);
+  if (params?.q) sp.set('q', params.q);
+  if (params?.page) sp.set('page', String(params.page));
+  if (params?.limit) sp.set('limit', String(params.limit));
+  return getWithDevice(`/notes?${sp}`);
+}
+
+export async function fetchNoteTags(): Promise<string[]> {
+  return getWithDevice('/notes/tags');
+}
+
+export async function fetchNote(id: string): Promise<UserNote> {
+  return getWithDevice(`/notes/${encodeURIComponent(id)}`);
+}
+
+export async function createNote(data: CreateNoteRequest): Promise<UserNote> {
+  return mutateWithDevice('POST', '/notes', data);
+}
+
+export async function updateNote(id: string, data: UpdateNoteRequest): Promise<UserNote> {
+  return mutateWithDevice('PUT', `/notes/${encodeURIComponent(id)}`, data);
+}
+
+export async function deleteNote(id: string): Promise<void> {
+  return mutateWithDevice('DELETE', `/notes/${encodeURIComponent(id)}`);
+}
+
+export async function addRefToNote(noteId: string, ref: NoteRef): Promise<UserNote> {
+  return mutateWithDevice('PUT', `/notes/${encodeURIComponent(noteId)}/refs`, {
+    action: 'add',
+    ref,
+  });
+}
+
+export async function removeRefFromNote(noteId: string, ref: NoteRef): Promise<UserNote> {
+  return mutateWithDevice('PUT', `/notes/${encodeURIComponent(noteId)}/refs`, {
+    action: 'remove',
+    ref,
+  });
+}
+
+export async function updateRefAnnotation(
+  noteId: string,
+  idx: number,
+  annotation: string,
+): Promise<UserNote> {
+  return mutateWithDevice(
+    'PUT',
+    `/notes/${encodeURIComponent(noteId)}/refs/${idx}/annotation`,
+    { annotation },
+  );
+}
+
+export async function exportNotes(): Promise<UserNote[]> {
+  return getWithDevice('/notes/export');
+}
+
+export async function fetchLinkPreview(url: string): Promise<LinkPreview> {
+  return get(`/link-preview?url=${encodeURIComponent(url)}`);
 }

@@ -1,4 +1,4 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use surrealdb::types::{RecordId, RecordIdKey, SurrealValue};
 
 /// Format a RecordId's key as a string (for URLs, graph IDs, etc.)
@@ -345,4 +345,97 @@ pub struct StatsResponse {
     pub hadith_count: i64,
     pub narrator_count: i64,
     pub book_count: i64,
+}
+
+// ── User Notes ──
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct NoteRef {
+    pub ref_type: String,
+    pub ref_id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub annotation: Option<String>,
+}
+
+#[derive(Debug, SurrealValue, Serialize, Clone)]
+pub struct UserNote {
+    pub id: Option<RecordId>,
+    pub device_id: String,
+    pub ref_type: String,
+    pub ref_id: Option<String>,
+    pub title: Option<String>,
+    pub content: String,
+    pub color: String,
+    pub tags: Option<Vec<String>>,
+    pub refs: Option<String>,
+    pub created_at: Option<String>,
+    pub updated_at: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ApiUserNote {
+    pub id: String,
+    pub ref_type: String,
+    pub ref_id: Option<String>,
+    pub title: Option<String>,
+    pub content: String,
+    pub color: String,
+    pub tags: Vec<String>,
+    pub refs: Vec<NoteRef>,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+impl From<UserNote> for ApiUserNote {
+    fn from(n: UserNote) -> Self {
+        Self {
+            id: n.id.as_ref().map(record_id_key_string).unwrap_or_default(),
+            ref_type: n.ref_type,
+            ref_id: n.ref_id,
+            title: n.title,
+            content: n.content,
+            color: n.color,
+            tags: n.tags.unwrap_or_default(),
+            refs: n
+                .refs
+                .and_then(|s| serde_json::from_str(&s).ok())
+                .unwrap_or_default(),
+            created_at: n.created_at.unwrap_or_default(),
+            updated_at: n.updated_at.unwrap_or_default(),
+        }
+    }
+}
+
+// ── Link Preview Cache ──
+
+#[derive(Debug, SurrealValue, Serialize, Clone)]
+pub struct LinkPreview {
+    pub id: Option<RecordId>,
+    pub url: String,
+    pub title: Option<String>,
+    pub description: Option<String>,
+    pub image: Option<String>,
+    pub domain: Option<String>,
+    pub fetched_at: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ApiLinkPreview {
+    pub url: String,
+    pub title: Option<String>,
+    pub description: Option<String>,
+    pub image: Option<String>,
+    pub domain: Option<String>,
+}
+
+impl From<LinkPreview> for ApiLinkPreview {
+    fn from(lp: LinkPreview) -> Self {
+        Self {
+            url: lp.url,
+            title: lp.title,
+            description: lp.description,
+            image: lp.image,
+            domain: lp.domain,
+        }
+    }
 }

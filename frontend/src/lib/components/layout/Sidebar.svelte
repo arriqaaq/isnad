@@ -20,6 +20,10 @@
     { path: '/quran/search', label: 'Quran Search', icon: '⌕' },
   ];
 
+  const noteItems = [
+    { path: '/notes', label: 'Notes', icon: '✎' },
+  ];
+
   function isActive(path: string): boolean {
     const current = page.url.pathname;
     if (path === '/') return current === '/';
@@ -48,6 +52,19 @@
     <div class="nav-divider"></div>
 
     {#each quranItems as item}
+      <a
+        href={item.path}
+        class="nav-item"
+        class:active={isActive(item.path)}
+      >
+        <span class="nav-icon">{item.icon}</span>
+        <span class="nav-label">{item.label}</span>
+      </a>
+    {/each}
+
+    <div class="nav-divider"></div>
+
+    {#each noteItems as item}
       <a
         href={item.path}
         class="nav-item"

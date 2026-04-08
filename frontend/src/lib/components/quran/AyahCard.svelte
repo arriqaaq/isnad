@@ -5,6 +5,8 @@
   import { preferences } from '$lib/stores/preferences';
   import { fetchGlyphData, loadPageFont, getPageFontFamily, getVerseGlyph } from '$lib/quranFonts';
   import WordMorphology from './WordMorphology.svelte';
+  import NoteIndicator from '$lib/components/notes/NoteIndicator.svelte';
+  import SavePopover from '$lib/components/notes/SavePopover.svelte';
 
   // QCF glyph state
   let glyphText: string | null = $state(null);
@@ -31,13 +33,15 @@
     }).catch(() => { glyphReady = false; });
   });
 
-  let { ayah, showScore = false, compact = false, active = false, onplay, onopenpanel, reciterFolder }: {
+  let { ayah, showScore = false, compact = false, active = false, onplay, onopenpanel, onopennote, noteIndicator, reciterFolder }: {
     ayah: ApiAyah | ApiAyahSearchResult;
     showScore?: boolean;
     compact?: boolean;
     active?: boolean;
     onplay?: (ayah: number) => void;
     onopenpanel?: (ayah: ApiAyah | ApiAyahSearchResult) => void;
+    onopennote?: (ayah: ApiAyah | ApiAyahSearchResult) => void;
+    noteIndicator?: { color: string; count: number };
     reciterFolder?: string;
   } = $props();
 
@@ -62,6 +66,8 @@
 
   // State
   let showWords = $state(false);
+  let showSavePopover = $state(false);
+  let saveButtonEl: HTMLButtonElement | undefined = $state();
   let words: ApiQuranWord[] | null = $state(null);
   let selectedWord: ApiQuranWord | null = $state(null);
   let score = $derived('score' in ayah ? (ayah as ApiAyahSearchResult).score : null);
@@ -140,6 +146,9 @@
   {/if}
 
   <div class="ayah-footer">
+    {#if noteIndicator}
+      <NoteIndicator color={noteIndicator.color} count={noteIndicator.count} />
+    {/if}
     <span class="verse-ref">{ayah.surah_number}:{ayah.ayah_number}</span>
     {#if showScore && score}
       <span class="score mono">{score.toFixed(3)}</span>
@@ -157,6 +166,20 @@
         Words
       </button>
     {/if}
+    {#if !compact}
+      <button
+        class="detail-toggle"
+        bind:this={saveButtonEl}
+        onclick={() => { showSavePopover = !showSavePopover; }}
+      >
+        &#9829; Save
+      </button>
+    {/if}
+    {#if !compact && onopennote}
+      <button class="detail-toggle" onclick={() => onopennote(ayah)}>
+        Note
+      </button>
+    {/if}
     {#if !compact && onopenpanel}
       <button class="detail-toggle" onclick={() => onopenpanel(ayah)}>
         Details
@@ -164,7 +187,16 @@
     {/if}
   </div>
 
-
+  {#if showSavePopover}
+    <SavePopover
+      refType="ayah"
+      refId="{ayah.surah_number}:{ayah.ayah_number}"
+      refLabel="{ayah.surah_number}:{ayah.ayah_number}"
+      anchorX={saveButtonEl ? saveButtonEl.getBoundingClientRect().left : 100}
+      anchorY={saveButtonEl ? saveButtonEl.getBoundingClientRect().bottom + 4 : 100}
+      onclose={() => { showSavePopover = false; }}
+    />
+  {/if}
 </div>
 
 <style>

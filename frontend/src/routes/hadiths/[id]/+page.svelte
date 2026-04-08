@@ -8,10 +8,15 @@
   import Badge from '$lib/components/common/Badge.svelte';
   import ChainView from '$lib/components/graph/ChainView.svelte';
   import LoadingSpinner from '$lib/components/common/LoadingSpinner.svelte';
+  import NoteModal from '$lib/components/notes/NoteModal.svelte';
+  import SavePopover from '$lib/components/notes/SavePopover.svelte';
 
   let data: HadithDetailResponse | null = $state(null);
   let graphData: GraphData | null = $state(null);
   let loading = $state(true);
+  let showNotePanel = $state(false);
+  let showSavePopover = $state(false);
+  let saveBtnEl: HTMLButtonElement | undefined = $state();
 
   let id = $derived(page.params.id);
 
@@ -52,6 +57,16 @@
         {#if data.hadith.grade}
           <Badge text={data.hadith.grade} variant="success" />
         {/if}
+        <button
+          class="note-btn"
+          bind:this={saveBtnEl}
+          onclick={() => { showSavePopover = !showSavePopover; }}
+        >
+          &#9829; Save
+        </button>
+        <button class="note-btn" onclick={() => { showNotePanel = true; }}>
+          &#9998; Note
+        </button>
       </div>
     </div>
 
@@ -152,10 +167,41 @@
   {/if}
 </div>
 
+{#if showSavePopover && data}
+  <SavePopover
+    refType="hadith"
+    refId={data.hadith.id}
+    refLabel="Hadith #{data.hadith.hadith_number}"
+    anchorX={saveBtnEl ? saveBtnEl.getBoundingClientRect().left : 100}
+    anchorY={saveBtnEl ? saveBtnEl.getBoundingClientRect().bottom + 4 : 100}
+    onclose={() => { showSavePopover = false; }}
+  />
+{/if}
+
+{#if showNotePanel && data}
+  <NoteModal
+    refType="hadith"
+    refId={data.hadith.id}
+    refLabel="Hadith #{data.hadith.hadith_number}"
+    onclose={() => { showNotePanel = false; }}
+  />
+{/if}
+
 <style>
   .hadith-view { padding: 24px; max-width: 900px; }
   .view-header { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; }
-  .badges { display: flex; gap: 8px; }
+  .badges { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .note-btn {
+    font-size: 0.75rem;
+    color: var(--btn-text);
+    background: var(--btn-bg);
+    border: 1px solid var(--btn-border);
+    border-radius: var(--radius-sm);
+    padding: 2px 10px;
+    cursor: pointer;
+    transition: all var(--transition);
+  }
+  .note-btn:hover { background: var(--btn-bg-hover); border-color: var(--btn-border-hover); }
 
   .narrator-text {
     color: var(--accent);

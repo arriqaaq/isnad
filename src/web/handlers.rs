@@ -1300,3 +1300,117 @@ pub async fn unified_ask(
         .body(body)
         .unwrap())
 }
+
+// ── Link Preview ──
+
+#[derive(Deserialize)]
+pub struct LinkPreviewParams {
+    pub url: String,
+}
+
+pub async fn link_preview(
+    State(state): State<AppState>,
+    Query(params): Query<LinkPreviewParams>,
+) -> Result<impl IntoResponse, StatusCode> {
+    use crate::models::{ApiLinkPreview, LinkPreview};
+
+    let url = params.url.trim().to_string();
+    if url.is_empty() || (!url.starts_with("http://") && !url.starts_with("https://")) {
+        return Err(StatusCode::BAD_REQUEST);
+    }
+
+    // Check cache first
+    let mut res = state
+        .db
+        .query("SELECT * FROM link_preview WHERE url = $url LIMIT 1")
+        .bind(("url", url.clone()))
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    let cached: Option<LinkPreview> = res.take(0).unwrap_or(None);
+    if let Some(lp) = cached {
+        return Ok(Json(ApiLinkPreview::from(lp)));
+    }
+
+    // Fetch the URL
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(10))
+        .build()
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    let resp = client
+        .get(&url)
+        .header(
+            "User-Agent",
+            "Mozilla/5.0 (compatible; IlmBot/1.0; +https://ilm.app)",
+        )
+        .send()
+        .await
+        .map_err(|e| {
+            tracing::warn!("Link preview fetch failed for {url}: {e}");
+            StatusCode::BAD_GATEWAY
+        })?;
+
+    let html = resp.text().await.map_err(|_| StatusCode::BAD_GATEWAY)?;
+
+    // Extract OG tags via regex
+    let extract = |pattern: &str| -> Option<String> {
+        regex::Regex::new(pattern)
+            .ok()
+            .and_then(|re| re.captures(&html))
+            .and_then(|caps| caps.get(1))
+            .map(|m| html_escape_decode(m.as_str()))
+    };
+
+    // Handle both attribute orders: property before content AND content before property
+    let extract_og = |prop: &str| -> Option<String> {
+        let p1 = format!(r#"<meta[^>]+property="{prop}"[^>]+content="([^"]*)""#);
+        let p2 = format!(r#"<meta[^>]+content="([^"]*)"[^>]+property="{prop}""#);
+        extract(&p1).or_else(|| extract(&p2))
+    };
+
+    let og_title = extract_og("og:title");
+    let og_desc = extract_og("og:description");
+    let og_image = extract_og("og:image");
+    let html_title = extract(r#"<title[^>]*>([^<]*)</title>"#);
+
+    let title = og_title.or(html_title);
+    let domain = url
+        .strip_prefix("https://")
+        .or_else(|| url.strip_prefix("http://"))
+        .and_then(|s| s.split('/').next())
+        .map(|s| s.to_string());
+
+    // Cache the result
+    let _ = state
+        .db
+        .query(
+            "CREATE link_preview CONTENT {
+                url: $url, title: $title, description: $desc,
+                image: $image, domain: $domain, fetched_at: time::now()
+            }",
+        )
+        .bind(("url", url.clone()))
+        .bind(("title", title.clone()))
+        .bind(("desc", og_desc.clone()))
+        .bind(("image", og_image.clone()))
+        .bind(("domain", domain.clone()))
+        .await;
+
+    Ok(Json(ApiLinkPreview {
+        url,
+        title,
+        description: og_desc,
+        image: og_image,
+        domain,
+    }))
+}
+
+fn html_escape_decode(s: &str) -> String {
+    s.replace("&amp;", "&")
+        .replace("&lt;", "<")
+        .replace("&gt;", ">")
+        .replace("&quot;", "\"")
+        .replace("&#39;", "'")
+        .replace("&#x27;", "'")
+}

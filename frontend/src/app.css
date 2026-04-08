@@ -53,6 +53,13 @@
   --graph-shadow-center: rgba(214, 51, 132, 0.3);
   --graph-shadow-teacher: rgba(22, 163, 74, 0.3);
   --graph-shadow-student: rgba(184, 134, 11, 0.3);
+
+  /* Note highlight colors */
+  --note-yellow-bg: #fef3c7; --note-yellow: #f59e0b;
+  --note-green-bg: #d1fae5;  --note-green: #10b981;
+  --note-blue-bg: #dbeafe;   --note-blue: #3b82f6;
+  --note-pink-bg: #fce7f3;   --note-pink: #ec4899;
+  --note-purple-bg: #ede9fe; --note-purple: #8b5cf6;
 }
 
 *, *::before, *::after {
@@ -203,6 +210,13 @@ input::placeholder {
   --graph-shadow-center: rgba(231, 122, 171, 0.35);
   --graph-shadow-teacher: rgba(63, 185, 80, 0.35);
   --graph-shadow-student: rgba(218, 165, 32, 0.35);
+
+  /* Note highlight colors (dark) */
+  --note-yellow-bg: rgba(217,119,6,0.2);  --note-yellow: #fbbf24;
+  --note-green-bg: rgba(16,185,129,0.2);  --note-green: #34d399;
+  --note-blue-bg: rgba(59,130,246,0.2);   --note-blue: #60a5fa;
+  --note-pink-bg: rgba(236,72,153,0.2);   --note-pink: #f472b6;
+  --note-purple-bg: rgba(139,92,246,0.2); --note-purple: #a78bfa;
 }
 
 /* ── Theme: Brown (Sepia) ── */
@@ -239,6 +253,13 @@ input::placeholder {
   --graph-shadow-center: rgba(184, 134, 11, 0.3);
   --graph-shadow-teacher: rgba(45, 122, 58, 0.3);
   --graph-shadow-student: rgba(139, 105, 20, 0.3);
+
+  /* Note highlight colors (brown) */
+  --note-yellow-bg: rgba(217,119,6,0.15); --note-yellow: #d97706;
+  --note-green-bg: rgba(16,185,129,0.15); --note-green: #059669;
+  --note-blue-bg: rgba(59,130,246,0.15);  --note-blue: #2563eb;
+  --note-pink-bg: rgba(236,72,153,0.15);  --note-pink: #db2777;
+  --note-purple-bg: rgba(139,92,246,0.15);--note-purple: #7c3aed;
 }
 
 /* ── Theme: Pink ── */

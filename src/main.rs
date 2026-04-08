@@ -347,6 +347,8 @@ async fn async_main() -> Result<()> {
             db::init_quran_similar_schema(&db).await?;
             db::init_tafsir_chunk_schema(&db).await?;
             db::init_reciter_schema(&db).await?;
+            db::init_user_note_schema(&db).await?;
+            db::init_link_preview_schema(&db).await?;
             quran::audio::init_reciters(&db).await?;
             web::serve(db, port, ollama_url, ollama_model).await?;
         }
