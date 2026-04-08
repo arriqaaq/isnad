@@ -9,7 +9,8 @@ function isRTL(text: string): boolean {
 function getIsLight(): boolean {
   if (typeof document === 'undefined') return true;
   const theme = document.documentElement.getAttribute('data-theme');
-  return !theme || theme !== 'dark';
+  // dark and sepia are both "dark background" themes
+  return !theme || (theme !== 'dark' && theme !== 'sepia');
 }
 
 export const drawLabel: NodeLabelDrawingFunction = (context, data, settings) => {
@@ -65,7 +66,7 @@ export const drawHover: NodeHoverDrawingFunction = (context, data, settings) => 
       context.closePath();
       context.fill();
     } else {
-      // Draw pill to the right (Surrealist default)
+      // Draw pill to the right
       context.beginPath();
       context.moveTo(data.x + xDeltaCoord, data.y + boxHeight / 2);
       context.lineTo(data.x + radius + boxWidth, data.y + boxHeight / 2);

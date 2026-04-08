@@ -74,19 +74,19 @@ pub async fn serve(
         )
         .route(
             "/api/analysis/stats",
-            axum::routing::get(handlers::analysis_stats),
-        )
-        .route(
-            "/api/analysis/juynboll/summary",
-            axum::routing::get(handlers::juynboll_summary),
+            axum::routing::get(handlers::mustalah_stats),
         )
         .route(
             "/api/narrators/{id}/reliability",
             axum::routing::get(handlers::narrator_reliability),
         )
         .route(
-            "/api/narrators/{id}/cl-status",
-            axum::routing::get(handlers::narrator_cl_status),
+            "/api/families/{id}/mustalah",
+            axum::routing::get(handlers::mustalah_family_analysis),
+        )
+        .route(
+            "/api/narrators/{id}/isnad-role",
+            axum::routing::get(handlers::narrator_isnad_role),
         )
         .route("/api/diff", axum::routing::get(handlers::matn_diff_handler))
         .route(

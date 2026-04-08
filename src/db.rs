@@ -94,42 +94,6 @@ DEFINE FIELD IF NOT EXISTS variant_count ON hadith_family TYPE option<int>;
 DEFINE FIELD IF NOT EXISTS family_id ON hadith TYPE option<record<hadith_family>>;
 DEFINE INDEX IF NOT EXISTS hadith_family_idx ON TABLE hadith FIELDS family_id;
 
-DEFINE TABLE IF NOT EXISTS cl_analysis SCHEMAFULL;
-DEFINE FIELD IF NOT EXISTS family ON cl_analysis TYPE record<hadith_family>;
-DEFINE FIELD IF NOT EXISTS narrator ON cl_analysis TYPE record<narrator>;
-DEFINE FIELD IF NOT EXISTS candidate_type ON cl_analysis TYPE string;
-DEFINE FIELD IF NOT EXISTS pcl_mode ON cl_analysis TYPE option<string>;
-DEFINE FIELD IF NOT EXISTS fan_out ON cl_analysis TYPE int;
-DEFINE FIELD IF NOT EXISTS bundle_coverage ON cl_analysis TYPE float;
-DEFINE FIELD IF NOT EXISTS collector_diversity ON cl_analysis TYPE int;
-DEFINE FIELD IF NOT EXISTS pre_single_strand_ratio ON cl_analysis TYPE float;
-DEFINE FIELD IF NOT EXISTS bypass_ratio ON cl_analysis TYPE float;
-DEFINE FIELD IF NOT EXISTS chronology_conflict_ratio ON cl_analysis TYPE float;
-DEFINE FIELD IF NOT EXISTS matn_coherence ON cl_analysis TYPE float;
-DEFINE FIELD IF NOT EXISTS provenance_completeness ON cl_analysis TYPE float;
-DEFINE FIELD IF NOT EXISTS structural_score ON cl_analysis TYPE float;
-DEFINE FIELD IF NOT EXISTS reliability_prior ON cl_analysis TYPE option<float>;
-DEFINE FIELD IF NOT EXISTS final_confidence ON cl_analysis TYPE float;
-DEFINE FIELD IF NOT EXISTS outcome ON cl_analysis TYPE string;
-DEFINE FIELD IF NOT EXISTS contradiction_cap_active ON cl_analysis TYPE bool;
-DEFINE FIELD IF NOT EXISTS profile ON cl_analysis TYPE string;
-DEFINE FIELD IF NOT EXISTS family_status ON cl_analysis TYPE string;
-DEFINE FIELD IF NOT EXISTS rank ON cl_analysis TYPE int;
-DEFINE INDEX IF NOT EXISTS cl_family_idx ON TABLE cl_analysis FIELDS family;
-DEFINE INDEX IF NOT EXISTS cl_narrator_idx ON TABLE cl_analysis FIELDS narrator;
-
-DEFINE TABLE IF NOT EXISTS juynboll_analysis SCHEMAFULL;
-DEFINE FIELD IF NOT EXISTS family ON juynboll_analysis TYPE record<hadith_family>;
-DEFINE FIELD IF NOT EXISTS has_reliable_bypass ON juynboll_analysis TYPE bool;
-DEFINE FIELD IF NOT EXISTS reliable_bypass_count ON juynboll_analysis TYPE int;
-DEFINE FIELD IF NOT EXISTS max_reliable_bypass_ratio ON juynboll_analysis TYPE float;
-DEFINE FIELD IF NOT EXISTS has_independent_cls ON juynboll_analysis TYPE bool;
-DEFINE FIELD IF NOT EXISTS independent_cl_pairs ON juynboll_analysis TYPE int;
-DEFINE FIELD IF NOT EXISTS cl_count ON juynboll_analysis TYPE int;
-DEFINE FIELD IF NOT EXISTS upstream_reliable_ratio ON juynboll_analysis TYPE float;
-DEFINE FIELD IF NOT EXISTS upstream_branching_points ON juynboll_analysis TYPE int;
-DEFINE INDEX IF NOT EXISTS juynboll_family_idx ON TABLE juynboll_analysis FIELDS family UNIQUE;
-
 DEFINE TABLE IF NOT EXISTS evidence SCHEMAFULL;
 DEFINE FIELD IF NOT EXISTS narrator ON evidence TYPE record<narrator>;
 DEFINE FIELD IF NOT EXISTS evidence_id ON evidence TYPE string;
@@ -146,6 +110,51 @@ DEFINE FIELD IF NOT EXISTS source_type ON evidence TYPE option<string>;
 DEFINE FIELD IF NOT EXISTS source_locator ON evidence TYPE option<string>;
 DEFINE FIELD IF NOT EXISTS ingested_at ON evidence TYPE option<datetime>;
 DEFINE INDEX IF NOT EXISTS evidence_narrator_idx ON TABLE evidence FIELDS narrator;
+
+-- === MUSTALAH ANALYSIS TABLES ===
+
+DEFINE TABLE IF NOT EXISTS isnad_analysis SCHEMAFULL;
+DEFINE FIELD IF NOT EXISTS family ON isnad_analysis TYPE record<hadith_family>;
+DEFINE FIELD IF NOT EXISTS composite_grade ON isnad_analysis TYPE string;
+DEFINE FIELD IF NOT EXISTS best_chain_grade ON isnad_analysis TYPE string;
+DEFINE FIELD IF NOT EXISTS breadth_class ON isnad_analysis TYPE string;
+DEFINE FIELD IF NOT EXISTS min_breadth ON isnad_analysis TYPE int;
+DEFINE FIELD IF NOT EXISTS bottleneck_tabaqah ON isnad_analysis TYPE option<int>;
+DEFINE FIELD IF NOT EXISTS sahabi_count ON isnad_analysis TYPE int;
+DEFINE FIELD IF NOT EXISTS mutabaat_count ON isnad_analysis TYPE int;
+DEFINE FIELD IF NOT EXISTS shawahid_count ON isnad_analysis TYPE int;
+DEFINE FIELD IF NOT EXISTS reliable_mutabaat_count ON isnad_analysis TYPE int;
+DEFINE FIELD IF NOT EXISTS corroboration_strength ON isnad_analysis TYPE string;
+DEFINE FIELD IF NOT EXISTS matn_coherence ON isnad_analysis TYPE float;
+DEFINE FIELD IF NOT EXISTS chain_count ON isnad_analysis TYPE int;
+DEFINE FIELD IF NOT EXISTS sahih_chain_count ON isnad_analysis TYPE int;
+DEFINE FIELD IF NOT EXISTS hasan_chain_count ON isnad_analysis TYPE int;
+DEFINE FIELD IF NOT EXISTS daif_chain_count ON isnad_analysis TYPE int;
+DEFINE FIELD IF NOT EXISTS ilal_flags ON isnad_analysis TYPE option<array<string>>;
+DEFINE INDEX IF NOT EXISTS isnad_family_idx ON TABLE isnad_analysis FIELDS family UNIQUE;
+
+DEFINE TABLE IF NOT EXISTS chain_assessment SCHEMAFULL;
+DEFINE FIELD IF NOT EXISTS family ON chain_assessment TYPE record<hadith_family>;
+DEFINE FIELD IF NOT EXISTS variant ON chain_assessment TYPE record<hadith>;
+DEFINE FIELD IF NOT EXISTS continuity ON chain_assessment TYPE string;
+DEFINE FIELD IF NOT EXISTS chain_grade ON chain_assessment TYPE string;
+DEFINE FIELD IF NOT EXISTS weakest_narrator ON chain_assessment TYPE option<record<narrator>>;
+DEFINE FIELD IF NOT EXISTS weakest_rating ON chain_assessment TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS weakest_prior ON chain_assessment TYPE option<float>;
+DEFINE FIELD IF NOT EXISTS narrator_count ON chain_assessment TYPE int;
+DEFINE FIELD IF NOT EXISTS has_chronology_conflict ON chain_assessment TYPE bool;
+DEFINE FIELD IF NOT EXISTS has_majhul ON chain_assessment TYPE bool;
+DEFINE INDEX IF NOT EXISTS chain_family_idx ON TABLE chain_assessment FIELDS family;
+
+DEFINE TABLE IF NOT EXISTS narrator_pivot SCHEMAFULL;
+DEFINE FIELD IF NOT EXISTS family ON narrator_pivot TYPE record<hadith_family>;
+DEFINE FIELD IF NOT EXISTS narrator ON narrator_pivot TYPE record<narrator>;
+DEFINE FIELD IF NOT EXISTS bundle_coverage ON narrator_pivot TYPE float;
+DEFINE FIELD IF NOT EXISTS fan_out ON narrator_pivot TYPE int;
+DEFINE FIELD IF NOT EXISTS collector_diversity ON narrator_pivot TYPE int;
+DEFINE FIELD IF NOT EXISTS bypass_count ON narrator_pivot TYPE int;
+DEFINE FIELD IF NOT EXISTS is_bottleneck ON narrator_pivot TYPE bool;
+DEFINE INDEX IF NOT EXISTS pivot_family_idx ON TABLE narrator_pivot FIELDS family;
 
 DEFINE TABLE IF NOT EXISTS narrator_alias SCHEMAFULL;
 DEFINE FIELD IF NOT EXISTS canonical ON narrator_alias TYPE record<narrator>;

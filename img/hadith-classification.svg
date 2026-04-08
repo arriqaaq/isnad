@@ -1,0 +1,324 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 1850">
+  <defs>
+    <filter id="shadow" x="-4%" y="-4%" width="108%" height="112%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#000" flood-opacity="0.06"/>
+    </filter>
+    <style>
+      text { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; }
+      .section-label { font-size: 9px; font-weight: 700; letter-spacing: 1.5px; fill: #d63384; }
+      .section-title { font-size: 14px; font-weight: 700; fill: #1a1a2e; }
+      .card-title { font-size: 12px; font-weight: 700; fill: #1a1a2e; }
+      .card-title-ar { font-size: 13px; fill: #d63384; font-weight: 600; }
+      .card-desc { font-size: 10px; fill: #4a4a68; }
+      .card-detail { font-size: 9px; fill: #9ca3af; }
+      .chip-text { font-size: 10px; font-weight: 600; fill: #4a4a68; }
+      .chip-ar { font-size: 11px; fill: #d63384; }
+      .chip-desc { font-size: 8.5px; fill: #9ca3af; }
+      .arrow-text { font-size: 9px; fill: #d63384; font-weight: 600; }
+      .connector { stroke: #d63384; stroke-width: 1.5; fill: none; opacity: 0.4; }
+      .connector-dot { fill: #d63384; opacity: 0.6; }
+    </style>
+  </defs>
+
+  <!-- ═══════════════════════════════════════════════════ -->
+  <!-- SECTION 1: Based on How it Reached Us              -->
+  <!-- ═══════════════════════════════════════════════════ -->
+  <rect x="15" y="15" width="670" height="230" rx="12" fill="#ffffff" stroke="#e5e7eb" stroke-width="1" filter="url(#shadow)"/>
+  <text x="350" y="38" text-anchor="middle" class="section-label">BASED ON HOW IT REACHED US</text>
+  <text x="350" y="56" text-anchor="middle" class="section-title">Mutawatir &amp; Ahad</text>
+
+  <!-- Mutawatir card -->
+  <rect x="35" y="72" width="195" height="155" rx="8" fill="rgba(214,51,132,0.05)" stroke="rgba(214,51,132,0.2)" stroke-width="1"/>
+  <text x="132" y="92" text-anchor="middle" class="card-title">Mutawatir</text>
+  <text x="132" y="108" text-anchor="middle" class="card-title-ar">متواتر</text>
+  <text x="132" y="126" text-anchor="middle" class="card-desc">Mass-transmitted; impossible</text>
+  <text x="132" y="138" text-anchor="middle" class="card-desc">to have colluded on a lie</text>
+  <text x="132" y="156" text-anchor="middle" class="card-detail">Conveys certain knowledge</text>
+  <text x="132" y="168" text-anchor="middle" class="card-detail">(ilm darooree)</text>
+  <!-- Sub-types -->
+  <rect x="48" y="180" width="80" height="28" rx="6" fill="rgba(214,51,132,0.08)" stroke="rgba(214,51,132,0.15)" stroke-width="1"/>
+  <text x="88" y="198" text-anchor="middle" class="chip-text">Lafthee</text>
+  <rect x="138" y="180" width="80" height="28" rx="6" fill="rgba(214,51,132,0.08)" stroke="rgba(214,51,132,0.15)" stroke-width="1"/>
+  <text x="178" y="198" text-anchor="middle" class="chip-text">Ma'nawee</text>
+
+  <!-- Connector -->
+  <line x1="240" y1="145" x2="260" y2="145" class="connector"/>
+
+  <!-- Ahad card -->
+  <rect x="270" y="72" width="395" height="155" rx="8" fill="#fafafa" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="467" y="92" text-anchor="middle" class="card-title">Ahad (singular reports)</text>
+  <text x="467" y="108" text-anchor="middle" class="card-title-ar">آحاد</text>
+  <text x="467" y="126" text-anchor="middle" class="card-desc">Does not meet mutawatir conditions</text>
+  <text x="467" y="142" text-anchor="middle" class="card-detail">Classified by number of routes at each tabaqah:</text>
+
+  <!-- 3 sub-chips for Ahad -->
+  <rect x="285" y="156" width="115" height="55" rx="6" fill="rgba(22,163,74,0.06)" stroke="rgba(22,163,74,0.25)" stroke-width="1"/>
+  <text x="342" y="174" text-anchor="middle" class="chip-text">Mashhur</text>
+  <text x="342" y="186" text-anchor="middle" class="chip-ar">مشهور</text>
+  <text x="342" y="200" text-anchor="middle" class="chip-desc">3+ at each tabaqah</text>
+
+  <rect x="410" y="156" width="115" height="55" rx="6" fill="rgba(217,119,6,0.06)" stroke="rgba(217,119,6,0.25)" stroke-width="1"/>
+  <text x="467" y="174" text-anchor="middle" class="chip-text">'Aziz</text>
+  <text x="467" y="186" text-anchor="middle" class="chip-ar">عزيز</text>
+  <text x="467" y="200" text-anchor="middle" class="chip-desc">2+ at every level</text>
+
+  <rect x="535" y="156" width="115" height="55" rx="6" fill="rgba(220,38,38,0.06)" stroke="rgba(220,38,38,0.25)" stroke-width="1"/>
+  <text x="592" y="174" text-anchor="middle" class="chip-text">Gharib</text>
+  <text x="592" y="186" text-anchor="middle" class="chip-ar">غريب</text>
+  <text x="592" y="200" text-anchor="middle" class="chip-desc">=1 at some level</text>
+
+
+  <!-- ═══════════════════════════════════════════════════ -->
+  <!-- SECTION 2: Accepted Hadith                         -->
+  <!-- ═══════════════════════════════════════════════════ -->
+  <rect x="15" y="265" width="670" height="340" rx="12" fill="#ffffff" stroke="#e5e7eb" stroke-width="1" filter="url(#shadow)"/>
+  <text x="350" y="288" text-anchor="middle" class="section-label">ACCEPTED HADITH</text>
+  <text x="350" y="306" text-anchor="middle" class="section-title">Grades of Authenticity</text>
+
+  <!-- Sahih li-Thaatihi -->
+  <rect x="35" y="320" width="195" height="145" rx="8" fill="rgba(22,163,74,0.06)" stroke="rgba(22,163,74,0.3)" stroke-width="1"/>
+  <text x="132" y="340" text-anchor="middle" class="card-title">Sahih li-Thaatihi</text>
+  <text x="132" y="354" text-anchor="middle" class="card-title-ar">صحيح لذاته</text>
+  <text x="50" y="374" class="card-detail">1. Connected sanad (muttasil)</text>
+  <text x="50" y="388" class="card-detail">2. 'Adaalah of every narrator</text>
+  <text x="50" y="402" class="card-detail">3. Taamm ad-dabt (precise)</text>
+  <text x="50" y="416" class="card-detail">4. No shuthooth (no contradiction)</text>
+  <text x="50" y="430" class="card-detail">5. No 'illah (no hidden defect)</text>
+  <text x="132" y="454" text-anchor="middle" style="font-size:9px;fill:#16a34a;font-weight:600;">Used as proof by consensus</text>
+
+  <!-- Hasan li-Thaatihi -->
+  <rect x="250" y="320" width="195" height="145" rx="8" fill="rgba(214,51,132,0.05)" stroke="rgba(214,51,132,0.25)" stroke-width="1"/>
+  <text x="347" y="340" text-anchor="middle" class="card-title">Hasan li-Thaatihi</text>
+  <text x="347" y="354" text-anchor="middle" class="card-title-ar">حسن لذاته</text>
+  <text x="265" y="374" class="card-detail">Same 5 conditions as sahih</text>
+  <text x="265" y="388" class="card-detail">but with lesser degree of dabt</text>
+  <text x="265" y="406" class="card-detail">e.g. narrator is saduq (honest)</text>
+  <text x="265" y="420" class="card-detail">rather than thiqah (trustworthy)</text>
+  <text x="347" y="454" text-anchor="middle" style="font-size:9px;fill:#d63384;font-weight:600;">Used as proof, like sahih</text>
+
+  <!-- Arrows down to li-ghayrihi -->
+  <line x1="132" y1="465" x2="132" y2="485" class="connector" opacity="0.6"/>
+  <polygon points="128,483 132,491 136,483" fill="#d63384" opacity="0.5"/>
+  <line x1="347" y1="465" x2="347" y2="485" class="connector" opacity="0.6"/>
+  <polygon points="343,483 347,491 351,483" fill="#d63384" opacity="0.5"/>
+
+  <!-- Sahih li-Ghayrihi -->
+  <rect x="35" y="490" width="195" height="55" rx="8" fill="rgba(22,163,74,0.04)" stroke="rgba(22,163,74,0.2)" stroke-width="1" stroke-dasharray="4,3"/>
+  <text x="132" y="510" text-anchor="middle" class="card-title">Sahih li-Ghayrihi</text>
+  <text x="132" y="524" text-anchor="middle" class="card-detail">Hasan + corroboration</text>
+  <text x="132" y="536" text-anchor="middle" class="card-detail">(mutaba'at / shawahid)</text>
+
+  <!-- Hasan li-Ghayrihi -->
+  <rect x="250" y="490" width="195" height="55" rx="8" fill="rgba(214,51,132,0.04)" stroke="rgba(214,51,132,0.2)" stroke-width="1" stroke-dasharray="4,3"/>
+  <text x="347" y="510" text-anchor="middle" class="card-title">Hasan li-Ghayrihi</text>
+  <text x="347" y="524" text-anchor="middle" class="card-detail">Da'eef + corroboration</text>
+  <text x="347" y="536" text-anchor="middle" class="card-detail">(only if light weakness)</text>
+
+  <!-- Condition note -->
+  <rect x="465" y="490" width="200" height="105" rx="8" fill="#fffbeb" stroke="rgba(217,119,6,0.3)" stroke-width="1"/>
+  <text x="565" y="510" text-anchor="middle" style="font-size:10px;font-weight:700;fill:#92400e;">Elevation Conditions</text>
+  <text x="478" y="528" style="font-size:9px;fill:#92400e;">CAN elevate: poor memory,</text>
+  <text x="478" y="540" style="font-size:9px;fill:#92400e;">chain break, jahaalah (unknown)</text>
+  <text x="478" y="558" style="font-size:9px;fill:#dc2626;font-weight:600;">CANNOT elevate: fisq (sinful),</text>
+  <text x="478" y="570" style="font-size:9px;fill:#dc2626;font-weight:600;">kathib (lying), matrook, mawdoo'</text>
+  <text x="478" y="588" style="font-size:8px;fill:#9ca3af;">Ref: at-Tahhaan p.18, p.50-52</text>
+
+  <!-- ═══════════════════════════════════════════════════ -->
+  <!-- SECTION 3: Rejected — Due to Isnad                 -->
+  <!-- ═══════════════════════════════════════════════════ -->
+  <rect x="15" y="625" width="670" height="290" rx="12" fill="#ffffff" stroke="#e5e7eb" stroke-width="1" filter="url(#shadow)"/>
+  <text x="350" y="648" text-anchor="middle" class="section-label">REJECTED - DUE TO OMISSION IN THE ISNAD</text>
+  <text x="350" y="666" text-anchor="middle" class="section-title">Chain Breaks</text>
+
+  <!-- Sub-header: Obvious -->
+  <text x="35" y="688" style="font-size:10px;font-weight:700;fill:#4a4a68;">Obvious Omission</text>
+
+  <!-- Mu'allaq -->
+  <rect x="35" y="698" width="148" height="85" rx="8" fill="rgba(220,38,38,0.04)" stroke="rgba(220,38,38,0.2)" stroke-width="1"/>
+  <text x="109" y="718" text-anchor="middle" class="card-title">Mu'allaq</text>
+  <text x="109" y="732" text-anchor="middle" class="chip-ar">معلق</text>
+  <text x="109" y="748" text-anchor="middle" class="card-detail">Missing narrator(s) from</text>
+  <text x="109" y="760" text-anchor="middle" class="card-detail">the beginning of the isnad</text>
+  <text x="109" y="775" text-anchor="middle" class="chip-desc">Lit: "hanging"</text>
+
+  <!-- Mursal -->
+  <rect x="193" y="698" width="148" height="85" rx="8" fill="rgba(220,38,38,0.04)" stroke="rgba(220,38,38,0.2)" stroke-width="1"/>
+  <text x="267" y="718" text-anchor="middle" class="card-title">Mursal</text>
+  <text x="267" y="732" text-anchor="middle" class="chip-ar">مرسل</text>
+  <text x="267" y="748" text-anchor="middle" class="card-detail">Tabi'i reports directly</text>
+  <text x="267" y="760" text-anchor="middle" class="card-detail">from the Prophet (no Sahabi)</text>
+  <text x="267" y="775" text-anchor="middle" class="chip-desc">Lit: "set free"</text>
+
+  <!-- Mu'dal -->
+  <rect x="351" y="698" width="148" height="85" rx="8" fill="rgba(220,38,38,0.04)" stroke="rgba(220,38,38,0.2)" stroke-width="1"/>
+  <text x="425" y="718" text-anchor="middle" class="card-title">Mu'dal</text>
+  <text x="425" y="732" text-anchor="middle" class="chip-ar">معضل</text>
+  <text x="425" y="748" text-anchor="middle" class="card-detail">2+ consecutive narrators</text>
+  <text x="425" y="760" text-anchor="middle" class="card-detail">missing from the isnad</text>
+  <text x="425" y="775" text-anchor="middle" class="chip-desc">Worst type of break</text>
+
+  <!-- Munqati' -->
+  <rect x="509" y="698" width="160" height="85" rx="8" fill="rgba(220,38,38,0.04)" stroke="rgba(220,38,38,0.2)" stroke-width="1"/>
+  <text x="589" y="718" text-anchor="middle" class="card-title">Munqati'</text>
+  <text x="589" y="732" text-anchor="middle" class="chip-ar">منقطع</text>
+  <text x="589" y="748" text-anchor="middle" class="card-detail">Any break in the isnad</text>
+  <text x="589" y="760" text-anchor="middle" class="card-detail">not fitting other types</text>
+  <text x="589" y="775" text-anchor="middle" class="chip-desc">Lit: "disconnected"</text>
+
+  <!-- Sub-header: Obscure -->
+  <text x="35" y="808" style="font-size:10px;font-weight:700;fill:#4a4a68;">Obscure Omission</text>
+
+  <!-- Mudallas -->
+  <rect x="35" y="818" width="195" height="78" rx="8" fill="rgba(217,119,6,0.04)" stroke="rgba(217,119,6,0.2)" stroke-width="1"/>
+  <text x="132" y="838" text-anchor="middle" class="card-title">Mudallas</text>
+  <text x="132" y="852" text-anchor="middle" class="chip-ar">مدلس</text>
+  <text x="132" y="868" text-anchor="middle" class="card-detail">Narrator conceals a flaw in the isnad;</text>
+  <text x="132" y="880" text-anchor="middle" class="card-detail">uses ambiguous phrasing like "'an"</text>
+
+  <!-- Mursal Khafee -->
+  <rect x="250" y="818" width="195" height="78" rx="8" fill="rgba(217,119,6,0.04)" stroke="rgba(217,119,6,0.2)" stroke-width="1"/>
+  <text x="347" y="838" text-anchor="middle" class="card-title">Mursal Khafee</text>
+  <text x="347" y="852" text-anchor="middle" class="chip-ar">مرسل خفي</text>
+  <text x="347" y="868" text-anchor="middle" class="card-detail">Narrator reports from someone</text>
+  <text x="347" y="880" text-anchor="middle" class="card-detail">he met but didn't hear from</text>
+
+
+  <!-- ═══════════════════════════════════════════════════ -->
+  <!-- SECTION 4: Rejected — Due to Narrator              -->
+  <!-- ═══════════════════════════════════════════════════ -->
+  <rect x="15" y="935" width="670" height="340" rx="12" fill="#ffffff" stroke="#e5e7eb" stroke-width="1" filter="url(#shadow)"/>
+  <text x="350" y="958" text-anchor="middle" class="section-label">REJECTED - DUE TO DISPARAGEMENT OF NARRATOR</text>
+  <text x="350" y="976" text-anchor="middle" class="section-title">Narrator Defects</text>
+
+  <!-- Column 1: 'Adaalah -->
+  <rect x="35" y="990" width="300" height="268" rx="8" fill="rgba(220,38,38,0.03)" stroke="rgba(220,38,38,0.15)" stroke-width="1"/>
+  <text x="185" y="1010" text-anchor="middle" style="font-size:11px;font-weight:700;fill:#1a1a2e;">'Adaalah (Character)</text>
+
+  <text x="50" y="1034" class="card-desc">1. Kathib (lying)</text>
+  <text x="230" y="1034" class="arrow-text">Mawdoo' (موضوع)</text>
+
+  <text x="50" y="1056" class="card-desc">2. Accused of lying</text>
+  <text x="230" y="1056" class="arrow-text">Matrook (متروك)</text>
+
+  <text x="50" y="1078" class="card-desc">3. Fisq (open sinfulness)</text>
+  <text x="230" y="1078" class="arrow-text">Munkar (منكر)</text>
+
+  <text x="50" y="1100" class="card-desc">4. Bid'ah (innovation)</text>
+  <text x="230" y="1100" class="arrow-text">Da'eef (ضعيف)</text>
+
+  <text x="50" y="1122" class="card-desc">5. Jahaalah (unknown)</text>
+  <text x="230" y="1122" class="arrow-text">Da'eef (ضعيف)</text>
+
+  <line x1="50" y1="1140" x2="320" y2="1140" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="185" y="1160" text-anchor="middle" style="font-size:9px;fill:#dc2626;font-weight:600;">Severity: Mawdoo' (worst)</text>
+  <text x="185" y="1174" text-anchor="middle" style="font-size:9px;fill:#dc2626;">down to da'eef (mildest)</text>
+
+  <!-- Severity ranking -->
+  <text x="50" y="1198" style="font-size:8.5px;fill:#9ca3af;">Rank (weakest to strongest):</text>
+  <text x="50" y="1212" style="font-size:8.5px;fill:#9ca3af;">Mawdoo' &gt; Matrook &gt; Munkar &gt;</text>
+  <text x="50" y="1226" style="font-size:8.5px;fill:#9ca3af;">Mu'allal &gt; Mudraj &gt; Maqloob &gt; Mudtarib</text>
+
+  <!-- Column 2: Dabt -->
+  <rect x="355" y="990" width="310" height="268" rx="8" fill="rgba(217,119,6,0.03)" stroke="rgba(217,119,6,0.15)" stroke-width="1"/>
+  <text x="510" y="1010" text-anchor="middle" style="font-size:11px;font-weight:700;fill:#1a1a2e;">Dabt (Precision)</text>
+
+  <text x="370" y="1034" class="card-desc">1. Gross error (fuhsh al-ghalat)</text>
+  <text x="570" y="1034" class="arrow-text">Munkar</text>
+
+  <text x="370" y="1056" class="card-desc">2. Poor memory (soo' al-hifth)</text>
+  <text x="570" y="1056" class="arrow-text">Da'eef</text>
+
+  <text x="370" y="1078" class="card-desc">3. Negligence (ghaflah)</text>
+  <text x="570" y="1078" class="arrow-text">Munkar</text>
+
+  <text x="370" y="1100" class="card-desc">4. Many mistakes (awhaam)</text>
+  <text x="570" y="1100" class="arrow-text">Mu'allal</text>
+
+  <text x="370" y="1122" class="card-desc">5. Contradicts trustworthy:</text>
+
+  <text x="385" y="1146" style="font-size:9px;fill:#9ca3af;">Mudraj / Maqloob / Mazeed /</text>
+  <text x="385" y="1160" style="font-size:9px;fill:#9ca3af;">Mudtarib / Musahhaf / Shaath</text>
+
+  <line x1="370" y1="1172" x2="650" y2="1172" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="510" y="1192" text-anchor="middle" style="font-size:9px;fill:#92400e;font-weight:600;">Shaath vs Munkar:</text>
+  <text x="510" y="1206" text-anchor="middle" style="font-size:8.5px;fill:#9ca3af;">Shaath = acceptable narrator contradicts</text>
+  <text x="510" y="1220" text-anchor="middle" style="font-size:8.5px;fill:#9ca3af;">more reliable; Munkar = da'eef contradicts thiqah</text>
+
+
+  <!-- ═══════════════════════════════════════════════════ -->
+  <!-- SECTION 5: Based on Whom Ascribed to               -->
+  <!-- ═══════════════════════════════════════════════════ -->
+  <rect x="15" y="1295" width="670" height="140" rx="12" fill="#ffffff" stroke="#e5e7eb" stroke-width="1" filter="url(#shadow)"/>
+  <text x="350" y="1318" text-anchor="middle" class="section-label">BASED ON WHOM IT IS ASCRIBED TO</text>
+  <text x="350" y="1336" text-anchor="middle" class="section-title">Source Attribution</text>
+
+  <rect x="35" y="1350" width="148" height="68" rx="8" fill="rgba(214,51,132,0.05)" stroke="rgba(214,51,132,0.15)" stroke-width="1"/>
+  <text x="109" y="1370" text-anchor="middle" class="card-title">Qudsee</text>
+  <text x="109" y="1384" text-anchor="middle" class="chip-ar">قدسي</text>
+  <text x="109" y="1400" text-anchor="middle" class="card-detail">Meaning from Allah;</text>
+  <text x="109" y="1410" text-anchor="middle" class="card-detail">wording from Prophet</text>
+
+  <rect x="198" y="1350" width="148" height="68" rx="8" fill="rgba(22,163,74,0.05)" stroke="rgba(22,163,74,0.15)" stroke-width="1"/>
+  <text x="272" y="1370" text-anchor="middle" class="card-title">Marfoo'</text>
+  <text x="272" y="1384" text-anchor="middle" class="chip-ar">مرفوع</text>
+  <text x="272" y="1400" text-anchor="middle" class="card-detail">Attributed to</text>
+  <text x="272" y="1410" text-anchor="middle" class="card-detail">the Prophet</text>
+
+  <rect x="361" y="1350" width="148" height="68" rx="8" fill="rgba(217,119,6,0.05)" stroke="rgba(217,119,6,0.15)" stroke-width="1"/>
+  <text x="435" y="1370" text-anchor="middle" class="card-title">Mawqoof</text>
+  <text x="435" y="1384" text-anchor="middle" class="chip-ar">موقوف</text>
+  <text x="435" y="1400" text-anchor="middle" class="card-detail">Attributed to</text>
+  <text x="435" y="1410" text-anchor="middle" class="card-detail">a Sahaabi</text>
+
+  <rect x="524" y="1350" width="148" height="68" rx="8" fill="#fafafa" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="598" y="1370" text-anchor="middle" class="card-title">Maqtoo'</text>
+  <text x="598" y="1384" text-anchor="middle" class="chip-ar">مقطوع</text>
+  <text x="598" y="1400" text-anchor="middle" class="card-detail">Attributed to</text>
+  <text x="598" y="1410" text-anchor="middle" class="card-detail">a Tabi'i or later</text>
+
+
+  <!-- ═══════════════════════════════════════════════════ -->
+  <!-- SECTION 6: Corroboration                           -->
+  <!-- ═══════════════════════════════════════════════════ -->
+  <rect x="15" y="1455" width="670" height="230" rx="12" fill="#ffffff" stroke="#e5e7eb" stroke-width="1" filter="url(#shadow)"/>
+  <text x="350" y="1478" text-anchor="middle" class="section-label">CORROBORATION (I'TIBAAR)</text>
+  <text x="350" y="1496" text-anchor="middle" class="section-title">Mutaabi' &amp; Shaahid</text>
+
+  <!-- Mutaabi' -->
+  <rect x="35" y="1510" width="295" height="110" rx="8" fill="rgba(22,163,74,0.05)" stroke="rgba(22,163,74,0.2)" stroke-width="1"/>
+  <text x="182" y="1530" text-anchor="middle" class="card-title">Mutaabi' (Corroborating)</text>
+  <text x="182" y="1544" text-anchor="middle" class="chip-ar">متابع</text>
+  <text x="182" y="1562" text-anchor="middle" class="card-desc">Same Sahabi, different path</text>
+  <text x="50" y="1582" class="card-detail">Taammah: agrees from beginning of isnad</text>
+  <text x="50" y="1596" class="card-detail">Qaasirah: agrees from a later point</text>
+
+  <!-- Shaahid -->
+  <rect x="350" y="1510" width="315" height="110" rx="8" fill="rgba(214,51,132,0.05)" stroke="rgba(214,51,132,0.2)" stroke-width="1"/>
+  <text x="507" y="1530" text-anchor="middle" class="card-title">Shaahid (Supporting)</text>
+  <text x="507" y="1544" text-anchor="middle" class="chip-ar">شاهد</text>
+  <text x="507" y="1562" text-anchor="middle" class="card-desc">Different Sahabi, same meaning</text>
+  <text x="365" y="1582" class="card-detail">Serves as a witness that the fard hadith</text>
+  <text x="365" y="1596" class="card-detail">has a basis and strengthens it</text>
+
+  <!-- Strengthening rules -->
+  <rect x="35" y="1632" width="630" height="38" rx="6" fill="rgba(22,163,74,0.04)" stroke="rgba(22,163,74,0.15)" stroke-width="1"/>
+  <text x="350" y="1650" text-anchor="middle" style="font-size:10px;fill:#16a34a;font-weight:600;">Da'eef (light) + mutaba'at/shawahid = Hasan li-Ghayrihi</text>
+  <text x="350" y="1664" text-anchor="middle" style="font-size:10px;fill:#16a34a;font-weight:600;">Hasan + mutaba'at/shawahid = Sahih li-Ghayrihi</text>
+
+
+  <!-- ═══════════════════════════════════════════════════ -->
+  <!-- Footer: Source reference                           -->
+  <!-- ═══════════════════════════════════════════════════ -->
+  <rect x="15" y="1705" width="670" height="55" rx="12" fill="#fafafa" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="350" y="1726" text-anchor="middle" style="font-size:10px;fill:#4a4a68;font-weight:600;">Mustalah al-Hadeeth Made Easy</text>
+  <text x="350" y="1742" text-anchor="middle" style="font-size:9px;fill:#9ca3af;">Dr. 'Imaad 'Alee Jum'ah  |  at-Tahhaan, Tayseer Mustalah al-Hadeeth  |  as-Suyootee, Tadreeb ar-Raawee</text>
+
+  <!-- ═══════════════════════════════════════════════════ -->
+  <!-- Narrator Conditions (compact footer card)          -->
+  <!-- ═══════════════════════════════════════════════════ -->
+  <rect x="15" y="1775" width="670" height="60" rx="12" fill="#ffffff" stroke="#e5e7eb" stroke-width="1" filter="url(#shadow)"/>
+  <text x="350" y="1798" text-anchor="middle" class="section-label">NARRATOR CONDITIONS FOR ACCEPTANCE</text>
+  <text x="130" y="1818" text-anchor="middle" style="font-size:9px;fill:#4a4a68;font-weight:600;">'Adaalah: Muslim, mature, sane, not faasiq</text>
+  <text x="430" y="1818" text-anchor="middle" style="font-size:9px;fill:#4a4a68;font-weight:600;">Dabt: precise memory (heart or book), agrees with thiqaat</text>
+
+</svg>

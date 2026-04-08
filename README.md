@@ -9,7 +9,7 @@
 
 ---
 
-> **[Methodology & Algorithms](docs/METHODOLOGY.md)** — CL/PCL transmission analysis &nbsp;|&nbsp; **[Data Sources](docs/DATA_SOURCES.md)** — Dataset documentation
+> **[Methodology & Algorithms](docs/METHODOLOGY.md)** — Mustalah al-hadith isnad analysis &nbsp;|&nbsp; **[Data Sources](docs/DATA_SOURCES.md)** — Dataset documentation
 >
 > See also Barmaver's [*Dismantling Orientalist Narratives*](https://www.academia.edu/143038577/Dismantling_Orientalist_Narratives_A_Critique_of_Orientalists_Approach_to_Hadith_with_special_focus_on_Juynboll) (2025, free on Academia.edu).
 
@@ -29,7 +29,7 @@ Rust backend serving a SvelteKit SPA, with SurrealDB as a unified graph + vector
 - **Hybrid Search** — BM25 full-text + 384-dim semantic vectors fused with Reciprocal Rank Fusion
 - **Ask AI (GraphRAG)** — Natural language Q&A grounded in Quran/Hadith via local Ollama, with isnad-aware context
 - **Early Manuscripts** — Per-ayah high-resolution manuscript images from Corpus Coranicum (Berlin-Brandenburg Academy), viewable with zoom
-- **Transmission Analysis** — Hadith family clustering, Common Link / Partial Common Link analysis, word-level matn diffing
+- **Isnad Analysis** — Hadith family clustering, mustalah-based chain grading (sahih/hasan/da'eef), transmission breadth (mutawatir/mashhur/aziz/gharib), corroboration detection (mutaba'at/shawahid), word-level matn diffing
 
 ## Quick Start
 

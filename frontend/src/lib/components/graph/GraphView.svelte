@@ -1,295 +1,526 @@
 <script lang="ts">
-  import { onMount, onDestroy } from 'svelte';
+  import { onMount, onDestroy, tick } from 'svelte';
   import { goto } from '$app/navigation';
-  import cytoscape from 'cytoscape';
-  import dagre from 'cytoscape-dagre';
+  import { MultiDirectedGraph } from 'graphology';
+  import { Sigma } from 'sigma';
+  // @ts-expect-error sigma re-exports not resolved by svelte-check
+  import { EdgeArrowProgram } from 'sigma/rendering';
+  import { createEdgeCurveProgram, indexParallelEdgesIndex } from '@sigma/edge-curve';
+  import { createNodeBorderProgram } from '@sigma/node-border';
   import type { GraphData } from '$lib/types';
+  import type { NarratorGraphNode, NarratorGraphEdge, NarratorGraph } from './types';
+  import type { LayoutMode } from './layout';
+  import { applyHierarchicalLayout, createFA2Supervisor } from './layout';
+  import { drawLabel, drawHover } from './drawing';
   import { language } from '$lib/stores/language';
 
-  let {
-    data,
-    layout: layoutName = 'dagre',
-  }: {
-    data: GraphData | null;
-    layout?: string;
-  } = $props();
+  let { data }: { data: GraphData | null } = $props();
 
   let container: HTMLDivElement = $state(null!);
-  let cy: cytoscape.Core | null = null;
-  let registered = false;
+  let sigmaInstance: Sigma<NarratorGraphNode, NarratorGraphEdge> | null = null;
+  let universeGraph: NarratorGraph | null = null;
+  let displayGraph: NarratorGraph | null = null;
+  let supervisor: Awaited<ReturnType<typeof createFA2Supervisor>> | null = null;
+  let mounted = false;
+  let themeObserver: MutationObserver | null = null;
+
+  // Sidebar state
+  let showTeachers = $state(true);
+  let showStudents = $state(true);
+  let currentLayout: LayoutMode = $state('hierarchical');
+  let straightEdges = $state(false);
+  let forceRunning = $state(false);
+
+  // Non-reactive hover state (used inside Sigma callbacks, not Svelte reactivity)
+  let _hoveredNode = '';
+  let _neighbors: Set<string> = new Set();
+
+  // Computed stats
+  let nodeCount = $state(0);
+  let edgeCount = $state(0);
+  let shownTeachers = $state(0);
+  let shownStudents = $state(0);
 
   function getThemeColor(varName: string, fallback: string): string {
     if (typeof document === 'undefined') return fallback;
     return getComputedStyle(document.documentElement).getPropertyValue(varName).trim() || fallback;
   }
 
+  function getNodeColor(type: string): string {
+    if (type === 'center') return getThemeColor('--graph-center', '#d63384');
+    if (type === 'student') return getThemeColor('--graph-student', '#b8860b');
+    return getThemeColor('--graph-teacher', '#16a34a');
+  }
+
+  /** Re-read theme colors and push them into Sigma + both graphs */
+  function refreshThemeColors() {
+    if (!sigmaInstance || !displayGraph) return;
+
+    const textColor = getThemeColor('--text-primary', '#1a1a2e');
+    const edgeColor = getThemeColor('--graph-edge', '#dee2e6');
+
+    sigmaInstance.setSetting('labelColor', { color: textColor });
+    sigmaInstance.setSetting('defaultEdgeColor', edgeColor);
+
+    // Update node colors on both graphs so universe stays in sync
+    for (const graph of [universeGraph, displayGraph]) {
+      if (!graph) continue;
+      graph.forEachNode((node, attrs) => {
+        graph.setNodeAttribute(node, 'color', getNodeColor(attrs.narratorType));
+      });
+    }
+
+    sigmaInstance.refresh();
+  }
+
+  function buildUniverseGraph(graphData: GraphData): NarratorGraph {
+    const graph = new MultiDirectedGraph<NarratorGraphNode, NarratorGraphEdge>();
+
+    for (const n of graphData.nodes) {
+      const d = n.data;
+      // Skip duplicate nodes (a narrator can be both teacher and student)
+      if (graph.hasNode(d.id)) continue;
+      graph.addNode(d.id, {
+        narratorId: d.id,
+        narratorType: (d.type as 'center' | 'teacher' | 'student') || 'teacher',
+        labelAr: d.label,
+        labelEn: d.label_en,
+        label: d.label,
+        generation: d.generation,
+        color: getNodeColor(d.type),
+        x: 0,
+        y: 0,
+        size: d.type === 'center' ? 15 : 8,
+      });
+    }
+
+    for (const e of graphData.edges) {
+      const d = e.data;
+      if (graph.hasNode(d.source) && graph.hasNode(d.target)) {
+        graph.addDirectedEdgeWithKey(d.id, d.source, d.target, {
+          weight: 1,
+          label: d.label,
+          size: 1.5,
+        });
+      }
+    }
+
+    return graph;
+  }
+
+  function synchronizeDisplayGraph() {
+    if (!universeGraph || !displayGraph || !sigmaInstance) return;
+
+    // Kill force supervisor before modifying graph structure
+    const wasForce = currentLayout === 'force';
+    if (supervisor) {
+      supervisor.kill();
+      supervisor = null;
+      forceRunning = false;
+    }
+
+    // Collect nodes to remove (can't mutate during iteration)
+    const toRemove: string[] = [];
+    displayGraph.forEachNode((node, attrs) => {
+      if (attrs.narratorType === 'teacher' && !showTeachers) toRemove.push(node);
+      else if (attrs.narratorType === 'student' && !showStudents) toRemove.push(node);
+    });
+    for (const node of toRemove) {
+      displayGraph.dropNode(node);
+    }
+
+    // Add nodes back from universe that should be shown
+    universeGraph.forEachNode((node, attrs) => {
+      const shouldShow =
+        attrs.narratorType === 'center' ||
+        (attrs.narratorType === 'teacher' && showTeachers) ||
+        (attrs.narratorType === 'student' && showStudents);
+
+      if (shouldShow && !displayGraph!.hasNode(node)) {
+        displayGraph!.addNode(node, { ...attrs });
+      }
+    });
+
+    // Sync edges
+    const edgesToRemove: string[] = [];
+    universeGraph.forEachEdge((edge, attrs, source, target) => {
+      const sourceExists = displayGraph!.hasNode(source);
+      const targetExists = displayGraph!.hasNode(target);
+
+      if (sourceExists && targetExists && !displayGraph!.hasEdge(edge)) {
+        displayGraph!.addDirectedEdgeWithKey(edge, source, target, { ...attrs });
+      } else if ((!sourceExists || !targetExists) && displayGraph!.hasEdge(edge)) {
+        edgesToRemove.push(edge);
+      }
+    });
+    for (const edge of edgesToRemove) {
+      if (displayGraph.hasEdge(edge)) displayGraph.dropEdge(edge);
+    }
+
+    applyEdgeTypes(displayGraph);
+
+    // Only apply hierarchical layout if we're in hierarchical mode
+    if (currentLayout === 'hierarchical') {
+      applyHierarchicalLayout(displayGraph);
+    }
+
+    updateStats();
+    sigmaInstance?.refresh();
+
+    // Restart force supervisor if it was active
+    if (wasForce) {
+      createFA2Supervisor(displayGraph).then((s) => {
+        supervisor = s;
+        supervisor.start();
+        forceRunning = true;
+      });
+    }
+  }
+
+  /** Apply edge type (straight vs curved) based on parallel index and straightEdges toggle */
+  function applyEdgeTypes(graph: NarratorGraph) {
+    indexParallelEdgesIndex(graph, {
+      edgeIndexAttribute: 'parallelIndex',
+      edgeMaxIndexAttribute: 'parallelMaxIndex',
+    });
+    graph.forEachEdge((edge, attrs) => {
+      const maxIndex = attrs.parallelMaxIndex || 0;
+      if (!straightEdges && maxIndex > 0) {
+        graph.setEdgeAttribute(edge, 'type', 'curved');
+        graph.setEdgeAttribute(edge, 'curvature', (attrs.parallelIndex || 0) / maxIndex);
+      } else {
+        graph.setEdgeAttribute(edge, 'type', 'straight');
+      }
+    });
+  }
+
+  function updateStats() {
+    if (!displayGraph) return;
+    nodeCount = displayGraph.order;
+    edgeCount = displayGraph.size;
+    let tc = 0, sc = 0;
+    displayGraph.forEachNode((_node, attrs) => {
+      if (attrs.narratorType === 'teacher') tc++;
+      else if (attrs.narratorType === 'student') sc++;
+    });
+    shownTeachers = tc;
+    shownStudents = sc;
+  }
+
   function initGraph() {
     if (!container || !data || data.nodes.length === 0) return;
 
-    if (!registered) {
-      cytoscape.use(dagre);
-      registered = true;
+    // Ensure the container has been laid out with real dimensions.
+    // On fresh mount the browser may not have completed layout yet.
+    const rect = container.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) {
+      requestAnimationFrame(() => initGraph());
+      return;
     }
 
-    cy?.destroy();
+    // Cleanup previous
+    supervisor?.kill();
+    supervisor = null;
+    forceRunning = false;
+    sigmaInstance?.kill();
+    sigmaInstance = null;
 
-    const elements: cytoscape.ElementDefinition[] = [
-      ...data.nodes.map((n) => ({ data: n.data })),
-      ...data.edges.map((e) => ({ data: e.data })),
-    ];
+    // Build universe graph and clone to display
+    universeGraph = buildUniverseGraph(data);
+    displayGraph = universeGraph.copy() as NarratorGraph;
 
-    const textColor = getThemeColor('--text-primary', '#1a1a2e');
-    const surfaceColor = getThemeColor('--bg-surface', '#ffffff');
-    const centerColor = getThemeColor('--graph-center', '#d63384');
-    const teacherColor = getThemeColor('--graph-teacher', '#16a34a');
-    const studentColor = getThemeColor('--graph-student', '#b8860b');
-    const edgeColor = getThemeColor('--graph-edge', 'rgba(156, 163, 175, 0.35)');
-    const edgeHoverColor = getThemeColor('--graph-edge-hover', '#d63384');
-    const shadowCenter = getThemeColor('--graph-shadow-center', 'rgba(214, 51, 132, 0.3)');
-    const shadowTeacher = getThemeColor('--graph-shadow-teacher', 'rgba(22, 163, 74, 0.3)');
-    const shadowStudent = getThemeColor('--graph-shadow-student', 'rgba(184, 134, 11, 0.3)');
+    applyHierarchicalLayout(displayGraph);
+    applyEdgeTypes(displayGraph);
+    updateStats();
 
-    const nodeCount = data.nodes.length;
-    const chosenLayout = {
-      name: 'dagre',
-      rankDir: 'BT',
-      nodeSep: nodeCount > 20 ? 40 : 80,
-      rankSep: nodeCount > 20 ? 60 : 100,
-      animate: false,
-    };
-
-    cy = cytoscape({
-      container,
-      elements,
-      style: [
-        // ── Default node ──
-        {
-          selector: 'node',
-          style: {
-            'background-color': teacherColor,
-            'background-fill': 'radial-gradient',
-            'background-gradient-stop-colors': `${lighten(teacherColor)} ${teacherColor}`,
-            'background-gradient-stop-positions': '0% 100%',
-            label: 'data(label)',
-            color: textColor,
-            'font-size': '11px',
-            'text-valign': 'bottom',
-            'text-margin-y': 8,
-            'text-outline-width': 2,
-            'text-outline-color': surfaceColor,
-            'text-max-width': '90px',
-            'text-wrap': 'ellipsis',
-            width: 32,
-            height: 32,
-            'border-width': 1.5,
-            'border-color': teacherColor,
-            'border-opacity': 0.3,
-            'shadow-blur': 12,
-            'shadow-color': shadowTeacher,
-            'shadow-opacity': 0.2,
-            'shadow-offset-x': 0,
-            'shadow-offset-y': 2,
-            'overlay-padding': 6,
-          } as any,
-        },
-        // ── Center node (the narrator being viewed) ──
-        {
-          selector: 'node[type="center"]',
-          style: {
-            'background-color': centerColor,
-            'background-gradient-stop-colors': `${lighten(centerColor)} ${centerColor}`,
-            width: 50,
-            height: 50,
-            'font-weight': 'bold',
-            'font-size': '13px',
-            'text-max-width': '120px',
-            'border-color': centerColor,
-            'shadow-color': shadowCenter,
-            'shadow-opacity': 0.4,
-            'shadow-blur': 22,
-          } as any,
-        },
-        // ── Teacher nodes ──
-        {
-          selector: 'node[type="teacher"]',
-          style: {
-            'background-color': teacherColor,
-            'background-gradient-stop-colors': `${lighten(teacherColor)} ${teacherColor}`,
-            'border-color': teacherColor,
-            'shadow-color': shadowTeacher,
-          } as any,
-        },
-        // ── Student nodes ──
-        {
-          selector: 'node[type="student"]',
-          style: {
-            'background-color': studentColor,
-            'background-gradient-stop-colors': `${lighten(studentColor)} ${studentColor}`,
-            'border-color': studentColor,
-            'shadow-color': shadowStudent,
-          } as any,
-        },
-        // ── Edges ──
-        {
-          selector: 'edge',
-          style: {
-            width: 1.5,
-            'line-color': edgeColor,
-            'line-opacity': 0.5,
-            'target-arrow-color': edgeColor,
-            'target-arrow-shape': 'vee',
-            'curve-style': 'bezier',
-            'arrow-scale': 0.6,
+    // Instantiate Sigma — read colors live via getThemeColor in reducers
+    sigmaInstance = new Sigma<NarratorGraphNode, NarratorGraphEdge>(displayGraph, container, {
+      allowInvalidContainer: true,
+      defaultEdgeColor: getThemeColor('--graph-edge', '#dee2e6'),
+      defaultEdgeType: 'straight',
+      renderEdgeLabels: false,
+      labelFont: 'system-ui, sans-serif',
+      labelColor: { color: getThemeColor('--text-primary', '#1a1a2e') },
+      labelSize: 11,
+      labelRenderedSizeThreshold: 8,
+      stagePadding: 40,
+      defaultDrawNodeLabel: drawLabel,
+      defaultDrawNodeHover: drawHover,
+      edgeProgramClasses: {
+        straight: EdgeArrowProgram,
+        curved: createEdgeCurveProgram({
+          arrowHead: {
+            widenessToThicknessRatio: 4,
+            lengthToThicknessRatio: 5,
+            extremity: 'target',
           },
-        },
-        // ── Faded state (applied during hover spotlight) ──
-        {
-          selector: '.faded',
-          style: {
-            opacity: 0.1,
-          } as any,
-        },
-        // ── Highlighted edge during hover ──
-        {
-          selector: '.highlighted-edge',
-          style: {
-            'line-color': edgeHoverColor,
-            'line-opacity': 1,
-            width: 2.5,
-            'target-arrow-color': edgeHoverColor,
-          } as any,
-        },
-      ],
-      layout: chosenLayout as any,
-      userZoomingEnabled: true,
-      userPanningEnabled: true,
-      boxSelectionEnabled: false,
-    } as any);
+        }),
+      },
+      nodeProgramClasses: {
+        border: createNodeBorderProgram({
+          borders: [
+            { color: { attribute: 'color' }, size: { value: 0.1 } },
+            { color: { transparent: true }, size: { value: 0.05 } },
+            { color: { attribute: 'color' }, size: { value: 1.0 } },
+          ],
+        }),
+      },
+      defaultNodeType: 'border',
+      nodeReducer: (node, attrs) => {
+        // Guard against post-destroy calls
+        if (!displayGraph) return attrs;
+        const res = { ...attrs };
+        if (_hoveredNode && _hoveredNode !== node && !_neighbors.has(node)) {
+          res.label = '';
+          // Read faded color live so theme changes take effect
+          res.color = getThemeColor('--text-muted', 'rgba(150, 150, 150, 0.3)');
+          res.zIndex = 0;
+        }
+        if (_hoveredNode === node || _neighbors.has(node)) {
+          res.highlighted = true;
+          res.zIndex = 1;
+        }
+        return res;
+      },
+      edgeReducer: (edge, attrs) => {
+        if (!displayGraph) return attrs;
+        const res = { ...attrs };
+        if (_hoveredNode) {
+          const extremities = displayGraph.extremities(edge);
+          if (!extremities.includes(_hoveredNode)) {
+            res.hidden = true;
+          } else {
+            res.color = getThemeColor('--graph-edge-hover', '#d63384');
+            res.size = 2.5;
+          }
+        }
+        return res;
+      },
+    });
 
-    // Fit graph to container after layout
-    cy.fit(undefined, 40);
+    // Hover spotlight
+    sigmaInstance.on('enterNode', ({ node }) => {
+      _hoveredNode = node;
+      if (displayGraph) _neighbors = new Set(displayGraph.neighbors(node));
+      sigmaInstance?.refresh({ skipIndexation: true });
+    });
 
-    // ── Click to navigate ──
-    cy.on('tap', 'node', (evt) => {
-      const nodeData = evt.target.data();
-      const id = nodeData.id;
-      const key = id.includes(':') ? id.split(':')[1] : id;
+    sigmaInstance.on('leaveNode', () => {
+      _hoveredNode = '';
+      _neighbors = new Set();
+      sigmaInstance?.refresh({ skipIndexation: true });
+    });
+
+    // Click to navigate
+    sigmaInstance.on('clickNode', ({ node }) => {
+      const key = node.includes(':') ? node.split(':')[1] : node;
       goto(`/narrators/${key}`);
     });
 
-    // ── Spotlight hover: highlight connections, fade the rest ──
-    cy.on('mouseover', 'node', (evt) => {
-      const node = evt.target;
-      const neighborhood = node.closedNeighborhood();
-
-      // Fade everything
-      cy!.elements().addClass('faded');
-
-      // Un-fade the neighborhood
-      neighborhood.removeClass('faded');
-
-      // Highlight connected edges
-      node.connectedEdges().addClass('highlighted-edge');
-
-      // Enlarge hovered node slightly
-      node.animate(
-        { style: { width: node.numericStyle('width') * 1.15, height: node.numericStyle('height') * 1.15 } },
-        { duration: 150 }
-      );
-    });
-
-    cy.on('mouseout', 'node', (evt) => {
-      const node = evt.target;
-
-      // Restore all elements
-      cy!.elements().removeClass('faded').removeClass('highlighted-edge');
-
-      // Restore node size
-      const isCenter = node.data('type') === 'center';
-      const originalSize = isCenter ? 48 : 34;
-      node.animate(
-        { style: { width: originalSize, height: originalSize } },
-        { duration: 150 }
-      );
+    // Watch for theme changes (data-theme attribute on <html>)
+    themeObserver?.disconnect();
+    themeObserver = new MutationObserver(() => refreshThemeColors());
+    themeObserver.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme', 'class'],
     });
   }
 
-  /** Lighten a hex color for radial gradient center */
-  function lighten(hex: string): string {
-    const clean = hex.replace('#', '');
-    if (clean.length !== 6) return hex;
-    const r = Math.min(255, parseInt(clean.slice(0, 2), 16) + 60);
-    const g = Math.min(255, parseInt(clean.slice(2, 4), 16) + 60);
-    const b = Math.min(255, parseInt(clean.slice(4, 6), 16) + 60);
-    return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+  async function switchLayout(mode: LayoutMode) {
+    if (!displayGraph || !sigmaInstance) return;
+
+    // Kill existing supervisor first
+    if (supervisor) {
+      supervisor.kill();
+      supervisor = null;
+      forceRunning = false;
+    }
+
+    currentLayout = mode;
+
+    if (mode === 'hierarchical') {
+      applyHierarchicalLayout(displayGraph);
+      sigmaInstance.refresh();
+    } else {
+      supervisor = await createFA2Supervisor(displayGraph);
+      supervisor.start();
+      forceRunning = true;
+    }
   }
 
-  onMount(() => { initGraph(); });
+  function toggleForce() {
+    if (!supervisor) return;
+    if (forceRunning) {
+      supervisor.stop();
+      forceRunning = false;
+    } else {
+      supervisor.start();
+      forceRunning = true;
+    }
+  }
 
+  /** Update edge types when straightEdges changes */
+  function updateEdgeStyle() {
+    if (!displayGraph || !sigmaInstance) return;
+    applyEdgeTypes(displayGraph);
+    sigmaInstance.refresh();
+  }
+
+  // Track previous data reference to avoid re-init loops
+  let prevData: GraphData | null = null;
+
+  onMount(() => {
+    mounted = true;
+    initGraph();
+    prevData = data;
+  });
+
+  // Re-init only when data actually changes (new prop reference)
   $effect(() => {
-    if (data) initGraph();
+    const d = data;
+    if (mounted && d && d !== prevData) {
+      prevData = d;
+      showTeachers = true;
+      showStudents = true;
+      currentLayout = 'hierarchical';
+      tick().then(() => initGraph());
+    }
+  });
+
+  // Sync display graph when visibility toggles change
+  let visibilityInitialized = false;
+  $effect(() => {
+    const st = showTeachers;
+    const ss = showStudents;
+    if (!visibilityInitialized) {
+      visibilityInitialized = true;
+      return;
+    }
+    if (universeGraph && displayGraph && sigmaInstance) {
+      synchronizeDisplayGraph();
+    }
+  });
+
+  // Handle straightEdges toggle separately
+  let edgeStyleInitialized = false;
+  $effect(() => {
+    const se = straightEdges;
+    if (!edgeStyleInitialized) {
+      edgeStyleInitialized = true;
+      return;
+    }
+    updateEdgeStyle();
   });
 
   // Switch labels when language changes
   $effect(() => {
     const lang = $language;
-    if (!cy) return;
-    cy.nodes().forEach(node => {
-      const labelEn = node.data('label_en');
-      const labelAr = node.data('label');
-      if (lang === 'en' && labelEn && labelEn !== labelAr) {
-        node.style('label', labelEn);
-      } else {
-        node.style('label', labelAr);
-      }
+    if (!displayGraph || !sigmaInstance) return;
+    displayGraph.forEachNode((node, attrs) => {
+      const newLabel = lang === 'en' && attrs.labelEn ? attrs.labelEn : attrs.labelAr;
+      displayGraph!.setNodeAttribute(node, 'label', newLabel);
     });
   });
 
   onDestroy(() => {
-    cy?.destroy();
-    cy = null;
+    themeObserver?.disconnect();
+    themeObserver = null;
+    supervisor?.kill();
+    supervisor = null;
+    sigmaInstance?.kill();
+    sigmaInstance = null;
+    universeGraph = null;
+    displayGraph = null;
   });
 </script>
 
-<div class="graph-wrapper">
+<div class="graph-panel">
   {#if !data || data.nodes.length === 0}
     <div class="empty">No graph data available</div>
   {:else}
-    <div bind:this={container} class="graph-container"></div>
-    <div class="graph-footer">
-      <div class="graph-legend">
-        <span class="legend-item"><span class="dot dot-center"></span> This narrator</span>
-        <span class="legend-item"><span class="dot dot-teacher"></span> Teachers</span>
-        <span class="legend-item"><span class="dot dot-student"></span> Students</span>
-      </div>
-      {#if data.total_teachers != null || data.total_students != null}
-        {@const shownTeachers = data.nodes.filter(n => n.data.type === 'teacher').length}
-        {@const shownStudents = data.nodes.filter(n => n.data.type === 'student').length}
-        {#if (data.total_teachers && shownTeachers < data.total_teachers) || (data.total_students && shownStudents < data.total_students)}
-          <div class="graph-truncated">
-            Showing {shownTeachers} of {data.total_teachers} teachers, {shownStudents} of {data.total_students} students
-          </div>
-        {/if}
-      {/if}
+    <div class="graph-canvas">
+      <div bind:this={container} class="sigma-container"></div>
     </div>
+    <aside class="graph-sidebar">
+      <!-- Stats -->
+      <div class="sidebar-section">
+        <h4 class="sidebar-title">Stats</h4>
+        <div class="stat-row">
+          <span class="stat-label">Nodes</span>
+          <span class="stat-value">{nodeCount}</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Edges</span>
+          <span class="stat-value">{edgeCount}</span>
+        </div>
+      </div>
+
+      <!-- Visibility -->
+      <div class="sidebar-section">
+        <h4 class="sidebar-title">Visibility</h4>
+        <button
+          class="toggle-row"
+          class:hidden-toggle={!showTeachers}
+          onclick={() => { showTeachers = !showTeachers; }}
+        >
+          <span class="toggle-dot dot-teacher" class:faded={!showTeachers}></span>
+          <span class="toggle-label">Teachers</span>
+          <span class="toggle-count">{shownTeachers}{#if data.total_teachers} / {data.total_teachers}{/if}</span>
+        </button>
+        <button
+          class="toggle-row"
+          class:hidden-toggle={!showStudents}
+          onclick={() => { showStudents = !showStudents; }}
+        >
+          <span class="toggle-dot dot-student" class:faded={!showStudents}></span>
+          <span class="toggle-label">Students</span>
+          <span class="toggle-count">{shownStudents}{#if data.total_students} / {data.total_students}{/if}</span>
+        </button>
+      </div>
+
+      <!-- Appearance -->
+      <div class="sidebar-section">
+        <h4 class="sidebar-title">Appearance</h4>
+        <label class="checkbox-row">
+          <input type="checkbox" bind:checked={straightEdges} />
+          <span>Straight edges</span>
+        </label>
+      </div>
+
+      <!-- Legend -->
+      <div class="sidebar-section">
+        <h4 class="sidebar-title">Legend</h4>
+        <div class="legend-item"><span class="legend-dot dot-center"></span> This narrator</div>
+        <div class="legend-item"><span class="legend-dot dot-teacher"></span> Teachers</div>
+        <div class="legend-item"><span class="legend-dot dot-student"></span> Students</div>
+      </div>
+    </aside>
   {/if}
 </div>
 
 <style>
-  .graph-wrapper {
+  .graph-panel {
+    display: flex;
+    height: 100%;
     background: var(--bg-secondary);
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
     overflow: hidden;
   }
 
-  .graph-container {
+  .graph-canvas {
+    flex: 1;
+    min-width: 0;
+    position: relative;
+  }
+
+  .sigma-container {
     width: 100%;
-    height: 500px;
+    height: 100%;
     cursor: grab;
   }
 
-  .graph-container:active {
+  .sigma-container:active {
     cursor: grabbing;
   }
 
@@ -297,53 +528,160 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    height: 200px;
+    width: 100%;
+    height: 100%;
+    min-height: 400px;
     color: var(--text-muted);
     font-size: 0.85rem;
   }
 
-  .graph-footer {
+  /* Sidebar */
+  .graph-sidebar {
+    width: 240px;
+    flex-shrink: 0;
+    border-left: 1px solid var(--border);
+    background: var(--bg-primary);
+    overflow-y: auto;
+    padding: 12px 0;
+  }
+
+  .sidebar-section {
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .sidebar-section:last-child {
+    border-bottom: none;
+  }
+
+  .sidebar-title {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+    font-weight: 600;
+  }
+
+  /* Stats */
+  .stat-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 8px 16px;
-    border-top: 1px solid var(--border);
-    flex-wrap: wrap;
-    gap: 8px;
+    padding: 3px 0;
+    font-size: 0.8rem;
   }
 
-  .graph-legend {
-    display: flex;
-    gap: 16px;
-    flex-wrap: wrap;
-  }
+  .stat-label { color: var(--text-secondary); }
+  .stat-value { color: var(--text-primary); font-weight: 500; }
 
-  .legend-item {
+  /* Visibility toggles */
+  .toggle-row {
     display: flex;
     align-items: center;
-    gap: 6px;
-    font-size: 0.75rem;
-    color: var(--text-secondary);
+    gap: 8px;
+    width: 100%;
+    padding: 6px 8px;
+    border: none;
+    background: none;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: all 0.15s;
+    font-size: 0.8rem;
+    color: var(--text-primary);
+    text-align: left;
   }
 
-  .dot {
+  .toggle-row:hover {
+    background: var(--bg-surface);
+  }
+
+  .toggle-row.hidden-toggle {
+    opacity: 0.5;
+  }
+
+  .toggle-dot {
     width: 10px;
     height: 10px;
     border-radius: 50%;
-    display: inline-block;
+    flex-shrink: 0;
+    transition: background 0.15s;
+  }
+
+  .toggle-dot.faded {
+    background: var(--text-muted) !important;
+    opacity: 0.4;
+  }
+
+  .toggle-label { flex: 1; }
+
+  .toggle-count {
+    font-size: 0.75rem;
+    color: var(--text-muted);
   }
 
   .dot-center { background: var(--graph-center, #d63384); }
   .dot-teacher { background: var(--graph-teacher, #16a34a); }
   .dot-student { background: var(--graph-student, #b8860b); }
 
-  .graph-truncated {
-    font-size: 0.75rem;
-    color: var(--text-muted);
-    font-style: italic;
+  /* Appearance */
+  .checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+    margin: 0;
   }
 
+  .checkbox-row input {
+    margin: 0;
+    accent-color: var(--accent);
+  }
+
+  /* Legend */
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    padding: 2px 0;
+  }
+
+  .legend-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* Mobile */
   @media (max-width: 768px) {
-    .graph-container { height: 320px; }
+    .graph-panel {
+      flex-direction: column;
+    }
+
+    .graph-canvas {
+      min-height: 400px;
+    }
+
+    .graph-sidebar {
+      width: 100%;
+      border-left: none;
+      border-top: 1px solid var(--border);
+      display: flex;
+      flex-wrap: wrap;
+      padding: 8px;
+      gap: 8px;
+    }
+
+    .sidebar-section {
+      flex: 1;
+      min-width: 120px;
+      padding: 4px 8px;
+      border-bottom: none;
+    }
   }
 </style>

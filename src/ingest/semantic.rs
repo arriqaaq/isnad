@@ -89,7 +89,12 @@ fn narrator_slug(hn_id: &str) -> String {
 
 /// Parse a narrator's generation string ("1", "10", "6?") to an integer.
 fn parse_gen_num(narrator: Option<&Narrator>) -> Option<u32> {
-    narrator?.generation.as_deref()?.trim_end_matches('?').parse().ok()
+    narrator?
+        .generation
+        .as_deref()?
+        .trim_end_matches('?')
+        .parse()
+        .ok()
 }
 
 /// Split a concatenated tahwil chain into separate sub-chains.
@@ -350,7 +355,9 @@ pub async fn ingest(
             if generation == Some("1") {
                 Some("Companion (صحابي) — trustworthy by scholarly consensus".to_string())
             } else {
-                nar.reliability_grade.as_ref().map(|_| "Ibn Hajar al-Asqalani, Taqrib al-Tahdhib".to_string())
+                nar.reliability_grade
+                    .as_ref()
+                    .map(|_| "Ibn Hajar al-Asqalani, Taqrib al-Tahdhib".to_string())
             },
         ))
         .bind(("ibn_hajar_rank", nar.ibn_hajar_rank.clone()))
@@ -482,13 +489,15 @@ pub async fn ingest(
                 if should_skip_heard_from(g1, g2) {
                     continue;
                 }
-                db.query("RELATE $from->heard_from->$to SET hadith_ref = $href, chain_position = $pos")
-                    .bind(("from", rid("narrator", &s1)))
-                    .bind(("to", rid("narrator", &s2)))
-                    .bind(("href", rid("hadith", &hslug)))
-                    .bind(("pos", i as i64))
-                    .await
-                    .ok();
+                db.query(
+                    "RELATE $from->heard_from->$to SET hadith_ref = $href, chain_position = $pos",
+                )
+                .bind(("from", rid("narrator", &s1)))
+                .bind(("to", rid("narrator", &s2)))
+                .bind(("href", rid("hadith", &hslug)))
+                .bind(("pos", i as i64))
+                .await
+                .ok();
                 heard_from_count += 1;
             }
         }

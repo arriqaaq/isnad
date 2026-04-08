@@ -136,64 +136,74 @@ export interface ApiHadithFamily {
   variant_count: number | null;
 }
 
-export interface ApiClAnalysis {
-  narrator_id: string;
-  candidate_type: string;
-  pcl_mode: string | null;
-  fan_out: number;
-  bundle_coverage: number;
-  collector_diversity: number;
-  structural_score: number;
-  final_confidence: number;
-  outcome: string;
-  contradiction_cap_active: boolean;
-  profile: string;
-  family_status: string;
-  rank: number;
-}
-
-export interface JuynbollAnalysis {
-  has_reliable_bypass: boolean;
-  reliable_bypass_count: number;
-  max_reliable_bypass_ratio: number;
-  has_independent_cls: boolean;
-  independent_cl_pairs: number;
-  cl_count: number;
-  upstream_reliable_ratio: number;
-  upstream_branching_points: number;
-}
-
-export interface JuynbollSummaryResponse {
-  families_analyzed: number;
-  families_with_reliable_bypass: number;
-  families_with_independent_cls: number;
-  cross_family_narrators: {
-    narrator_id: string;
-    cl_family_count: number;
-    reliability_prior: number | null;
-    reliability_rating: string | null;
-  }[];
-}
-
-export interface NarratorClStatus {
-  narrator_id: string;
-  cl_family_count: number;
-  pcl_family_count: number;
-  families: string[];
-}
-
 export interface FamilyDetailResponse {
   family: ApiHadithFamily;
   hadiths: ApiHadith[];
-  analysis: ApiClAnalysis[];
-  juynboll: JuynbollAnalysis | null;
 }
 
-export interface AnalysisStatsResponse {
+// ── Mustalah analysis types ──
+
+export interface ChainAssessment {
+  variant_id: string;
+  continuity: string;
+  chain_grade: string;
+  weakest_narrator_id: string | null;
+  weakest_rating: string | null;
+  weakest_prior: number | null;
+  narrator_count: number;
+  has_chronology_conflict: boolean;
+  has_majhul_narrator: boolean;
+}
+
+export interface IsnadAnalysis {
+  composite_grade: string | null;
+  best_chain_grade: string | null;
+  breadth_class: string | null;
+  min_breadth: number | null;
+  bottleneck_tabaqah: number | null;
+  sahabi_count: number | null;
+  mutabaat_count: number | null;
+  shawahid_count: number | null;
+  reliable_mutabaat_count: number | null;
+  corroboration_strength: string | null;
+  matn_coherence: number | null;
+  chain_count: number | null;
+  sahih_chain_count: number | null;
+  hasan_chain_count: number | null;
+  daif_chain_count: number | null;
+  ilal_flags: string[] | null;
+}
+
+export interface PivotNarrator {
+  narrator_id: string;
+  bundle_coverage: number | null;
+  fan_out: number | null;
+  collector_diversity: number | null;
+  bypass_count: number | null;
+  is_bottleneck: boolean | null;
+}
+
+export interface MustalahFamilyResponse {
+  analysis: IsnadAnalysis | null;
+  chains: ChainAssessment[];
+  pivots: PivotNarrator[];
+}
+
+export interface MustalahStatsResponse {
   family_count: number;
-  candidate_count: number;
-  cl_count: number;
-  supported_count: number;
+  analyzed_count: number;
+  sahih_count: number;
+  hasan_count: number;
+  daif_count: number;
+  mutawatir_count: number;
+  mashhur_count: number;
+}
+
+export interface NarratorIsnadRole {
+  narrator_id: string;
+  pivot_family_count: number;
+  bottleneck_family_count: number;
+  families: string[];
 }
 
 export interface DiffSegment {

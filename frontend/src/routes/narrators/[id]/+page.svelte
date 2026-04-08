@@ -1,7 +1,7 @@
 <script lang="ts">
   import { page } from '$app/state';
-  import { getNarrator, getNarratorGraph, updateNarrator, getNarratorClStatus } from '$lib/api';
-  import type { NarratorDetailResponse, GraphData, NarratorClStatus } from '$lib/types';
+  import { getNarrator, getNarratorGraph, updateNarrator, getNarratorIsnadRole } from '$lib/api';
+  import type { NarratorDetailResponse, GraphData, NarratorIsnadRole } from '$lib/types';
   import NarratorChip from '$lib/components/narrator/NarratorChip.svelte';
   import HadithCard from '$lib/components/hadith/HadithCard.svelte';
   import Badge from '$lib/components/common/Badge.svelte';
@@ -10,7 +10,7 @@
 
   let data: NarratorDetailResponse | null = $state(null);
   let graphData: GraphData | null = $state(null);
-  let clStatus: NarratorClStatus | null = $state(null);
+  let isnadRole: NarratorIsnadRole | null = $state(null);
   let loading = $state(true);
   let activeTab: 'network' | 'hadiths' | 'connections' | 'details' = $state('network');
   let saving = $state(false);
@@ -53,8 +53,8 @@
     if (!id) return;
     loading = true;
     activeTab = 'network';
-    Promise.all([getNarrator(id), getNarratorGraph(id), getNarratorClStatus(id).catch(() => null)])
-      .then(([d, g, cls]) => {
+    Promise.all([getNarrator(id), getNarratorGraph(id), getNarratorIsnadRole(id).catch(() => null)])
+      .then(([d, g, role]) => {
         const seen = new Set<string>();
         d.hadiths = d.hadiths.filter(h => {
           if (seen.has(h.id)) return false;
@@ -63,7 +63,7 @@
         });
         data = d;
         graphData = g;
-        clStatus = cls;
+        isnadRole = role;
         populateForm();
       })
       .catch((e) => console.error('Failed to load narrator:', e))
@@ -158,11 +158,11 @@
         {#if data.narrator.generation}
           <Badge text={data.narrator.generation} variant="accent" />
         {/if}
-        {#if clStatus && clStatus.cl_family_count > 0}
-          <Badge text="CL in {clStatus.cl_family_count} {clStatus.cl_family_count === 1 ? 'family' : 'families'}" variant="success" />
+        {#if isnadRole && isnadRole.pivot_family_count > 0}
+          <Badge text="Pivot in {isnadRole.pivot_family_count} {isnadRole.pivot_family_count === 1 ? 'family' : 'families'}" variant="success" />
         {/if}
-        {#if clStatus && clStatus.pcl_family_count > 0 && clStatus.cl_family_count === 0}
-          <Badge text="PCL in {clStatus.pcl_family_count} {clStatus.pcl_family_count === 1 ? 'family' : 'families'}" variant="accent" />
+        {#if isnadRole && isnadRole.bottleneck_family_count > 0}
+          <Badge text="Bottleneck in {isnadRole.bottleneck_family_count}" variant="warning" />
         {/if}
         {#if data.narrator.gender}
           <Badge text={data.narrator.gender} />
@@ -193,7 +193,7 @@
       <button type="button" class="tab" class:active={activeTab === 'details'} onclick={() => { activeTab = 'details'; }}>Details</button>
     </div>
 
-    <div class="tab-content">
+    <div class="tab-content" class:tab-content-network={activeTab === 'network'}>
       {#if activeTab === 'network'}
         <GraphView data={graphData} />
       {:else if activeTab === 'hadiths'}
@@ -351,6 +351,8 @@
   .connection-group h3 { margin-bottom: 10px; color: var(--text-secondary); font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.5px; }
   .chips { display: flex; flex-wrap: wrap; gap: 8px; }
   .empty { text-align: center; color: var(--text-muted); padding: 40px; }
+  .tab-content-network { height: calc(100vh - 180px); min-height: 500px; }
+  @media (max-width: 768px) { .tab-content-network { min-height: 400px; } }
 
   /* Details form */
   .details-form { display: flex; flex-direction: column; gap: 20px; }

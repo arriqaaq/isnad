@@ -2,7 +2,7 @@
 //!
 //! Layers:
 //! - Reported: Classical scholar assessments (full weight)
-//! - Analytical: Derived from CL/PCL analysis (half weight)
+//! - Analytical: (half weight)
 //! - Derived: Weighted composite with contradiction detection
 
 use std::collections::HashSet;

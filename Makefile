@@ -72,7 +72,7 @@ hadith-full:
 	@echo "═══════════════════════════════════════"
 	@echo "  Step 3/3: Transmission analysis"
 	@echo "═══════════════════════════════════════"
-	cargo run -- analyze --juynboll
+	cargo run -- analyze --mustalah
 	@echo ""
 	@echo "✓ Hadith pipeline complete."
 
@@ -206,15 +206,15 @@ analyze-families:
 analyze:
 	cargo run -- analyze --families
 
-# Run transmission integrity analysis (CL/PCL + structural falsifiability tests)
+# Run mustalah al-hadith transmission analysis
 analyze-transmission:
-	cargo run -- analyze --juynboll
+	cargo run -- analyze --mustalah
 
 # Full pipeline: ingest 100 per book + all analysis
 pipeline-test:
 	cargo run -- ingest --limit 100
 	cargo run -- analyze --families
-	cargo run -- analyze --juynboll
+	cargo run -- analyze --mustalah
 
 # === Full pipeline (everything from scratch) ===
 

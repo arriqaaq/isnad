@@ -42,10 +42,15 @@ impl OllamaClient {
         impl Stream<Item = Result<bytes::Bytes, reqwest::Error>> + use<>,
     )> {
         // 1. Retrieve from both sources sequentially (HNSW needs deep stack)
-        let ayah_sources =
-            crate::quran::search::search_ayahs_semantic(db, embedder, question, CONTEXT_AYAH_COUNT, 0)
-                .await
-                .unwrap_or_default();
+        let ayah_sources = crate::quran::search::search_ayahs_semantic(
+            db,
+            embedder,
+            question,
+            CONTEXT_AYAH_COUNT,
+            0,
+        )
+        .await
+        .unwrap_or_default();
         let hadith_sources =
             crate::search::search_hadiths_semantic(db, embedder, question, CONTEXT_HADITH_COUNT)
                 .await

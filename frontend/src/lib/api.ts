@@ -4,7 +4,6 @@ import type {
   ApiMatnDiff,
   ApiReciter,
   ApiSurah,
-  AnalysisStatsResponse,
   AyahHadithResponse,
   FamilyDetailResponse,
   GraphData,
@@ -119,16 +118,16 @@ export async function getFamily(id: string): Promise<FamilyDetailResponse> {
   return get(`/families/${encodeURIComponent(id)}`);
 }
 
-export async function getAnalysisStats(): Promise<AnalysisStatsResponse> {
+export async function getMustalahStats(): Promise<import('./types').MustalahStatsResponse> {
   return get('/analysis/stats');
 }
 
-export async function getJuynbollSummary(): Promise<import('./types').JuynbollSummaryResponse> {
-  return get('/analysis/juynboll/summary');
+export async function getMustalahFamily(id: string): Promise<import('./types').MustalahFamilyResponse> {
+  return get(`/families/${encodeURIComponent(id)}/mustalah`);
 }
 
-export async function getNarratorClStatus(id: string): Promise<import('./types').NarratorClStatus> {
-  return get(`/narrators/${encodeURIComponent(id)}/cl-status`);
+export async function getNarratorIsnadRole(id: string): Promise<import('./types').NarratorIsnadRole> {
+  return get(`/narrators/${encodeURIComponent(id)}/isnad-role`);
 }
 
 export async function getMatnDiff(a: string, b: string): Promise<ApiMatnDiff> {

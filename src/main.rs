@@ -37,7 +37,7 @@ enum Commands {
         #[arg(long, default_value = "db_data")]
         db_path: String,
     },
-    /// Run analysis on ingested data (families, CL/PCL, narrator enrichment)
+    /// Run analysis on ingested data (families, narrator enrichment)
     Analyze {
         /// Path to SurrealDB data directory
         #[arg(long, default_value = "db_data")]
@@ -47,9 +47,9 @@ enum Commands {
         #[arg(long)]
         families: bool,
 
-        /// Run Juynboll falsifiability analysis on CL candidates
+        /// Run mustalah al-hadith analysis on transmission chains
         #[arg(long)]
-        juynboll: bool,
+        mustalah: bool,
 
         /// Skip families larger than this (degenerate clusters hang analysis)
         #[arg(long, default_value = "500")]
@@ -174,7 +174,7 @@ async fn async_main() -> Result<()> {
         Commands::Analyze {
             db_path,
             families,
-            juynboll,
+            mustalah,
             max_family_size,
         } => {
             let db = db::connect(&db_path).await?;
@@ -189,34 +189,29 @@ async fn async_main() -> Result<()> {
                 did_something = true;
             }
 
-            if juynboll {
-                println!("🔬 Running CL/PCL + Juynboll falsifiability analysis...");
+            if mustalah {
+                println!("📖 Running mustalah al-hadith analysis...");
                 use surrealdb::types::{RecordId, SurrealValue};
 
-                // Get all families
                 #[derive(Debug, SurrealValue)]
-                struct FamilyRow {
+                struct MFamilyRow {
                     id: Option<RecordId>,
                     variant_count: Option<i64>,
                 }
-                eprintln!("   [debug] querying hadith_family...");
                 let mut res = db
                     .query(
                         "SELECT id, variant_count FROM hadith_family ORDER BY variant_count DESC",
                     )
                     .await?;
-                let family_rows: Vec<FamilyRow> = res.take(0)?;
-                eprintln!("   [debug] found {} families", family_rows.len());
+                let family_rows: Vec<MFamilyRow> = res.take(0)?;
 
-                // Check which families are already analyzed (resume support)
+                // Resume support: check already-analyzed families
                 #[derive(Debug, SurrealValue)]
-                struct FamilyRef {
+                struct MFamilyRef {
                     family: RecordId,
                 }
-                eprintln!("   [debug] querying juynboll_analysis for resume...");
-                let mut done_res = db.query("SELECT family FROM juynboll_analysis").await?;
-                let done_rows: Vec<FamilyRef> = done_res.take(0)?;
-                eprintln!("   [debug] {} already done", done_rows.len());
+                let mut done_res = db.query("SELECT family FROM isnad_analysis").await?;
+                let done_rows: Vec<MFamilyRef> = done_res.take(0)?;
                 let already_done: std::collections::HashSet<String> = done_rows
                     .iter()
                     .map(|r| hadith::models::record_id_key_string(&r.family))
@@ -235,10 +230,11 @@ async fn async_main() -> Result<()> {
                         .template("   {bar:40.green/black} {pos}/{len} families ({eta})")
                         .unwrap(),
                 );
-                eprintln!("   [debug] starting analysis of {remaining} families...");
-                let mut cl_families = 0usize;
-                let mut juynboll_families = 0usize;
-                let mut processed = 0usize;
+
+                let mut grade_counts: std::collections::HashMap<String, usize> =
+                    std::collections::HashMap::new();
+                let mut analyzed = 0usize;
+
                 for row in &family_rows {
                     let fid = row
                         .id
@@ -250,71 +246,33 @@ async fn async_main() -> Result<()> {
                     }
                     let vcount = row.variant_count.unwrap_or(0) as usize;
                     if vcount > max_family_size {
-                        eprintln!("   [skip] {fid}: {vcount} hadiths (exceeds --max-family-size {max_family_size})");
                         pb.inc(1);
                         continue;
                     }
-                    processed += 1;
-                    if processed <= 3 || processed % 50 == 0 {
-                        eprintln!("   [debug] analyzing family {processed}/{remaining}: {fid}");
-                    }
-                    let result =
-                        analysis::cl_pcl::analyze_family(&db, &fid, "structural_only").await?;
 
-                    // Store CL/PCL results
-                    if !result.candidates.is_empty() {
-                        analysis::cl_pcl::store_results(&db, &result).await?;
-                        cl_families += 1;
-                    }
-
-                    // Store Juynboll results
-                    if let Some(ref j) = result.juynboll {
-                        analysis::juynboll::store_juynboll_results(&db, j).await?;
-                        juynboll_families += 1;
+                    match analysis::mustalah::analyze_family_mustalah(&db, &fid).await? {
+                        Some(result) => {
+                            let grade_key = format!("{:?}", result.composite_grade).to_lowercase();
+                            *grade_counts.entry(grade_key).or_default() += 1;
+                            analysis::mustalah::store_mustalah_results(&db, &result).await?;
+                            analyzed += 1;
+                        }
+                        None => {}
                     }
                     pb.inc(1);
                 }
                 pb.finish_and_clear();
 
-                println!(
-                    "   CL/PCL analysis: {} families with candidates",
-                    cl_families
-                );
-
-                // Print corpus summary
-                let summary = analysis::juynboll::compute_cross_family_summary(&db).await?;
-                println!("   Juynboll analysis: {} families", juynboll_families);
-                println!(
-                    "   Families with reliable bypass: {}",
-                    summary.families_with_reliable_bypass
-                );
-                println!(
-                    "   Families with independent CLs: {}",
-                    summary.families_with_independent_cls
-                );
-                if !summary.cross_family_narrators.is_empty() {
-                    println!(
-                        "   Cross-family CL narrators (top): {}",
-                        summary
-                            .cross_family_narrators
-                            .iter()
-                            .take(5)
-                            .map(|n| {
-                                format!(
-                                    "{} ({}x, {:?})",
-                                    n.narrator_id, n.cl_family_count, n.reliability_rating
-                                )
-                            })
-                            .collect::<Vec<_>>()
-                            .join(", ")
-                    );
+                println!("   Mustalah analysis: {analyzed} families graded");
+                for (grade, count) in &grade_counts {
+                    println!("     {grade}: {count}");
                 }
-                tracing::info!("Analysis complete");
+                tracing::info!("Mustalah analysis complete");
                 did_something = true;
             }
 
             if !did_something {
-                tracing::warn!("No analysis flags specified. Use --families or --juynboll.");
+                tracing::warn!("No analysis flags specified. Use --families or --mustalah.");
             }
         }
         Commands::IngestQuran { file, db_path } => {

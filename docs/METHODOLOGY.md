@@ -2,13 +2,430 @@
 
 ## 1. Introduction
 
-This document describes the computational methodology used for analyzing hadith transmission chains (isnad) in this project. The system implements graph-theoretic analysis of isnad topology to identify Common Link (CL) and Partial Common Link (PCL) narrators -- key convergence points in hadith transmission networks. Crucially, this tool turns the orientalists' own graph-theoretic techniques against their fabrication thesis, demonstrating empirically that their conclusions do not survive rigorous structural testing.
+This document describes the computational methodology used for analyzing hadith transmission chains (isnad) in this project. The system implements the classical science of *mustalah al-hadith* (hadith terminology) — the traditional Islamic framework for evaluating the authenticity of Prophetic reports — using graph-theoretic analysis of isnad topology.
 
-The graph-theoretic techniques used here originate from Juynboll's Common Link framework. Juynboll's original thesis held that a Common Link was likely a fabricator who forged a hadith and then attributed it to earlier authorities. This assumption has been decisively refuted by scholars from both the Islamic tradition and Western academia -- most comprehensively by Barmaver (2025) in *Dismantling Orientalist Narratives* (see Section 1.1 below). **This tool takes the orientalists' own structural analysis methods and uses them to demonstrate that the fabrication thesis fails empirical testing.** When their graph-theoretic framework is applied rigorously to broad source data, the results consistently contradict the predictions of the fabrication model.
+The methodology follows established principles from:
 
-This tool implements **algorithmic falsifiability tests** (Section 7) that evaluate whether the structural predictions of Juynboll's fabrication thesis hold against empirical data. These tests provide quantitative, reproducible evidence that the fabrication model is empirically untenable -- the orientalists' own methodology, applied honestly, refutes their own conclusions.
+- **Dr. 'Imaad 'Alee Jum'ah**, *Mustalah al-Hadeeth Made Easy* (primary reference)
+- **Mahmood at-Tahhaan**, *Tayseer Mustalah al-Hadeeth*
+- **As-Suyootee**, *Tadreeb ar-Raawee fee Sharh Taqreeb an-Nawaawee*
 
 The reliability layer draws on traditional *'ilm al-rijal* (narrator criticism) classifications from works like Ibn Hajar al-Asqalani's *Taqrib al-Tahdhib*, which predates orientalist hadith criticism by centuries and represents a far more rigorous and comprehensive system of source evaluation.
+
+For a detailed scholarly critique of the orientalist approach to hadith (Goldziher, Schacht, Juynboll), see [Appendix A](#appendix-a-critique-of-orientalist-hadith-methodology).
+
+## 2. Terminologies
+
+| Term | Arabic | Definition |
+|------|--------|------------|
+| **Sanad** | سند | The chain of individuals connected to the matn (text) |
+| **Matn** | متن | The text at which the sanad ends |
+| **Hadeeth** | حديث | Any statement, action, approval, or description ascribed to the Prophet |
+| **Khabar** | خبر | Report — synonymous with or more general than hadeeth |
+| **Athar** | أثر | Remnant — statements/actions ascribed to Sahaabah and Taabi'een |
+| **Isnaad** | إسناد | Attributing a statement to the one who made it; same as sanad |
+| **Musnad** | مسند | A marfoo' hadeeth with a muttasil (connected) sanad |
+| **Muhaddith** | محدث | One who works extensively in hadeeth, well-acquainted with narrations and their narrators |
+| **Haafith** | حافظ | Higher degree — what he knows at every tabaqah is more than what he doesn't know |
+| **Tabaqah** | طبقة | A group of people similar in age and level of isnaad |
+
+## 3. Classification of Hadith
+
+<p align="center">
+  <img src="../img/hadith-classification.svg" alt="Complete hadith classification taxonomy" width="700">
+</p>
+
+### 3.1 Based on How it Reached Us
+
+#### Mutawatir (متواتر)
+
+**Definition**: What has been narrated by such a large number that it is inconceivable that they collaborated to propagate a lie.
+
+**Ruling**: Conveys *'ilm darooree* (certain knowledge) — one is obliged to decisively accept it.
+
+**Conditions**:
+1. A large number of people narrate it (minimum: 10, per the chosen opinion)
+2. This large number is present at **all levels** of the chain
+3. It is inconceivable that they could have collaborated to propagate a lie
+4. The report is based upon sense perception ("we heard" or "we saw")
+
+**Categories**:
+- **Lafthee**: mutawatir in both wording and meaning
+- **Ma'nawee**: mutawatir in meaning, but not wording
+
+#### Ahad (آحاد)
+
+**Definition**: A narration that does not fulfill the conditions of being mutawatir.
+
+**Ruling**: Conveys *'ilm natharee* (knowledge that must be investigated) — acceptance is conditional upon examination.
+
+**Categories by number of routes**:
+
+| Category | Arabic | Definition | Threshold |
+|----------|--------|------------|-----------|
+| **Mashhur** | مشهور | Narrated by 3+ at each tabaqah, below mutawatir | >= 3 per level |
+| **'Aziz** | عزيز | No less than 2 narrators at every level of the sanad | >= 2 at every level |
+| **Gharib** | غريب | Reported by one narrator only | = 1 at some level |
+
+**Gharib** has two sub-types:
+- **Gharib Mutlaq** (Fard Mutlaq): only one narrator at the root of the sanad (e.g., hadith of intentions narrated only by 'Umar)
+- **Gharib Nisbee** (Fard Nisbee): only one narrator at a later point in the sanad
+
+**Note**: Mashhur can be saheeh, hasan, da'eef, or even mawdoo' — the classification is about route count, not quality.
+
+### 3.2 Based on Acceptance and Rejection
+
+#### Accepted Hadith
+
+##### Saheeh li-Thaatihi (صحيح لذاته)
+
+Has a sanad connected from beginning to end, by way of narrators each of whom is *'adl* (upright) and *daabit* (retentive), without having any *shuthooth* or *'illah*.
+
+**Five conditions**:
+1. **Connected sanad** (ittisal): every narrator reported directly from the one prior
+2. **'Adaalah**: every narrator is Muslim, *baaligh*, *'aaqil*, not a *faasiq*, and not *makhroom al-muroo'ah*
+3. **Dabt**: every narrator is *taamm ad-dabt* (completely retentive) — either *dabt as-sadr* (by heart) or *dabt al-kitaab* (by writing)
+4. **Absence of shuthooth**: no contradiction by a thiqah against someone more reliable
+5. **Absence of 'illah**: no hidden, obscure defect that impairs authenticity
+
+**Ruling**: Used as proof by consensus of the scholars of hadeeth, usool, and fiqh.
+
+##### Hasan li-Thaatihi (حسن لذاته)
+
+Same conditions as saheeh, but the narrator has a **lesser degree of dabt** (e.g., *saduq* rather than *thiqah*).
+
+**Ruling**: Used as proof, just as the saheeh, despite not being as strong.
+
+##### Saheeh li-Ghayrihi (صحيح لغيره)
+
+The hasan li-thaatihi narration when it is reported through another similar route or one even stronger. Its being saheeh does not result from its own sanad — rather, it only results from combining others with it.
+
+**Rank**: Above hasan li-thaatihi, below saheeh li-thaatihi.
+
+##### Hasan li-Ghayrihi (حسن لغيره)
+
+The da'eef narration when it has numerous routes, and the reason for it being da'eef is **not fisq (open sinfulness) of a narrator, or kathib (lying)**.
+
+The da'eef ascends to hasan li-ghayrihi due to two factors:
+1. It is reported through one or more other routes **similar or greater in strength**
+2. The reason for being da'eef is either **poor memory**, **a break in the sanad**, or **jahaalah** (not knowing a narrator)
+
+**Rank**: Lower than hasan li-thaatihi. Among the accepted narrations used as proof.
+
+#### Rejected Hadith — Due to Omission in the Isnad
+
+| Type | Arabic | Definition | Form |
+|------|--------|------------|------|
+| **Mu'allaq** | معلق | One or more consecutive narrators omitted from the **beginning** of the isnad | Hanging |
+| **Mursal** | مرسل | Omission of anyone after the Taabi'ee at the **end** of the isnad | A Tabi'i says "The Prophet said..." |
+| **Mu'dal** | معضل | Two or more **consecutive** narrators omitted from the isnad | Worst type of break |
+| **Munqati'** | منقطع | Any break in the isnad not fitting the above types | One missing in middle |
+| **Mudallas** | مدلس | Narrator conceals a flaw in the isnad using ambiguous phrasing | Obscure omission |
+| **Mursal Khafee** | مرسل خفي | Narrator reports from someone he met but didn't hear from | Obscure omission |
+
+**Severity ranking** (worst to mildest): Mu'dal > Munqati' > Mudallas > Mursal
+
+#### Rejected Hadith — Due to Disparagement of the Narrator
+
+**Disparagement of 'Adaalah (character)**:
+
+| Cause | Arabic | Result |
+|-------|--------|--------|
+| 1. Kathib (lying) | كذب | **Mawdoo'** (fabricated) — the worst type |
+| 2. Accused of lying | تهمة بالكذب | **Matrook** (abandoned) |
+| 3. Fisq (open sinfulness) | فسق | **Munkar** (disapproved) |
+| 4. Bid'ah (innovation) | بدعة | **Da'eef** (weak) |
+| 5. Jahaalah (unknown) | جهالة | **Da'eef** (weak) |
+
+**Disparagement of Dabt (precision)**:
+
+| Cause | Arabic | Result |
+|-------|--------|--------|
+| 1. Gross error (fuhsh al-ghalat) | فحش الغلط | **Munkar** |
+| 2. Poor memory (soo' al-hifth) | سوء الحفظ | **Da'eef** |
+| 3. Negligence (ghaflah) | غفلة | **Munkar** |
+| 4. Many mistakes (kathrah al-awhaam) | كثرة الأوهام | **Mu'allal** (defective) |
+| 5. Contradicting trustworthy narrators | مخالفة الثقات | **Mudraj** / **Maqloob** / **Mudtarib** / **Musahhaf** / **Shaath** |
+
+**Severity ranking** (weakest to strongest, per Ibn Hajar):
+Mawdoo' > Matrook > Munkar > Mu'allal > Mudraj > Maqloob > Mudtarib
+
+**Key distinction**: *Shaath* = what an **acceptable** narrator reports in contradiction to someone more reliable. *Munkar* = what a **da'eef** narrator reports in contradiction to a thiqah.
+
+### 3.3 Based on Whom it is Ascribed to
+
+| Type | Arabic | Ascribed to | Notes |
+|------|--------|-------------|-------|
+| **Qudsee** | قدسي | Allah (meaning) via the Prophet (wording) | Not Qur'an; ~200+ narrations |
+| **Marfoo'** | مرفوع | The Prophet | Statement, action, approval, or description |
+| **Mawqoof** | موقوف | A Sahaabi | Statement, action, or approval |
+| **Maqtoo'** | مقطوع | A Tabi'i or later | Cannot be used as proof for legal rulings |
+
+### 3.4 Corroboration: Mutaabi' and Shaahid
+
+**I'tibaar** (اعتبار): The process of scrutinizing the routes of a hadeeth narrated by a single narrator, to find if anyone else narrated it as well.
+
+**Mutaabi'** (متابع): A hadeeth that agrees (in wording or meaning) with a *fard* hadeeth, narrated from the **same Sahaabee**.
+- **Mutaaba'ah Taammah**: agreement from the beginning of the isnaad
+- **Mutaaba'ah Qaasirah**: agreement from a later point
+
+**Shaahid** (شاهد): A hadeeth that agrees (in wording or meaning) with a *fard* hadeeth, narrated from a **different Sahaabee**.
+
+## 4. Narrator Assessment
+
+### 4.1 Conditions for Acceptance
+
+**'Adaalah** (uprightness): Muslim, baaligh (mature), 'aaqil (of sound mind), not a faasiq, and not compromising overall integrity.
+
+**Dabt** (precision): Does not contradict the thiqaat, not having poor memory, not committing gross error, not known for negligence, and not making many mistakes. Determined by: the narrator agrees with the thiqaat most of the time.
+
+### 4.2 Grades of Ta'deel and Jarh
+
+**Six grades of ta'deel** (validation, from highest to lowest):
+
+| Grade | Example phrases | Ruling |
+|-------|----------------|--------|
+| 1. Superlative | *athbat an-naas*, *awthaq* | Used as proof |
+| 2. Emphasized | *thiqatun thabt*, *thiqatun ma'moon* | Used as proof |
+| 3. Simple reliability | *thiqah*, *hujjah*, *'adlun daabit* | Used as proof |
+| 4. Without dabt sense | *sadooq*, *laa ba'sa bihi* | Not used as proof; collected and examined |
+| 5. Neutral | *shaykh*, *wasat* | Not used as proof; collected and examined |
+| 6. Near disparagement | *saalih al-hadeeth*, *yu'tabaru bihi* | Written for i'tibaar only |
+
+**Six grades of jarh** (disparagement, from mildest to severest):
+
+| Grade | Example phrases | Ruling |
+|-------|----------------|--------|
+| 1. Carelessness | *layyin al-hadeeth*, *feehi maqaal* | Written for i'tibaar only |
+| 2. Cannot be proof | *da'eef*, *lahu manaakeer* | Written for i'tibaar only |
+| 3. Not to be written | *da'eef jiddan*, *tarahoo hadeethahu* | Not written, not for i'tibaar |
+| 4. Accused of lying | *muttahamun bil-kathib*, *saaqit* | Not written, not for i'tibaar |
+| 5. Known liar | *kaththaab*, *waddaa'* | Not written, not for i'tibaar |
+| 6. Superlative lying | *akthab an-naas* | Not written, not for i'tibaar |
+
+**Rules**: Ta'deel is accepted without explanation; jarh is not accepted unless explained. If both exist for one narrator, jarh is given precedence as long as it is explained.
+
+## 5. Computational Implementation
+
+This section describes how the classical principles above are implemented computationally in this tool.
+
+### 5.1 Hadith Families
+
+Hadith variants sharing the same original report are grouped into **families** using:
+- **Embedding similarity**: cosine similarity >= 0.85 between 384-dim multilingual-e5-small vectors
+- **Narrator overlap**: shared narrators between chains confirm the grouping
+- **Union-Find clustering**: groups of 2+ hadiths meeting both criteria
+
+### 5.2 Per-Chain Isnad Assessment
+
+For each individual transmission chain (variant) in a family:
+
+**Chain Continuity**: Walk the isnad from collector to source, checking:
+1. Does a `heard_from` edge exist between consecutive narrators?
+2. Are there generation gaps > 1 between consecutive narrators?
+3. Is the root narrator a Tabi'i with no teacher (mursal)?
+
+Classify as: Muttasil, Munqati', Mursal, Mu'allaq, or Mu'dal.
+
+**Weakest-Link Analysis**: The chain grade cannot exceed what the weakest narrator allows. Find the narrator with the lowest `reliability_prior` and grade accordingly:
+- All narrators >= 0.75 (thiqah) + muttasil + no defects = **Saheeh**
+- All narrators >= 0.65 (saduq) + muttasil + no defects = **Hasan**
+- Below saduq, or not muttasil, or unknown narrators = **Da'eef**
+- Matruk/accused narrator present (< 0.35) = **Da'eef Jiddan**
+- Known fabricator = **Mawdoo'**
+
+### 5.3 Transmission Breadth Classification
+
+Group narrators by tabaqah (generation layer), count distinct narrators per level:
+
+| Classification | Threshold |
+|---------------|-----------|
+| Mutawatir | >= 10 at every tabaqah (computational proxy) |
+| Mashhur | >= 3 at each tabaqah |
+| 'Aziz | >= 2 at every level |
+| Gharib | = 1 at some level |
+
+For gharib, the **bottleneck tabaqah** and the **fard narrator** (single narrator at that level) are recorded.
+
+### 5.4 Corroboration Detection (I'tibaar)
+
+- **Group chains by Sahabi**: the root narrator (topmost in each chain, generation = 1) identifies the Sahabi
+- **Mutaba'at**: within each Sahabi group, count divergent paths (> 1 variant = has mutaba'at)
+- **Shawahid**: count distinct Sahabah in the family (> 1 = has shawahid)
+- **Reliability check**: are corroborating chains through narrators with reliability >= 0.65 (saduq or better)?
+
+**Corroboration strength levels**:
+- **Strong**: 3+ reliable mutaba'at, or multiple shawahid
+- **Moderate**: 1-2 mutaba'at, or shawahid present
+- **Weak**: only da'eef corroborating chains
+- **None**: single chain (fard)
+
+### 5.5 Composite Grading
+
+Following the textbook definitions exactly:
+
+| Best Chain | Corroboration | Composite Grade |
+|-----------|--------------|----------------|
+| Saheeh | Any | Saheeh |
+| Hasan | Strong/Moderate | **Saheeh li-Ghayrihi** |
+| Hasan | Weak/None | Hasan |
+| Da'eef (light weakness) | Strong/Moderate | **Hasan li-Ghayrihi** |
+| Da'eef (severe: fisq/kathib) | Any | Da'eef (never elevated) |
+| Da'eef Jiddan | Any | Da'eef Jiddan (never elevated) |
+| Mawdoo' | Any | Mawdoo' (never elevated) |
+
+**Elevation eligibility**: Only da'eef due to light weakness (poor memory, chain break, jahaalah) can be elevated. Munkar, Matrook, and Mawdoo' are **never** elevated regardless of corroboration.
+
+### 5.6 Defect Detection
+
+Computational flags for potential defects:
+
+- **Chronology conflicts**: student's generation predates teacher's generation
+- **Potential idtirab**: multiple equal-strength chains with irreconcilable textual differences
+- **Matn coherence**: word-level LCS-based diffing between variants; low similarity (< 0.5) flags potential textual issues
+- **Majhul narrators**: chains containing unknown narrators are flagged
+
+**Note**: True *'ilal* detection requires specialist knowledge. The tool flags *potential* issues; final determination requires a qualified muhaddith.
+
+### 5.7 Pivot Narrators (Madar al-Isnad)
+
+Structural pivot points are identified — narrators upon whom the family's transmission depends:
+
+- **Bundle coverage**: fraction of variants containing this narrator
+- **Fan-out**: number of direct students
+- **Collector diversity**: distinct terminal narrators reachable downstream
+- **Bypass count**: variants that transmit the hadith without this narrator (mutaba'at)
+- **Bottleneck**: narrator with coverage >= 0.95 (the family depends almost entirely on them)
+
+This is the recognized concept of *madar al-isnad* — the pivot the chain revolves around. It carries no negative connotation; it is purely structural.
+
+## 6. Reliability Layer
+
+### 6.1 Evidence Model
+
+- **Reported**: Classical scholar assessments from biographical dictionaries (e.g., Tahdhib al-Kamal, Taqrib al-Tahdhib, Mizan al-I'tidal). Full weight.
+- **Analytical**: Derived from structural analysis. Half weight.
+- **Derived**: Weighted composite of reported + analytical layers.
+
+### 6.2 Rating Priors
+
+| Rating | Arabic | Prior | Description |
+|--------|--------|-------|-------------|
+| thiqah | ثقة | 0.75 | Trustworthy |
+| saduq | صدوق | 0.65 | Truthful |
+| majhul | مجهول | 0.50 | Unknown |
+| daif | ضعيف | 0.35 | Weak |
+| matruk | متروك | 0.20 | Abandoned |
+| accused_fabrication | متهم بالوضع | 0.20 | Accused of fabrication |
+
+Sahaabah (generation 1) are rated thiqah by scholarly consensus (*ijma'*), regardless of individual grading.
+
+### 6.3 Derived Assessment Algorithm
+```
+For each evidence record:
+  prior = rating_prior(rating)
+  weight = rating_confidence (default 0.5)
+
+  If reported layer: weighted_sum += prior * weight
+  If analytical layer: weighted_sum += prior * weight * 0.5  // half-weighted
+
+derived_confidence = weighted_sum / total_weight
+
+// Contradiction pairs: thiqah+daif, thiqah+matruk, thiqah+accused, matruk+accused
+If contradiction detected: derived_confidence = min(derived_confidence, 0.70)
+```
+
+## 7. Anti-Hallucination Safeguards
+
+### 7.1 Synthetic Pattern Detection
+Evidence IDs matching these patterns are rejected:
+- Prefixes: `synthetic_*`, `placeholder_*`, `fake_*`, `test_*`, `dummy_*`, `generated_*`, `auto_*`
+- Exact matches: `null`, `undefined`, `n/a`, `none`, `unknown`
+- Content containing: `fake`, `fabricat`, `forged`
+
+### 7.2 Evidence Validation
+- All narrator IDs in chains must exist in the database
+- Source references must include: collection, source_type, source_locator
+- Verified source types: `url`, `print`, `manuscript`
+
+### 7.3 RAG Output Validation
+- Narrator names in LLM responses verified against database
+- Hadith numbers referenced checked against provided context
+- Warnings injected for unverifiable claims
+
+## 8. Matn Diffing
+
+Word-level Longest Common Subsequence (LCS) between hadith text variants:
+- Tokenize by whitespace
+- Standard DP algorithm O(n*m) with 120,000 cell safety guard
+- Output segments: unchanged, added, missing
+- Similarity ratio = 2 * lcs_length / (words_a + words_b)
+
+## 9. Worked Example
+
+Consider a hadith family with 8 variants transmitted through 3 Sahabah:
+
+**Chain assessments**:
+- 4 chains: muttasil, all narrators thiqah -> **Sahih**
+- 2 chains: muttasil, weakest narrator is saduq (0.65) -> **Hasan**
+- 1 chain: muttasil, narrator with poor memory (0.45) -> **Da'eef** (light weakness)
+- 1 chain: munqati' (generation gap) -> **Da'eef** (light weakness)
+
+**Transmission breadth**:
+- Tabaqah 1 (Sahabi): 3 narrators -> not gharib at this level
+- Tabaqah 2 (Tabi'i): 5 narrators
+- Tabaqah 3: 7 narrators
+- Minimum breadth = 3 -> **Mashhur**
+
+**Corroboration**:
+- 3 distinct Sahabah -> 2 shawahid
+- Within Sahabi A's group: 4 variants, 3 mutaba'at (2 reliable) -> **Strong**
+
+**Composite grade**:
+- Best chain = Sahih -> family grade = **Sahih**
+- (Even the da'eef chains would be elevated to Hasan li-Ghayrihi due to strong corroboration)
+
+## References
+
+### Mustalah al-Hadith sources
+
+- Jum'ah, 'Imaad 'Alee. *Mustalah al-Hadeeth Made Easy* (Silsilah al-'Uloom al-Islaamiyyah al-Muyassarah). The Message of Islam.
+- at-Tahhaan, Mahmood. *Tayseer Mustalah al-Hadeeth*.
+- as-Suyootee, Jalaal ad-Deen. *Tadreeb ar-Raawee fee Sharh Taqreeb an-Nawaawee*.
+- Ibn Hajar al-Asqalani (d. 852 AH). *Nukhbah al-Fikar fee Mustalah Ahl al-Athar*.
+
+### Primary critiques (recommended reading)
+
+- Barmaver, S.N. (2025). *Dismantling Orientalist Narratives: A Critique of Orientalists' Approach to Hadith with special focus on Juynboll*. Arriqaaq Publications. **Free digital version**: https://www.academia.edu/143038577/Dismantling_Orientalist_Narratives_A_Critique_of_Orientalists_Approach_to_Hadith_with_special_focus_on_Juynboll
+- Azami, M.M. (1985). *On Schacht's Origins of Muhammadan Jurisprudence*. King Saud University.
+- Motzki, H. (2010). *Analysing Muslim Traditions: Studies in Legal, Exegetical and Maghazi Hadith*. Brill.
+- Motzki, H. (2002). *The Origins of Islamic Jurisprudence: Meccan Fiqh Before the Classical Schools*. Brill.
+
+### Hadith scholarship
+
+- Brown, J.A.C. (2009). *Hadith: Muhammad's Legacy in the Medieval and Modern World*. Oneworld Publications.
+- Melchert, C. (2020). The Theory and Practice of Hadith Criticism in the Mid-Ninth Century. Edinburgh University Press.
+
+### Classical Islamic sources
+
+- Ibn Hajar al-Asqalani (d. 852 AH). *Taqrib al-Tahdhib*. The primary source for narrator reliability classifications used in this tool.
+- al-Mizzi (d. 742 AH). *Tahdhib al-Kamal fi Asma' al-Rijal*. Comprehensive biographical dictionary of Six Book narrators.
+- al-Dhahabi (d. 748 AH). *Mizan al-I'tidal fi Naqd al-Rijal*. Biographical dictionary focused on criticized narrators.
+- Ibn Sa'd (d. 230 AH). *al-Tabaqat al-Kubra*. Earliest major biographical collection of Companions and Successors.
+
+### Orientalist works (referenced for critique in Appendix A)
+
+- Goldziher, I. (1890). *Muhammedanische Studien*. 2 vols. Halle.
+- Juynboll, G.H.A. (1983). *Muslim Tradition*. Cambridge University Press.
+- Juynboll, G.H.A. (2007). *Encyclopedia of Canonical Hadith*. Brill.
+- Schacht, J. (1950). *The Origins of Muhammadan Jurisprudence*. Clarendon Press.
+- Crone, P. and Cook, M. (1977). *Hagarism*. Cambridge University Press.
+
+---
+
+## Appendix A: Critique of Orientalist Hadith Methodology
+
+This appendix provides a detailed scholarly critique of the orientalist approach to hadith, drawing primarily on Barmaver's *Dismantling Orientalist Narratives* (2025), Azami (1985), Motzki (2002, 2010), and Brown (2009). The critique is preserved here for scholarly context — the tool's own methodology is based on traditional mustalah al-hadith (Sections 2-5 above), not on the orientalist framework being critiqued.
 
 ### 1.1 Critical Scholarly Context: The Orientalist Approach to Hadith and Its Refutation
 
@@ -267,378 +684,3 @@ This tool uses the orientalists' own graph-theoretic methods to demonstrate that
 - The classical *'ilm al-rijal* tradition provides a rigorous, independent evidentiary framework that the orientalist approach has no grounds to dismiss
 
 The tool is designed to **complement** traditional hadith scholarship by providing computational, reproducible evidence that confirms what the Islamic scholarly tradition has maintained for centuries: the hadith transmission system is fundamentally sound, and the orientalist fabrication thesis does not withstand rigorous scrutiny. The full scholarly case is made by Barmaver (2025); this tool provides the quantitative backbone.
-
-## 2. Core Concepts
-
-### 2.1 Common Link (CL)
-
-The earliest narrator in a transmission family who receives from a single authority and transmits to multiple students. The CL represents the convergence point where a hadith entered wide circulation. Below the CL, transmission paths may diverge and recombine; above it, the chain typically narrows toward a single original source.
-
-### 2.2 Partial Common Link (PCL)
-
-A downstream narrator exhibiting similar but weaker convergence patterns -- transmitting to multiple students but not satisfying all CL criteria. PCLs may represent secondary dissemination points or indicate transmission anomalies.
-
-### 2.3 Hadith Family
-
-A group of hadith variants that share the same original report (matn) but have different transmission chains (isnads). Variants may appear across multiple collections (e.g., the same hadith in Sahih al-Bukhari and Sahih Muslim). Families are detected via embedding similarity (cosine >= 0.85) combined with shared narrator overlap.
-
-### 2.4 Transmission Graph
-
-A directed acyclic graph (DAG) where:
-- **Nodes** = narrators
-- **Edges** = transmission relationships (student -> teacher, toward the Prophet)
-- **Variants** = complete transmission paths from collector to source
-
-### 2.5 Fan-out and Spider Strands
-
-Fan-out ratio is the ratio of immediate students to upstream teachers. CL candidates typically exhibit fan-out ratios significantly greater than one, indicating that a narrator served as a nexus for multiple transmission paths. Spider strands represent transmissions that bypass apparent CLs and connect to earlier narrators through unexpected routes. Dive strands represent chains that narrow unusually rapidly. These patterns are structurally significant and are examined in the falsifiability analysis (Section 7) -- Motzki's research demonstrates they reflect the natural dynamics of hadith transmission rather than the fabrication Juynboll wrongly assumed (see Section 1.1).
-
-## 3. Feature Computation
-
-For each narrator node in a hadith family's transmission graph, 8 features are computed:
-
-### 3.1 Fan-out
-Number of direct students (out-degree in the DAG).
-```
-fan_out(n) = |directStudents(n)|
-```
-
-### 3.2 Bundle Coverage
-Fraction of transmission variants containing this narrator.
-```
-bundle_coverage(n) = variantsContaining(n) / totalVariants
-```
-
-### 3.3 Collector Diversity
-Number of distinct terminal collectors reachable downstream from this narrator.
-```
-collector_diversity(n) = |distinctTerminalCollectors(n)|
-```
-
-### 3.4 Pre-Single-Strand Ratio
-Proportion of upstream hops that are single-strand (in-degree == 1). High ratio indicates transmission narrowed before reaching this narrator, consistent with the CL representing an early dissemination point.
-```
-pre_single_strand_ratio(n) = singleStrandHops(n) / totalUpstreamHops(n)
-```
-
-### 3.5 Bypass Ratio
-Proportion of variants that bypass this narrator despite having both ancestors and descendants of the narrator.
-```
-bypass_ratio(n) = bypassStrands(n) / totalVariants
-```
-High bypass ratios indicate independent transmission paths that bypass the CL -- evidence against the fabrication thesis (see Section 7.2).
-
-### 3.6 Chronology Conflict Ratio
-Proportion of incident edges with chronological conflicts (e.g., student's generation predates teacher's generation).
-```
-chronology_conflict_ratio(n) = conflictEdges(n) / totalIncidentEdges(n)
-```
-
-### 3.7 Matn Coherence
-Average pairwise cosine similarity of hadith text embeddings within the family. Default: 0.50 when only one variant exists or NLP analysis is unavailable.
-
-### 3.8 Provenance Completeness
-Fraction of chain narrators that have biographical data in the database.
-```
-provenance_completeness(n) = narratorsWithBio / totalNarratorsInChain
-```
-
-## 4. Scoring Formula
-
-### 4.1 Signal Normalization
-
-| Signal | Weight | Input | Normalization |
-|--------|--------|-------|---------------|
-| S1 | 0.30 | pre_single_strand_ratio | already [0,1] |
-| S2 | 0.25 | bundle_coverage | already [0,1] |
-| S3 | 0.15 | collector_diversity | norm(diversity, 2, 8) |
-| S4 | 0.20 | fan_out | norm(fan_out, 3, 8) |
-| S5 | 0.10 | matn_coherence | already [0,1] |
-
-Where `norm(val, min, max) = clamp((val - min) / (max - min), 0.0, 1.0)`
-
-### 4.2 Penalty Terms
-
-| Penalty | Weight | Input |
-|---------|--------|-------|
-| P1 | 0.20 | bypass_ratio |
-| P2 | 0.10 | chronology_conflict_ratio |
-| P3 | 0.05 | 1.0 - provenance_completeness |
-
-### 4.3 Structural Score
-```
-structural_score = clamp(
-  0.30*S1 + 0.25*S2 + 0.15*S3 + 0.20*S4 + 0.10*S5
-  - 0.20*P1 - 0.10*P2 - 0.05*P3,
-  0.0, 1.0
-)
-```
-
-### 4.4 Analysis Profiles
-
-**structural_only**: `final_confidence = structural_score`
-
-**reliability_weighted**: `final_confidence = clamp(0.65 * structural_score + 0.35 * reliability_prior, 0.0, 1.0)`
-
-The reliability prior (35% weight) is derived from the narrator's classification in classical biographical sources. This profile requires that biographical data be available.
-
-## 5. Candidate Classification
-
-### 5.1 CL Candidates (all conditions must be true)
-- fan_out >= 3
-- bundle_coverage >= 0.35
-- collector_diversity >= 3
-
-### 5.2 PCL Candidates (not already CL, AND)
-- fan_out >= 2
-- bundle_coverage >= 0.20
-- Mode: "cl_anchored" if downstream of a CL, else "fallback" if collector_diversity >= 2
-
-### 5.3 Outcome Classification
-
-| Outcome | Confidence Range | Interpretation |
-|---------|-----------------|----------------|
-| supported | >= 0.75 | Strong structural and reliability support |
-| contested | 0.55 - 0.75 | Moderate support with unresolved contradictions |
-| uncertain | 0.35 - 0.55 | Insufficient structural signal |
-| likely_weak_in_context | < 0.35 | Weak structural and reliability support |
-
-### 5.4 Contradiction Cap
-When contradictory evidence is detected (e.g., multiple CL candidates with comparable scores, or conflicting reliability ratings), maximum confidence is capped at 0.70 and outcome limited to "contested". This prevents overconfident claims in cases of genuine scholarly ambiguity.
-
-### 5.5 Deterministic Ranking
-Candidates are ranked by (descending unless noted):
-1. final_confidence DESC
-2. bundle_coverage DESC
-3. fan_out DESC
-4. bypass_ratio ASC
-5. narrator_id lexicographic ASC
-
-All internal scores use 12 decimal places. Display values use 4 decimal places.
-
-## 6. Reliability Layer
-
-### 6.1 Three-Layer Evidence Model
-
-- **Reported**: Classical scholar assessments from biographical dictionaries (e.g., Tahdhib al-Kamal, Taqrib al-Tahdhib, Mizan al-I'tidal). Full weight.
-- **Analytical**: Derived from CL/PCL structural analysis. Half weight.
-- **Derived**: Weighted composite of reported + analytical layers.
-
-### 6.2 Rating Priors
-
-| Rating | Prior | Description |
-|--------|-------|-------------|
-| thiqah | 0.75 | Trustworthy |
-| saduq | 0.65 | Truthful |
-| majhul | 0.50 | Unknown |
-| daif | 0.35 | Weak |
-| matruk | 0.20 | Abandoned |
-| accused_fabrication | 0.20 | Accused of fabrication |
-
-### 6.3 Derived Assessment Algorithm
-```
-For each evidence record:
-  prior = rating_prior(rating)
-  weight = rating_confidence (default 0.5)
-
-  If reported layer: weighted_sum += prior * weight
-  If analytical layer: weighted_sum += prior * weight * 0.5  // half-weighted
-
-derived_confidence = weighted_sum / total_weight
-
-// Contradiction pairs: thiqah+daif, thiqah+matruk, thiqah+accused, matruk+accused
-If contradiction detected: derived_confidence = min(derived_confidence, 0.70)
-```
-
-## 7. Juynboll Falsifiability Analysis
-
-This section describes four algorithmic tests that turn Juynboll's own structural framework against his fabrication thesis. Each test targets a specific prediction that the fabrication model implies; the results demonstrate that these predictions consistently fail against empirical data. Evidence is presented separately for each test to make the refutation precise and reproducible.
-
-### 7.1 Theoretical Framework
-
-Juynboll's fabrication thesis makes specific structural predictions about hadith transmission networks. While his framework is designed to be unfalsifiable at the interpretive level -- itself a damning indictment of its scientific credentials (see Section 1.1.3, point 8) -- the structural predictions themselves are testable. Our approach is:
-
-1. Identify the structural predictions that Juynboll's thesis implies
-2. Test each prediction against the empirical transmission data
-3. Demonstrate where the data refutes the prediction
-4. Expose how Juynboll's framework must reclassify counter-evidence through ad hoc auxiliary hypotheses to maintain the thesis -- a hallmark of pseudoscientific methodology
-
-The results are clear: across the corpus, the fabrication thesis fails its own structural tests. Each family where the evidence contradicts Juynboll's predictions is not merely "inconsistent" with his thesis -- it is evidence against it. The cumulative weight of these failures, combined with Barmaver's (2025) comprehensive scholarly refutation, demonstrates that the orientalist fabrication thesis is empirically wrong.
-
-### 7.2 Test 1: Reliable Bypass Analysis
-
-**Juynboll's prediction**: If the CL fabricated the hadith, no independent transmission should exist that bypasses the CL. All transmission paths should pass through the CL, because the hadith did not exist before the CL invented it.
-
-**Algorithm**: For each CL candidate in a hadith family:
-
-1. Identify all transmission variants that bypass this CL -- variants that contain both ancestors and descendants of the CL but do not contain the CL itself (reusing the existing bypass detection from the structural analysis)
-2. For each bypass variant, identify the narrators in the bypass path
-3. Look up each bypass narrator's classical reliability rating (*jarh wa ta'dil* assessment)
-4. Classify the bypass as "reliable" if all narrators with known reliability have a prior >= 0.65 (saduq or better)
-5. Narrators with unknown reliability (no biographical data) are NOT counted as reliable -- unknown is not equivalent to trustworthy
-
-```
-reliable_bypass_ratio(CL) = reliable_bypass_count / total_variants
-```
-
-**Interpretation**: A reliable bypass represents an independent transmission path through classically-vetted narrators that does not pass through the CL. If such paths exist, the hadith was transmitted independently of the CL, which is structurally incompatible with the CL being the sole fabricator.
-
-**Juynboll's counter-argument**: He would classify these as "diving isnads" -- fabricated chains designed to create the appearance of independent transmission. However, this reclassification is precisely the unfalsifiability mechanism described in Section 1.1.3: any counter-evidence is absorbed by the theory. The structural evidence itself remains: reliable narrators attested by independent biographical sources transmitted the hadith through paths that bypass the CL.
-
-### 7.3 Test 2: Multiple Independent Common Links
-
-**Juynboll's prediction**: Each hadith has a single fabrication origin -- one CL who invented the tradition. Multiple independent convergence points in the same hadith family should not exist.
-
-**Algorithm**: For each hadith family with two or more CL candidates:
-
-1. For each pair of CLs (CL_A, CL_B):
-   a. Compute ancestors_A = all narrators reachable upstream from CL_A (toward the Prophet)
-   b. Compute descendants_A = all narrators reachable downstream from CL_A (toward collectors)
-   c. If CL_B is NOT in ancestors_A AND NOT in descendants_A: the pair is independent
-2. Count the number of independent CL pairs
-
-Two CLs are "independent" when neither is an ancestor nor descendant of the other in the transmission graph -- they occupy separate branches of the network with no direct transmission relationship.
-
-**Interpretation**: Independent CLs mean the hadith had multiple independent points of wide circulation with no transmission link between them. Under Juynboll's thesis, this requires two independent fabricators creating the same hadith content without coordination -- a highly implausible scenario, especially when the CLs are in different geographical regions or generations.
-
-**Juynboll's counter-argument**: He could designate one CL as "the real fabricator" and the other as a later imitator. But this is an ad hoc reclassification that must be applied case by case, and it conflicts with his own structural criteria for identifying the CL.
-
-### 7.4 Test 3: Cross-Family CL Frequency
-
-**Juynboll's prediction**: CLs are fabricators who invented specific traditions.
-
-**Algorithm**: Computed at the corpus level after all family analyses are complete:
-
-1. Query all CL candidates across all families
-2. Group by narrator: count the number of distinct families in which each narrator appears as a CL
-3. Cross-reference with the narrator's classical reliability rating from the *'ilm al-rijal* tradition
-4. Identify narrators who are CLs in many families AND have strong classical reliability (thiqah or saduq)
-
-**Interpretation**: A narrator who appears as CL in many unrelated hadith families -- covering different topics, legal categories, and historical contexts -- and who is independently rated as trustworthy (thiqah) by multiple classical scholars is far more consistent with being a prolific teacher and transmitter than a prolific fabricator. A fabricator would need to have invented dozens of unrelated traditions while simultaneously maintaining a reputation for trustworthiness that survived scrutiny by the most rigorous source-criticism system of the pre-modern world.
-
-**Limitation**: Juynboll disputes the classical reliability system itself. However, treating an independent 800-year scholarly tradition -- with its own methodology, multiple independent evaluators, and cross-referencing mechanisms (see Section 1.1.6) -- as zero-evidence is itself a methodological error. The classical system is not derivative of CL analysis; it is an entirely independent evidentiary framework. Using it to evaluate CL candidates is not circular.
-
-### 7.5 Test 4: Pre-CL Chain Diversity with Reliability
-
-**Juynboll's prediction**: Chains above the CL (toward the Prophet) are back-projections -- fabricated chains designed to give the hadith an appearance of ancient provenance. Back-projected chains should appear artificial: linear single-strand paths with limited narrator diversity.
-
-**Algorithm**: For each CL candidate, walk upstream through the transmission graph (via direct teachers, toward the Prophet):
-
-1. Count total upstream narrators
-2. Count upstream narrators with classical reliability >= 0.65 (saduq or better)
-3. Count upstream narrators with biographical data (provenance)
-4. Count upstream branching points -- narrators with more than one student, indicating the chain branches above the CL
-
-```
-upstream_reliable_ratio = upstream_reliable_count / upstream_narrator_count
-upstream_branching_ratio = upstream_branching_points / upstream_narrator_count
-```
-
-**Interpretation**: If the pre-CL chain contains multiple reliable narrators with documented biographies AND exhibits branching (multiple students at various points above the CL), this is inconsistent with back-projection. A fabricator constructing a chain backward would typically create the simplest possible path -- a single linear strand. Diverse, branching chains with independently-vetted reliable narrators at multiple points are more consistent with genuine multi-source transmission than with artificial construction.
-
-**Juynboll's counter-argument**: He absorbs both single strands and multiple strands as evidence of fabrication -- single strands are "the fabricator's chain," and multiple strands are "later additions to lend credibility." This is another instance of the unfalsifiability problem (Section 1.1.3, point 8). However, the structural evidence itself -- reliable, diverse upstream paths -- remains as data for scholars to evaluate.
-
-### 7.6 The Unfalsifiability Indictment
-
-Juynboll's theory is structured to absorb any conceivable counter-evidence (Section 1.1.3, point 8). This is not a limitation of our tests -- it is a damning indictment of his theory. As Barmaver (2025) argues, and as Karl Popper's demarcation criterion establishes, a theory that cannot in principle be falsified by any evidence is not a scientific theory. The fact that "no algorithm can disprove Juynboll" is not because his thesis is strong; it is because his thesis is not a genuine empirical claim. It is an unfalsifiable axiom dressed in scholarly language.
-
-What our algorithmic tests demonstrate is:
-
-1. **The fabrication thesis fails its own structural predictions**: When Juynboll's graph-theoretic framework is applied rigorously and to broad source data, the patterns predicted by the fabrication model do not appear. Reliable bypasses exist. Independent Common Links exist. Pre-CL chains show diversity and reliability. These are not anomalies -- they are the norm.
-
-2. **The cost of maintaining the fabrication thesis is prohibitive**: Each family where the evidence contradicts Juynboll requires yet another ad hoc auxiliary hypothesis -- another "diving isnad," another "plagiarism," another "back-projection." Across the corpus, these required auxiliary hypotheses accumulate to the point of absurdity.
-
-3. **The burden of proof has shifted decisively**: The structural evidence, combined with Barmaver's (2025) comprehensive scholarly refutation, Azami's (1985) detailed critique, and Motzki's (2002, 2010) findings from within Western academia, means that the fabrication thesis can no longer be treated as a credible default position. Those who wish to maintain it bear the burden of explaining why the evidence consistently contradicts their predictions.
-
-**Methodological notes**:
-
-- These tests produce structural evidence, not standalone authenticity verdicts. Full assessment requires the traditional *'ilm al-hadith* framework.
-- Data quality issues (missing graph edges, incomplete biographical data) can affect individual results, though the corpus-level patterns are robust.
-- Results may vary with different source bases, though broader sources consistently strengthen the case against the fabrication thesis (see Section 1.1.3, point 2).
-
-## 8. Anti-Hallucination Safeguards
-
-### 8.1 Synthetic Pattern Detection
-Evidence IDs matching these patterns are rejected:
-- Prefixes: `synthetic_*`, `placeholder_*`, `fake_*`, `test_*`, `dummy_*`, `generated_*`, `auto_*`
-- Exact matches: `null`, `undefined`, `n/a`, `none`, `unknown`
-- Content containing: `fake`, `fabricat`, `forged`
-
-### 8.2 Evidence Validation
-- All narrator IDs in chains must exist in the database
-- Source references must include: collection, source_type, source_locator
-- Verified source types: `url`, `print`, `manuscript`
-
-### 8.3 RAG Output Validation
-- Narrator names in LLM responses verified against database
-- Hadith numbers referenced checked against provided context
-- Warnings injected for unverifiable claims
-
-## 9. Matn Diffing
-
-Word-level Longest Common Subsequence (LCS) between hadith text variants:
-- Tokenize by whitespace
-- Standard DP algorithm O(n*m) with 120,000 cell safety guard
-- Output segments: unchanged, added, missing
-- Similarity ratio = 2 * lcs_length / (words_a + words_b)
-
-## 10. Worked Example
-
-Consider a transmission family with the following characteristics for narrator N:
-
-- Fan-out: 4 students
-- Appears in all 10 transmission variants (coverage = 1.0)
-- Reaches 5 distinct collectors (diversity = 5)
-- 8 of 10 upstream hops are single-strand (ratio = 0.8)
-- No bypass strands detected (bypass = 0)
-- No chronology conflicts (P2 = 0)
-- Full biographical provenance (P3 = 0)
-- Default matn coherence (S5 = 0.5)
-
-Compute:
-```
-S1 = 0.8 (pre_single_strand)
-S2 = 1.0 (bundle_coverage)
-S3 = norm(5, 2, 8) = 3/6 = 0.5 (collector_diversity)
-S4 = norm(4, 3, 8) = 1/5 = 0.2 (fan_out)
-S5 = 0.5 (matn_coherence)
-
-P1 = 0, P2 = 0, P3 = 0
-
-score = 0.30*0.8 + 0.25*1.0 + 0.15*0.5 + 0.20*0.2 + 0.10*0.5
-      = 0.24 + 0.25 + 0.075 + 0.04 + 0.05
-      = 0.655
-
-Outcome: contested (0.55 <= 0.655 < 0.75)
-```
-
-## 11. References
-
-### Primary critiques (recommended reading)
-
-- Barmaver, S.N. (2025). *Dismantling Orientalist Narratives: A Critique of Orientalists' Approach to Hadith with special focus on Juynboll*. Arriqaaq Publications. **Free digital version**: https://www.academia.edu/143038577/Dismantling_Orientalist_Narratives_A_Critique_of_Orientalists_Approach_to_Hadith_with_special_focus_on_Juynboll
-- Azami, M.M. (1985). *On Schacht's Origins of Muhammadan Jurisprudence*. King Saud University.
-- Motzki, H. (2010). *Analysing Muslim Traditions: Studies in Legal, Exegetical and Maghazi Hadith*. Brill.
-- Motzki, H. (2002). *The Origins of Islamic Jurisprudence: Meccan Fiqh Before the Classical Schools*. Brill.
-
-### Hadith scholarship
-
-- Brown, J.A.C. (2009). *Hadith: Muhammad's Legacy in the Medieval and Modern World*. Oneworld Publications.
-- Melchert, C. (2020). The Theory and Practice of Hadith Criticism in the Mid-Ninth Century. Edinburgh University Press.
-- Motzki, H. (2004). *Hadith: Origins and Developments*. Routledge.
-
-### Classical Islamic sources (referenced for methodology)
-
-- Ibn Hajar al-Asqalani (d. 852 AH). *Taqrib al-Tahdhib*. The primary source for narrator reliability classifications used in this tool.
-- al-Mizzi (d. 742 AH). *Tahdhib al-Kamal fi Asma' al-Rijal*. Comprehensive biographical dictionary of Six Book narrators.
-- al-Dhahabi (d. 748 AH). *Mizan al-I'tidal fi Naqd al-Rijal*. Biographical dictionary focused on criticized narrators.
-- Ibn Sa'd (d. 230 AH). *al-Tabaqat al-Kubra*. Earliest major biographical collection of Companions and Successors.
-- Ibn Asakir (d. 571 AH). *Tarikh Dimashq*. Comprehensive historical-biographical dictionary.
-
-### Orientalist works (referenced for critique)
-
-- Goldziher, I. (1890). *Muhammedanische Studien*. 2 vols. Halle.
-- Juynboll, G.H.A. (1983). *Muslim Tradition: Studies in Chronology, Provenance and Authorship of Early Hadith*. Cambridge University Press.
-- Juynboll, G.H.A. (2007). *Encyclopedia of Canonical Hadith*. Brill.
-- Schacht, J. (1950). *The Origins of Muhammadan Jurisprudence*. Clarendon Press.
-- Crone, P. and Cook, M. (1977). *Hagarism: The Making of the Islamic World*. Cambridge University Press.

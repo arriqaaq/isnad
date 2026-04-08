@@ -15,15 +15,18 @@
 		"@sveltejs/adapter-auto": "^7.0.0",
 		"@sveltejs/kit": "^2.50.2",
 		"@sveltejs/vite-plugin-svelte": "^6.2.4",
-		"@types/cytoscape": "^3.21.9",
 		"svelte": "^5.54.0",
 		"svelte-check": "^4.4.2",
 		"typescript": "^5.9.3",
 		"vite": "^7.3.1"
 	},
 	"dependencies": {
+		"@sigma/edge-curve": "^3.1.0",
+		"@sigma/node-border": "^3.0.0",
 		"@sveltejs/adapter-static": "^3.0.10",
-		"cytoscape": "^3.33.1",
-		"cytoscape-dagre": "^2.5.0"
+		"graphology": "^0.25.4",
+		"graphology-layout": "^0.6.1",
+		"graphology-layout-forceatlas2": "^0.10.1",
+		"sigma": "^3.0.0"
 	}
 }

@@ -822,43 +822,11 @@ pub async fn family_detail(
 ) -> Result<impl IntoResponse, StatusCode> {
     let fid = rid("hadith_family", &id);
 
-    #[derive(Debug, SurrealValue, serde::Serialize)]
-    struct ClAnalysisRow {
-        narrator: Option<RecordId>,
-        candidate_type: String,
-        pcl_mode: Option<String>,
-        fan_out: i64,
-        bundle_coverage: f64,
-        collector_diversity: i64,
-        structural_score: f64,
-        final_confidence: f64,
-        outcome: String,
-        contradiction_cap_active: bool,
-        profile: String,
-        family_status: String,
-        rank: i64,
-    }
-
-    #[derive(Debug, SurrealValue, serde::Serialize)]
-    struct JuynbollRow {
-        has_reliable_bypass: bool,
-        reliable_bypass_count: i64,
-        max_reliable_bypass_ratio: f64,
-        has_independent_cls: bool,
-        independent_cl_pairs: i64,
-        cl_count: i64,
-        upstream_reliable_ratio: f64,
-        upstream_branching_points: i64,
-    }
-
-    // Single multi-statement query instead of 4 sequential round trips
     let mut res = state
         .db
         .query(format!(
             "SELECT * FROM $fid; \
-             SELECT {HADITH_FIELDS} FROM hadith WHERE family_id = $fid ORDER BY hadith_number ASC; \
-             SELECT * FROM cl_analysis WHERE family = $fid ORDER BY rank ASC; \
-             SELECT * FROM juynboll_analysis WHERE family = $fid LIMIT 1;"
+             SELECT {HADITH_FIELDS} FROM hadith WHERE family_id = $fid ORDER BY hadith_number ASC;"
         ))
         .bind(("fid", fid))
         .await
@@ -868,63 +836,11 @@ pub async fn family_detail(
         res.take(0).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let family = family.ok_or(StatusCode::NOT_FOUND)?;
     let hadiths: Vec<Hadith> = res.take(1).unwrap_or_default();
-    let analysis: Vec<ClAnalysisRow> = res.take(2).unwrap_or_default();
-    let juynboll: Option<JuynbollRow> = res.take(3).unwrap_or(None);
 
     Ok(Json(serde_json::json!({
         "family": ApiHadithFamily::from(family),
         "hadiths": hadiths.into_iter().map(ApiHadith::from).collect::<Vec<_>>(),
-        "analysis": analysis.into_iter().map(|a| {
-            serde_json::json!({
-                "narrator_id": a.narrator.as_ref().map(record_id_key_string).unwrap_or_default(),
-                "candidate_type": a.candidate_type,
-                "pcl_mode": a.pcl_mode,
-                "fan_out": a.fan_out,
-                "bundle_coverage": a.bundle_coverage,
-                "collector_diversity": a.collector_diversity,
-                "structural_score": a.structural_score,
-                "final_confidence": a.final_confidence,
-                "outcome": a.outcome,
-                "contradiction_cap_active": a.contradiction_cap_active,
-                "profile": a.profile,
-                "family_status": a.family_status,
-                "rank": a.rank,
-            })
-        }).collect::<Vec<_>>(),
-        "juynboll": juynboll,
     })))
-}
-
-pub async fn analysis_stats(State(state): State<AppState>) -> impl IntoResponse {
-    let mut res = state
-        .db
-        .query(
-            "SELECT count() AS c FROM hadith_family GROUP ALL;\
-             SELECT count() AS c FROM cl_analysis GROUP ALL;\
-             SELECT count() AS c FROM cl_analysis WHERE candidate_type = 'CL' GROUP ALL;\
-             SELECT count() AS c FROM cl_analysis WHERE outcome = 'supported' GROUP ALL",
-        )
-        .await
-        .unwrap();
-
-    let families: Option<CountResult> = res.take(0).unwrap_or(None);
-    let candidates: Option<CountResult> = res.take(1).unwrap_or(None);
-    let cl_count: Option<CountResult> = res.take(2).unwrap_or(None);
-    let supported: Option<CountResult> = res.take(3).unwrap_or(None);
-
-    Json(serde_json::json!({
-        "family_count": families.map(|c| c.c).unwrap_or(0),
-        "candidate_count": candidates.map(|c| c.c).unwrap_or(0),
-        "cl_count": cl_count.map(|c| c.c).unwrap_or(0),
-        "supported_count": supported.map(|c| c.c).unwrap_or(0),
-    }))
-}
-
-pub async fn juynboll_summary(State(state): State<AppState>) -> impl IntoResponse {
-    match analysis::juynboll::compute_cross_family_summary(&state.db).await {
-        Ok(summary) => Json(serde_json::json!(summary)).into_response(),
-        Err(_) => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
-    }
 }
 
 pub async fn narrator_reliability(
@@ -943,25 +859,166 @@ pub async fn narrator_reliability(
     }))
 }
 
-pub async fn narrator_cl_status(
+// ── Mustalah API handlers ──
+
+pub async fn mustalah_stats(State(state): State<AppState>) -> impl IntoResponse {
+    let mut res = state
+        .db
+        .query(
+            "SELECT count() AS c FROM hadith_family GROUP ALL;\
+             SELECT count() AS c FROM isnad_analysis GROUP ALL;\
+             SELECT count() AS c FROM isnad_analysis WHERE composite_grade = 'sahih' OR composite_grade = 'sahihlighayrihi' GROUP ALL;\
+             SELECT count() AS c FROM isnad_analysis WHERE composite_grade = 'hasan' OR composite_grade = 'hasanlighayrihi' GROUP ALL;\
+             SELECT count() AS c FROM isnad_analysis WHERE composite_grade = 'daif' OR composite_grade = 'daifjiddan' OR composite_grade = 'mawdu' GROUP ALL;\
+             SELECT count() AS c FROM isnad_analysis WHERE breadth_class = 'mutawatir' GROUP ALL;\
+             SELECT count() AS c FROM isnad_analysis WHERE breadth_class = 'mashhur' GROUP ALL",
+        )
+        .await
+        .unwrap();
+
+    let families: Option<CountResult> = res.take(0).unwrap_or(None);
+    let analyzed: Option<CountResult> = res.take(1).unwrap_or(None);
+    let sahih: Option<CountResult> = res.take(2).unwrap_or(None);
+    let hasan: Option<CountResult> = res.take(3).unwrap_or(None);
+    let daif: Option<CountResult> = res.take(4).unwrap_or(None);
+    let mutawatir: Option<CountResult> = res.take(5).unwrap_or(None);
+    let mashhur: Option<CountResult> = res.take(6).unwrap_or(None);
+
+    Json(serde_json::json!({
+        "family_count": families.map(|c| c.c).unwrap_or(0),
+        "analyzed_count": analyzed.map(|c| c.c).unwrap_or(0),
+        "sahih_count": sahih.map(|c| c.c).unwrap_or(0),
+        "hasan_count": hasan.map(|c| c.c).unwrap_or(0),
+        "daif_count": daif.map(|c| c.c).unwrap_or(0),
+        "mutawatir_count": mutawatir.map(|c| c.c).unwrap_or(0),
+        "mashhur_count": mashhur.map(|c| c.c).unwrap_or(0),
+    }))
+}
+
+pub async fn mustalah_family_analysis(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+) -> Result<impl IntoResponse, StatusCode> {
+    let fid = rid("hadith_family", &id);
+
+    #[derive(Debug, SurrealValue, serde::Serialize)]
+    struct IsnadRow {
+        composite_grade: Option<String>,
+        best_chain_grade: Option<String>,
+        breadth_class: Option<String>,
+        min_breadth: Option<i64>,
+        bottleneck_tabaqah: Option<i64>,
+        sahabi_count: Option<i64>,
+        mutabaat_count: Option<i64>,
+        shawahid_count: Option<i64>,
+        reliable_mutabaat_count: Option<i64>,
+        corroboration_strength: Option<String>,
+        matn_coherence: Option<f64>,
+        chain_count: Option<i64>,
+        sahih_chain_count: Option<i64>,
+        hasan_chain_count: Option<i64>,
+        daif_chain_count: Option<i64>,
+        ilal_flags: Option<Vec<String>>,
+    }
+
+    #[derive(Debug, SurrealValue, serde::Serialize)]
+    struct ChainRow {
+        variant: Option<RecordId>,
+        continuity: Option<String>,
+        chain_grade: Option<String>,
+        weakest_narrator: Option<RecordId>,
+        weakest_rating: Option<String>,
+        weakest_prior: Option<f64>,
+        narrator_count: Option<i64>,
+        has_chronology_conflict: Option<bool>,
+        has_majhul: Option<bool>,
+    }
+
+    #[derive(Debug, SurrealValue, serde::Serialize)]
+    struct PivotRow {
+        narrator: Option<RecordId>,
+        bundle_coverage: Option<f64>,
+        fan_out: Option<i64>,
+        collector_diversity: Option<i64>,
+        bypass_count: Option<i64>,
+        is_bottleneck: Option<bool>,
+    }
+
+    let mut res = state
+        .db
+        .query(
+            "SELECT * FROM isnad_analysis WHERE family = $fid LIMIT 1;\
+             SELECT * FROM chain_assessment WHERE family = $fid;\
+             SELECT * FROM narrator_pivot WHERE family = $fid ORDER BY bundle_coverage DESC;",
+        )
+        .bind(("fid", fid))
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    let isnad: Option<IsnadRow> = res.take(0).unwrap_or(None);
+    let chains: Vec<ChainRow> = res.take(1).unwrap_or_default();
+    let pivots: Vec<PivotRow> = res.take(2).unwrap_or_default();
+
+    let chains_json: Vec<serde_json::Value> = chains
+        .into_iter()
+        .map(|c| {
+            serde_json::json!({
+                "variant_id": c.variant.as_ref().map(record_id_key_string).unwrap_or_default(),
+                "continuity": c.continuity,
+                "chain_grade": c.chain_grade,
+                "weakest_narrator_id": c.weakest_narrator.as_ref().map(record_id_key_string),
+                "weakest_rating": c.weakest_rating,
+                "weakest_prior": c.weakest_prior,
+                "narrator_count": c.narrator_count,
+                "has_chronology_conflict": c.has_chronology_conflict,
+                "has_majhul_narrator": c.has_majhul,
+            })
+        })
+        .collect();
+
+    let pivots_json: Vec<serde_json::Value> = pivots
+        .into_iter()
+        .map(|p| {
+            serde_json::json!({
+                "narrator_id": p.narrator.as_ref().map(record_id_key_string).unwrap_or_default(),
+                "bundle_coverage": p.bundle_coverage,
+                "fan_out": p.fan_out,
+                "collector_diversity": p.collector_diversity,
+                "bypass_count": p.bypass_count,
+                "is_bottleneck": p.is_bottleneck,
+            })
+        })
+        .collect();
+
+    Ok(Json(serde_json::json!({
+        "analysis": isnad,
+        "chains": chains_json,
+        "pivots": pivots_json,
+    })))
+}
+
+pub async fn narrator_isnad_role(
     State(state): State<AppState>,
     Path(id): Path<String>,
 ) -> impl IntoResponse {
     #[derive(Debug, SurrealValue, serde::Serialize)]
-    struct ClRow {
-        candidate_type: String,
+    struct PivotInfo {
         family: Option<RecordId>,
+        is_bottleneck: Option<bool>,
     }
     let mut res = state
         .db
-        .query("SELECT candidate_type, family FROM cl_analysis WHERE narrator = $nid")
+        .query("SELECT family, is_bottleneck FROM narrator_pivot WHERE narrator = $nid")
         .bind(("nid", rid("narrator", &id)))
         .await
         .unwrap();
-    let rows: Vec<ClRow> = res.take(0).unwrap_or_default();
+    let rows: Vec<PivotInfo> = res.take(0).unwrap_or_default();
 
-    let cl_count = rows.iter().filter(|r| r.candidate_type == "CL").count();
-    let pcl_count = rows.iter().filter(|r| r.candidate_type == "PCL").count();
+    let pivot_count = rows.len();
+    let bottleneck_count = rows
+        .iter()
+        .filter(|r| r.is_bottleneck == Some(true))
+        .count();
     let families: Vec<String> = rows
         .iter()
         .filter_map(|r| r.family.as_ref().map(record_id_key_string))
@@ -969,8 +1026,8 @@ pub async fn narrator_cl_status(
 
     Json(serde_json::json!({
         "narrator_id": id,
-        "cl_family_count": cl_count,
-        "pcl_family_count": pcl_count,
+        "pivot_family_count": pivot_count,
+        "bottleneck_family_count": bottleneck_count,
         "families": families,
     }))
 }
