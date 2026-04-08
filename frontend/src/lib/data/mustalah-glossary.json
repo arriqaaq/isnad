@@ -1,0 +1,487 @@
+[
+  {
+    "id": "sahih_li_thaatihi",
+    "term_en": "Sahih li-Thaatihi",
+    "term_ar": "صحيح لذاته",
+    "literal_meaning": "Healthy or sound, on its own merit",
+    "technical_definition": "Has a sanad connected from beginning to end, by way of narrators each of whom is 'adl (upright) and daabit (retentive), without having any shuthooth or 'illah.",
+    "conditions": [
+      "Connected sanad (ittisal)",
+      "'Adaalah of every narrator",
+      "Dabt: taamm ad-dabt (completely retentive)",
+      "Absence of shuthooth (no contradiction with more reliable)",
+      "Absence of 'illah (no hidden defect)"
+    ],
+    "ruling": "Used as proof, and must be implemented based on the consensus of the scholars of hadeeth, usool, and fiqh.",
+    "category": "grade",
+    "page": 13,
+    "related_terms": [
+      "hasan_li_thaatihi",
+      "sahih_li_ghayrihi"
+    ]
+  },
+  {
+    "id": "hasan_li_thaatihi",
+    "term_en": "Hasan li-Thaatihi",
+    "term_ar": "حسن لذاته",
+    "literal_meaning": "Beautiful, on its own merit",
+    "technical_definition": "Has a sanad connected from beginning to end, by way of narrators each of whom is 'adl (upright) though at a lesser degree of dabt, without having any shuthooth or 'illah.",
+    "conditions": null,
+    "ruling": "Used as proof, just as the saheeh, despite not being as strong.",
+    "category": "grade",
+    "page": 17,
+    "related_terms": [
+      "sahih_li_thaatihi",
+      "hasan_li_ghayrihi"
+    ]
+  },
+  {
+    "id": "sahih_li_ghayrihi",
+    "term_en": "Sahih li-Ghayrihi",
+    "term_ar": "صحيح لغيره",
+    "literal_meaning": "Sound due to other factors",
+    "technical_definition": "The hasan li-thaatihi narration when it is reported through another similar route or one even stronger. Its being saheeh does not result from its own sanad — rather, it only results from combining others with it.",
+    "conditions": null,
+    "ruling": "Rank: above hasan li-thaatihi, but below saheeh li-thaatihi.",
+    "category": "grade",
+    "page": 18,
+    "related_terms": [
+      "hasan_li_thaatihi",
+      "sahih_li_thaatihi"
+    ]
+  },
+  {
+    "id": "hasan_li_ghayrihi",
+    "term_en": "Hasan li-Ghayrihi",
+    "term_ar": "حسن لغيره",
+    "literal_meaning": "Beautiful due to other factors",
+    "technical_definition": "The da'eef narration when it has numerous routes, and the reason for it being da'eef is not fisq (open sinfulness) or kathib (lying). It ascends to hasan li-ghayrihi when: (1) reported through similar or stronger routes, and (2) the weakness is due to poor memory, a break in the sanad, or jahaalah.",
+    "conditions": [
+      "Reported through one or more other routes of similar or greater strength",
+      "Weakness is due to poor memory, chain break, or jahaalah (unknown narrator)",
+      "Weakness is NOT due to fisq (open sinfulness) or kathib (lying)"
+    ],
+    "ruling": "Lower than hasan li-thaatihi. Among the accepted narrations which are used as proof.",
+    "category": "grade",
+    "page": 18,
+    "related_terms": [
+      "hasan_li_thaatihi",
+      "sahih_li_ghayrihi",
+      "daif"
+    ]
+  },
+  {
+    "id": "daif",
+    "term_en": "Da'eef",
+    "term_ar": "ضعيف",
+    "literal_meaning": "Weak; opposite of strong",
+    "technical_definition": "Does not fulfill one or more conditions of being hasan. Ranks vary: da'eef, da'eef jiddan, waahee, and munkar. Reasons include: omission in the isnad, or disparagement of the narrator.",
+    "conditions": null,
+    "ruling": "Scholars permit narrating da'eef ahaadeeth without clarifying weakness only when: (1) not related to 'aqeedah, (2) not about legal rulings. Implementing it is desirable for virtues of deeds with conditions.",
+    "category": "grade",
+    "page": 22,
+    "related_terms": [
+      "hasan_li_ghayrihi",
+      "mawdu"
+    ]
+  },
+  {
+    "id": "mawdu",
+    "term_en": "Mawdoo'",
+    "term_ar": "موضوع",
+    "literal_meaning": "Placed down; fabricated",
+    "technical_definition": "An invented, fabricated lie attributed to the Messenger of Allaah. The worst type of da'eef hadeeth.",
+    "conditions": null,
+    "ruling": "Impermissible to narrate except when accompanied by clarification of it being mawdoo'. Impermissible to implement.",
+    "category": "grade",
+    "page": 28,
+    "related_terms": [
+      "matrook",
+      "daif"
+    ]
+  },
+  {
+    "id": "mutawatir",
+    "term_en": "Mutawatir",
+    "term_ar": "متواتر",
+    "literal_meaning": "Following one another consecutively",
+    "technical_definition": "What has been narrated by such a large number that it is inconceivable that they collaborated to propagate a lie.",
+    "conditions": [
+      "A large number of people narrate it (minimum: 10)",
+      "This large number is present at all levels of the chain",
+      "It is inconceivable that they could have collaborated",
+      "The report is based upon sense perception (we heard / we saw)"
+    ],
+    "ruling": "Conveys 'ilm darooree (certain knowledge), such that one is obliged to decisively accept it.",
+    "category": "breadth",
+    "page": 9,
+    "related_terms": [
+      "mashhur",
+      "aziz",
+      "gharib"
+    ]
+  },
+  {
+    "id": "mashhur",
+    "term_en": "Mashhur",
+    "term_ar": "مشهور",
+    "literal_meaning": "Publicized or announced",
+    "technical_definition": "Narrated by three or more at each tabaqah (level of the sanad), yet has not reached the level of mutawaatir.",
+    "conditions": null,
+    "ruling": "Could be saheeh, hasan, da'eef, or mawdoo'. Classification is about route count, not quality.",
+    "category": "breadth",
+    "page": 10,
+    "related_terms": [
+      "mutawatir",
+      "aziz",
+      "gharib"
+    ]
+  },
+  {
+    "id": "aziz",
+    "term_en": "'Aziz",
+    "term_ar": "عزيز",
+    "literal_meaning": "Strong or intense",
+    "technical_definition": "There are no less than two narrators at every level of the sanad. Consideration is given to the level with the least number of narrators.",
+    "conditions": null,
+    "ruling": "Some levels may contain three or more, but at least one level has only two narrators.",
+    "category": "breadth",
+    "page": 11,
+    "related_terms": [
+      "mashhur",
+      "gharib"
+    ]
+  },
+  {
+    "id": "gharib",
+    "term_en": "Gharib",
+    "term_ar": "غريب",
+    "literal_meaning": "The person who is alone or far from relatives",
+    "technical_definition": "What is reported by one narrator only. Two types: Gharib Mutlaq (one narrator at the root) and Gharib Nisbee (one narrator at a later point).",
+    "conditions": null,
+    "ruling": "The hadeeth is singular at some point in the chain. Not automatically weak — can still be saheeh.",
+    "category": "breadth",
+    "page": 12,
+    "related_terms": [
+      "aziz",
+      "mashhur"
+    ]
+  },
+  {
+    "id": "muttasil",
+    "term_en": "Muttasil",
+    "term_ar": "متصل",
+    "literal_meaning": "Connected",
+    "technical_definition": "Having a connected sanad whether it be marfoo' or mawqoof. Every narrator reported directly from the one prior to him, all through the sanad from beginning to end.",
+    "conditions": null,
+    "ruling": "A necessary condition for the saheeh and hasan hadeeth.",
+    "category": "chain",
+    "page": 43,
+    "related_terms": [
+      "munqati",
+      "mursal"
+    ]
+  },
+  {
+    "id": "munqati",
+    "term_en": "Munqati'",
+    "term_ar": "منقطع",
+    "literal_meaning": "Disconnected",
+    "technical_definition": "Any break in the isnaad, regardless of the form it takes. The later scholars limited it to breaks not fitting mu'allaq, mursal, or mu'dal definitions.",
+    "conditions": null,
+    "ruling": "Da'eef by scholarly consensus, due to not knowing the condition of the omitted narrator.",
+    "category": "chain",
+    "page": 25,
+    "related_terms": [
+      "muttasil",
+      "mursal",
+      "mudal"
+    ]
+  },
+  {
+    "id": "mursal",
+    "term_en": "Mursal",
+    "term_ar": "مرسل",
+    "literal_meaning": "Something that has been set free",
+    "technical_definition": "Omission of anyone after the Taabi'ee at the end of the isnaad. A Taabi'ee says 'The Messenger of Allaah said...' without naming the Sahaabee.",
+    "conditions": null,
+    "ruling": "General rule: da'eef and rejected. However, scholars differ: some accept it with conditions (e.g., ash-Shaafi'ee with 4 conditions).",
+    "category": "chain",
+    "page": 24,
+    "related_terms": [
+      "munqati",
+      "muallaq"
+    ]
+  },
+  {
+    "id": "muallaq",
+    "term_en": "Mu'allaq",
+    "term_ar": "معلق",
+    "literal_meaning": "Hanging or tied",
+    "technical_definition": "Where one or more consecutive narrators have been omitted from the beginning of the isnaad.",
+    "conditions": null,
+    "ruling": "Rejected since it does not have a connected isnaad. Exception: in the Saheehayn, if reported with surety (qaala, amara), it is graded saheeh.",
+    "category": "chain",
+    "page": 23,
+    "related_terms": [
+      "mursal",
+      "mudal"
+    ]
+  },
+  {
+    "id": "mudal",
+    "term_en": "Mu'dal",
+    "term_ar": "معضل",
+    "literal_meaning": "Incapacitated",
+    "technical_definition": "Has two or more consecutive narrators omitted from its isnaad.",
+    "conditions": null,
+    "ruling": "Da'eef; worse than mursal and munqati' due to having a greater number of people omitted.",
+    "category": "chain",
+    "page": 25,
+    "related_terms": [
+      "munqati",
+      "mursal"
+    ]
+  },
+  {
+    "id": "mudallas",
+    "term_en": "Mudallas",
+    "term_ar": "مدلس",
+    "literal_meaning": "Concealed in the dark",
+    "technical_definition": "Concealing a flaw in the isnaad and enhancing its external appearance. The narrator reports from someone he heard from, but narrates something he did not hear directly, using ambiguous phrasing like 'an (from).",
+    "conditions": null,
+    "ruling": "Extremely undesirable. If there is a clear statement of direct hearing (sami'tu), the narration is accepted. Otherwise, rejected.",
+    "category": "chain",
+    "page": 26,
+    "related_terms": [
+      "mursal_khafee"
+    ]
+  },
+  {
+    "id": "mursal_khafee",
+    "term_en": "Mursal Khafee",
+    "term_ar": "مرسل خفي",
+    "literal_meaning": "Hidden mursal",
+    "technical_definition": "Narrates from someone he met, or who was alive at the same time, something he did not directly hear from him, using ambiguous phrasing.",
+    "conditions": null,
+    "ruling": "Da'eef because it is a type of munqati'.",
+    "category": "chain",
+    "page": 27,
+    "related_terms": [
+      "mudallas",
+      "mursal"
+    ]
+  },
+  {
+    "id": "matrook",
+    "term_en": "Matrook",
+    "term_ar": "متروك",
+    "literal_meaning": "Abandoned",
+    "technical_definition": "Has in its isnaad a narrator accused of lying. The hadeeth is not reported except through him, and it contradicts established principles; or he is known for lying in his normal speech.",
+    "conditions": null,
+    "ruling": "Follows the mawdoo' hadeeth in severity. Da'eef — never elevated through corroboration.",
+    "category": "narrator",
+    "page": 29,
+    "related_terms": [
+      "mawdu",
+      "munkar"
+    ]
+  },
+  {
+    "id": "munkar",
+    "term_en": "Munkar",
+    "term_ar": "منكر",
+    "literal_meaning": "Disapproved",
+    "technical_definition": "Has in its isnaad a narrator who makes gross errors, is negligent, or is openly sinful. Also: what a da'eef narrator reports in contradiction to a thiqah.",
+    "conditions": null,
+    "ruling": "Among the types of da'eef jiddan, following matrook in severity. Its opposite is the Ma'roof hadeeth.",
+    "category": "defect",
+    "page": 29,
+    "related_terms": [
+      "shaath",
+      "matrook"
+    ]
+  },
+  {
+    "id": "muallal",
+    "term_en": "Mu'allal",
+    "term_ar": "معلل",
+    "literal_meaning": "Defective",
+    "technical_definition": "Has a defect which impairs its authenticity, although it appears to be free from such a defect. The 'illah must be: (1) concealed and obscure, (2) impair the authenticity of the hadeeth.",
+    "conditions": null,
+    "ruling": "Only identified by experts with firm memory, experience, and piercing insight. Most often occurs in the isnaad (e.g., being mawqoof or mursal).",
+    "category": "defect",
+    "page": 30,
+    "related_terms": [
+      "mudtarib",
+      "shaath"
+    ]
+  },
+  {
+    "id": "mudraj",
+    "term_en": "Mudraj",
+    "term_ar": "مدرج",
+    "literal_meaning": "Placed into something else",
+    "technical_definition": "Context of its isnaad has been modified, or something was interjected into its matn which is not actually part of it, and no distinction was made.",
+    "conditions": null,
+    "ruling": "Prohibited, unless done to explain an obscure wording. Can occur at the beginning, middle, or end of the matn.",
+    "category": "defect",
+    "page": 31,
+    "related_terms": [
+      "maqloob",
+      "mudtarib"
+    ]
+  },
+  {
+    "id": "maqloob",
+    "term_en": "Maqloob",
+    "term_ar": "مقلوب",
+    "literal_meaning": "Reversed",
+    "technical_definition": "Reversal or substitution of a word with another, either in the sanad or matn. E.g., reversing a narrator's name and his father's name, or substituting a narrator's name.",
+    "conditions": null,
+    "ruling": "Rejected. May result from intentional novelty-seeking, testing memory, or unintentional error.",
+    "category": "defect",
+    "page": 32,
+    "related_terms": [
+      "mudraj",
+      "musahhaf"
+    ]
+  },
+  {
+    "id": "mudtarib",
+    "term_en": "Mudtarib",
+    "term_ar": "مضطرب",
+    "literal_meaning": "Disrupted",
+    "technical_definition": "Narrated from various different routes, all of equal strength, with irreconcilable conflicts. Reconciliation between the narrations is not possible, and all are equal in strength, making it impossible to select one over the rest.",
+    "conditions": [
+      "Different narrations that cannot be reconciled",
+      "Equal strength of the narrations, impossible to give precedence"
+    ],
+    "ruling": "Da'eef — idtiraab gives the sense that the narrators are lacking in dabt.",
+    "category": "defect",
+    "page": 34,
+    "related_terms": [
+      "muallal",
+      "shaath"
+    ]
+  },
+  {
+    "id": "musahhaf",
+    "term_en": "Musahhaf",
+    "term_ar": "مصحف",
+    "literal_meaning": "Mistake in writing",
+    "technical_definition": "Altering a particular phrase, whether in wording or meaning, to something which was not narrated by thiqaat. Can be in the isnaad or matn, from eyesight or hearing.",
+    "conditions": null,
+    "ruling": "If it happens rarely, it does no harm. If it happens often, it impairs dabt and renders the narrator unfit.",
+    "category": "defect",
+    "page": 35,
+    "related_terms": [
+      "maqloob",
+      "mudtarib"
+    ]
+  },
+  {
+    "id": "shaath",
+    "term_en": "Shaath",
+    "term_ar": "شاذ",
+    "literal_meaning": "Solitary; to be alone",
+    "technical_definition": "What an acceptable narrator reports in contradiction to someone more reliable than him. Differs from munkar: the narrator of shaath is acceptable, while the narrator of munkar is da'eef.",
+    "conditions": null,
+    "ruling": "Rejected. Its opposite is the Mahfooth (preserved) hadeeth — what a more reliable narrator reports.",
+    "category": "defect",
+    "page": 36,
+    "related_terms": [
+      "munkar",
+      "muallal"
+    ]
+  },
+  {
+    "id": "mutaabi",
+    "term_en": "Mutaabi'",
+    "term_ar": "متابع",
+    "literal_meaning": "Agreeing; following",
+    "technical_definition": "Hadeeth that agrees with both wording and meaning, or meaning only, of a fard hadeeth, and is narrated from the same Sahaabee. Two types: Taammah (from start of isnaad) and Qaasirah (from a later point).",
+    "conditions": null,
+    "ruling": "Strengthens the original narration. A da'eef hadeeth with mutaba'at through reliable routes can ascend to hasan li-ghayrihi.",
+    "category": "corroboration",
+    "page": 45,
+    "related_terms": [
+      "shaahid",
+      "hasan_li_ghayrihi"
+    ]
+  },
+  {
+    "id": "shaahid",
+    "term_en": "Shaahid",
+    "term_ar": "شاهد",
+    "literal_meaning": "Witness",
+    "technical_definition": "Hadeeth that agrees with both wording and meaning, or meaning only, of a fard hadeeth, and is narrated from a different Sahaabee. Serves as a witness that the fard hadeeth has a basis.",
+    "conditions": null,
+    "ruling": "Strengthens and supports a claim. A hasan narration with shawahid can ascend to saheeh li-ghayrihi.",
+    "category": "corroboration",
+    "page": 45,
+    "related_terms": [
+      "mutaabi",
+      "sahih_li_ghayrihi"
+    ]
+  },
+  {
+    "id": "qudsee",
+    "term_en": "Qudsee",
+    "term_ar": "قدسي",
+    "literal_meaning": "From quds, meaning purity",
+    "technical_definition": "Any narration from the Prophet with its isnaad reaching Allaah. The meaning is from Allaah and the wording from the Prophet. Not Qur'an — recitation is not an act of worship.",
+    "conditions": null,
+    "ruling": "More than 200 qudsee hadeeth exist. Differs from Qur'an in wording source and from nabawee hadeeth in meaning source.",
+    "category": "ascription",
+    "page": 40,
+    "related_terms": [
+      "marfoo"
+    ]
+  },
+  {
+    "id": "marfoo",
+    "term_en": "Marfoo'",
+    "term_ar": "مرفوع",
+    "literal_meaning": "Raised",
+    "technical_definition": "Any statement, action, approval, or description attributed to the Prophet, whether by a Sahaabee or someone from later generations, regardless of whether the isnaad is muttasil or munqati'.",
+    "conditions": null,
+    "ruling": "Can apply to narrations which are mawsool, mursal, muttasil, and munqati'. Types: qawlee (statement), fi'lee (action), taqreeree (approval), wasfee (description).",
+    "category": "ascription",
+    "page": 40,
+    "related_terms": [
+      "mawqoof",
+      "maqtoo"
+    ]
+  },
+  {
+    "id": "mawqoof",
+    "term_en": "Mawqoof",
+    "term_ar": "موقوف",
+    "literal_meaning": "Stopped",
+    "technical_definition": "Any statement, action, or approval attributed to a Sahaabee, or group of Sahaabah, whether the sanad is muttasil or munqati'.",
+    "conditions": null,
+    "ruling": "Could be saheeh, hasan, or da'eef. Generally not used as proof (statements of Sahaabah), but if proven saheeh, they lend strength to da'eef hadeeth.",
+    "category": "ascription",
+    "page": 41,
+    "related_terms": [
+      "marfoo",
+      "maqtoo"
+    ]
+  },
+  {
+    "id": "maqtoo",
+    "term_en": "Maqtoo'",
+    "term_ar": "مقطوع",
+    "literal_meaning": "Severed",
+    "technical_definition": "Any statement or action attributed to a Taabi'ee, or anyone afterwards. Different from munqati' (which refers to the isnaad).",
+    "conditions": null,
+    "ruling": "Cannot be used as proof for any legal ruling. However, if a qareenah (evidence) indicates it is marfoo', it is given the ruling of marfoo' mursal.",
+    "category": "ascription",
+    "page": 42,
+    "related_terms": [
+      "mawqoof",
+      "marfoo"
+    ]
+  }
+]

@@ -141,6 +141,21 @@ export interface FamilyDetailResponse {
   hadiths: ApiHadith[];
 }
 
+// ── Glossary types ──
+
+export interface GlossaryTerm {
+  id: string;
+  term_en: string;
+  term_ar: string;
+  literal_meaning: string | null;
+  technical_definition: string;
+  conditions: string[] | null;
+  ruling: string | null;
+  category: string;
+  page: number | null;
+  related_terms: string[] | null;
+}
+
 // ── Mustalah analysis types ──
 
 export interface ChainAssessment {

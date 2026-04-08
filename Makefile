@@ -196,6 +196,12 @@ quran: quran-prepare quran-ingest quran-hadith-refs
 quran-full: quran-check quran data/quran-morphology.txt data/morphology-terms-ar.json quran-morphology quran-similar
 
 
+# === Glossary extraction (one-time) ===
+
+# Extract mustalah glossary from PDF (requires: pip install kreuzberg in .venv)
+extract-glossary:
+	.venv/bin/python3 scripts/extract_mustalah_glossary.py
+
 # === Analyze phase (runs on already-ingested data) ===
 
 # Compute hadith families from embedding similarity

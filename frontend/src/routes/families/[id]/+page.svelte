@@ -4,6 +4,7 @@
   import type { FamilyDetailResponse, ApiMatnDiff, MustalahFamilyResponse } from '$lib/types';
   import HadithCard from '$lib/components/hadith/HadithCard.svelte';
   import Badge from '$lib/components/common/Badge.svelte';
+  import GlossaryTooltip from '$lib/components/hadith/GlossaryTooltip.svelte';
   import LoadingSpinner from '$lib/components/common/LoadingSpinner.svelte';
 
   let data: FamilyDetailResponse | null = $state(null);
@@ -62,6 +63,20 @@
     return labels[b] ?? b;
   }
 
+  /** Map analysis values to glossary term IDs */
+  function glossaryId(value: string | null): string | null {
+    if (!value) return null;
+    const map: Record<string, string> = {
+      sahih: 'sahih_li_thaatihi', sahihlighayrihi: 'sahih_li_ghayrihi',
+      hasan: 'hasan_li_thaatihi', hasanlighayrihi: 'hasan_li_ghayrihi',
+      daif: 'daif', daifjiddan: 'daif', mawdu: 'mawdu',
+      mutawatir: 'mutawatir', mashhur: 'mashhur', aziz: 'aziz', gharib: 'gharib',
+      muttasil: 'muttasil', munqati: 'munqati', mursal: 'mursal',
+      muallaq: 'muallaq', mudal: 'mudal', mudallas: 'mudallas',
+    };
+    return map[value] ?? null;
+  }
+
   async function runDiff() {
     if (!diffA || !diffB || diffA === diffB) return;
     diffLoading = true;
@@ -113,7 +128,7 @@
           <!-- Composite Grade Banner -->
           <div class="grade-banner grade-{a.composite_grade}">
             <div class="grade-label">Composite Grade</div>
-            <div class="grade-value">{gradeLabel(a.composite_grade)}</div>
+            <div class="grade-value">{#if glossaryId(a.composite_grade)}<GlossaryTooltip termId={glossaryId(a.composite_grade)}>{gradeLabel(a.composite_grade)}</GlossaryTooltip>{:else}{gradeLabel(a.composite_grade)}{/if}</div>
             <div class="grade-detail">Best chain: {gradeLabel(a.best_chain_grade)} &middot; {a.chain_count} chain(s)</div>
           </div>
 
@@ -121,7 +136,7 @@
           <div class="mustalah-grid">
             <div class="m-card">
               <div class="label">Transmission Breadth</div>
-              <div class="value">{breadthLabel(a.breadth_class)}</div>
+              <div class="value">{#if glossaryId(a.breadth_class)}<GlossaryTooltip termId={glossaryId(a.breadth_class)}>{breadthLabel(a.breadth_class)}</GlossaryTooltip>{:else}{breadthLabel(a.breadth_class)}{/if}</div>
               <div class="detail">Min {a.min_breadth} narrator(s) at tabaqah {a.bottleneck_tabaqah ?? '?'}</div>
             </div>
             <div class="m-card">
@@ -173,8 +188,8 @@
                   {#each mustalah.chains as c}
                     <tr>
                       <td><a href="/hadiths/{c.variant_id}">{c.variant_id}</a></td>
-                      <td><Badge text={c.continuity} variant={c.continuity === 'muttasil' ? 'success' : 'warning'} /></td>
-                      <td><Badge text={gradeLabel(c.chain_grade)} variant={gradeColor(c.chain_grade)} /></td>
+                      <td>{#if glossaryId(c.continuity)}<GlossaryTooltip termId={glossaryId(c.continuity)}><Badge text={c.continuity} variant={c.continuity === 'muttasil' ? 'success' : 'warning'} /></GlossaryTooltip>{:else}<Badge text={c.continuity} variant={c.continuity === 'muttasil' ? 'success' : 'warning'} />{/if}</td>
+                      <td>{#if glossaryId(c.chain_grade)}<GlossaryTooltip termId={glossaryId(c.chain_grade)}><Badge text={gradeLabel(c.chain_grade)} variant={gradeColor(c.chain_grade)} /></GlossaryTooltip>{:else}<Badge text={gradeLabel(c.chain_grade)} variant={gradeColor(c.chain_grade)} />{/if}</td>
                       <td>
                         {#if c.weakest_narrator_id}
                           <a href="/narrators/{c.weakest_narrator_id}">{c.weakest_rating ?? 'unknown'}</a>
