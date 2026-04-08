@@ -187,6 +187,28 @@
         <a href="/quran/2?ayah=238" class="feat-link">View Example &rarr;</a>
       </div>
     </div>
+
+    <!-- Personal Study Notes -->
+    <div class="feat feat-reverse animate-on-scroll" use:inview>
+      <div class="feat-visual">
+        <div class="app-frame">
+          <div class="frame-dots"><span></span><span></span><span></span></div>
+          <img src="/img/feature-notes.svg" alt="Personal Study Notes — annotate ayahs and hadiths" style="height: 340px; object-fit: contain; background: var(--bg-surface); padding: 8px;" />
+        </div>
+      </div>
+      <div class="feat-text">
+        <h3>Personal Study Notes</h3>
+        <p>Capture your thoughts while studying. Annotate any ayah or hadith, collect evidence by topic, and embed Quran verses and hadiths inline with @mentions. Your personal knowledge system for Islamic study.</p>
+        <div class="feat-pills">
+          <span class="feat-pill">@Mentions</span>
+          <span class="feat-pill">Topic Collections</span>
+          <span class="feat-pill">Tags</span>
+          <span class="feat-pill">Color Highlights</span>
+          <span class="feat-pill">Rich Embeds</span>
+        </div>
+        <a href="/notes" class="feat-link">Start Taking Notes &rarr;</a>
+      </div>
+    </div>
   </section>
 
   <!-- ════════ DATA SOURCES ════════ -->
@@ -768,6 +790,21 @@
   }
   .feat-link:hover {
     color: var(--accent-hover);
+  }
+  .feat-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 12px 0;
+  }
+  .feat-pill {
+    padding: 3px 10px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    color: var(--text-secondary);
+    background: var(--bg-surface);
   }
 
   /* Secondary features — compact 3-col row */

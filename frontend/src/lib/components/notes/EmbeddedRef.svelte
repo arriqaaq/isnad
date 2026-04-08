@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { getSurah, getHadith } from '$lib/api';
+  import { getSurah, getHadith, getNarrator } from '$lib/api';
   import { language } from '$lib/stores/language';
   import { stripHtml } from '$lib/utils';
 
@@ -83,6 +83,13 @@
         textAr = truncate(decodeEntities(stripHtml(rawAr)), 250);
         textEn = truncate(decodeEntities(stripHtml(rawEn)), 250);
         label = `${h.book_name ?? 'Hadith'} #${h.hadith_number}`;
+      }).catch(() => { failed = true; })
+        .finally(() => { loading = false; });
+    } else if (refType === 'narrator') {
+      label = refId;
+      getNarrator(refId).then(res => {
+        label = res.narrator.name_en ?? res.narrator.name_ar ?? refId;
+        textEn = res.narrator.bio ?? '';
       }).catch(() => { failed = true; })
         .finally(() => { loading = false; });
     } else {

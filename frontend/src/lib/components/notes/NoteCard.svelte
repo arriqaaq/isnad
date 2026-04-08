@@ -102,12 +102,11 @@
 
 <style>
   .note-card {
-    border-left: 4px solid var(--note-yellow);
     padding: 12px 16px;
     background: var(--bg-surface);
-    border-radius: 0 var(--radius) var(--radius) 0;
     border: 1px solid var(--border);
-    border-left-width: 4px;
+    border-radius: 0 var(--radius) var(--radius) 0;
+    border-left: 4px solid var(--note-yellow);
     transition: border-color var(--transition);
   }
   .note-card:hover {

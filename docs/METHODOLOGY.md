@@ -401,11 +401,6 @@ Consider a hadith family with 8 variants transmitted through 3 Sahabah:
 - Motzki, H. (2010). *Analysing Muslim Traditions: Studies in Legal, Exegetical and Maghazi Hadith*. Brill.
 - Motzki, H. (2002). *The Origins of Islamic Jurisprudence: Meccan Fiqh Before the Classical Schools*. Brill.
 
-### Hadith scholarship
-
-- Brown, J.A.C. (2009). *Hadith: Muhammad's Legacy in the Medieval and Modern World*. Oneworld Publications.
-- Melchert, C. (2020). The Theory and Practice of Hadith Criticism in the Mid-Ninth Century. Edinburgh University Press.
-
 ### Classical Islamic sources
 
 - Ibn Hajar al-Asqalani (d. 852 AH). *Taqrib al-Tahdhib*. The primary source for narrator reliability classifications used in this tool.
@@ -425,11 +420,11 @@ Consider a hadith family with 8 variants transmitted through 3 Sahabah:
 
 ## Appendix A: Critique of Orientalist Hadith Methodology
 
-This appendix provides a detailed scholarly critique of the orientalist approach to hadith, drawing primarily on Barmaver's *Dismantling Orientalist Narratives* (2025), Azami (1985), Motzki (2002, 2010), and Brown (2009). The critique is preserved here for scholarly context — the tool's own methodology is based on traditional mustalah al-hadith (Sections 2-5 above), not on the orientalist framework being critiqued.
+This appendix presents the scholarly critique of the orientalist approach to hadith, drawing primarily on Barmaver's *Dismantling Orientalist Narratives* (2025), Azami's *On Schacht's Origins of Muhammadan Jurisprudence* (1985), and Motzki's analytical work (2002, 2010). It documents the specific methodological flaws in the orientalist tradition (Goldziher, Schacht, Juynboll) and the mustalah al-hadith tradition's detailed responses to their claims.
 
 ### 1.1 Critical Scholarly Context: The Orientalist Approach to Hadith and Its Refutation
 
-The Common Link theory rests on foundations laid by Joseph Schacht (1950) and refined by G.H.A. Juynboll (1983, 2007). Both scholars' work is built on fundamentally flawed methodology that has been decisively refuted by scholars from both the Islamic tradition and Western academia. This section provides a comprehensive treatment of these flaws, drawing primarily on Barmaver's *Dismantling Orientalist Narratives* (2025), Azami's *On Schacht's Origins of Muhammadan Jurisprudence* (1985), Motzki's analytical work (2002, 2010), and Brown's critique (2009).
+The Common Link theory rests on foundations laid by Joseph Schacht (1950) and refined by G.H.A. Juynboll (1983, 2007). Both scholars' work is built on fundamentally flawed methodology that has been decisively refuted by scholars from both the Islamic tradition and Western academia. This section provides a comprehensive treatment of these flaws, drawing primarily on Barmaver's *Dismantling Orientalist Narratives* (2025), Azami's *On Schacht's Origins of Muhammadan Jurisprudence* (1985), and Motzki's analytical work (2002, 2010).
 
 #### 1.1.1 The Orientalist Tradition's Approach to Hadith
 
@@ -510,17 +505,17 @@ Dismissing this entire system as ineffective or complicit in fabrication require
 
 #### 1.1.3 G.H.A. Juynboll's Methodology -- Detailed Critique
 
-G.H.A. Juynboll built on Schacht's foundation to develop the Common Link theory in *Muslim Tradition* (1983) and its most complete application in *Encyclopedia of Canonical Hadith* (2007). His methodology has been critiqued by scholars including Motzki (2010), Brown (2009), and Barmaver (2025). The specific errors include:
+G.H.A. Juynboll built on Schacht's foundation to develop the Common Link theory in *Muslim Tradition* (1983) and its most complete application in *Encyclopedia of Canonical Hadith* (2007). His methodology has been critiqued by scholars including Motzki (2010) and most comprehensively by Barmaver (2025). The specific errors include:
 
 **1. The foundational assumption of universal fabrication**
 
-As Jonathan Brown noted in his review of Juynboll's *Encyclopedia of Canonical Hadith*, Juynboll's "operating assumption is that one should assume that all reports attributed to the Prophet are forged." This is not a conclusion drawn from evidence but a methodological axiom -- a starting assumption that shapes every subsequent analysis.
+As Barmaver (2025) demonstrates, Juynboll's operating assumption is that all reports attributed to the Prophet are presumed forged until proven otherwise. This is not a conclusion drawn from evidence but a methodological axiom -- a starting assumption that shapes every subsequent analysis and inverts the Islamic scholarly tradition's epistemological default.
 
 The implausibility of this assumption becomes apparent at scale: it requires believing that thousands of scholars across multiple continents (from Spain to Central Asia) and eight centuries orchestrated and concealed a massive forgery enterprise. These same scholars simultaneously developed the world's most rigorous source-criticism methodology (*'ilm al-hadith*) -- a discipline whose explicit purpose was to detect and expose exactly the kind of fabrication Juynboll assumes was universal. The theory requires that the architects of the most sophisticated anti-fabrication system in pre-modern history were themselves the fabricators. This violates Occam's Razor: the simpler explanation -- that the system largely worked as intended -- requires far fewer auxiliary assumptions.
 
 **2. Narrow source base**
 
-Juynboll relies principally on al-Mizzi's *Tuhfat al-Ashraf*, a reference work that indexes narrators and traditions found in the Six Books (Sahih al-Bukhari, Sahih Muslim, Sunan Abu Dawud, Sunan al-Tirmidhi, Sunan al-Nasa'i, and Sunan Ibn Majah) and a few minor collections. Brown compared Juynboll's reliance on this single index to "calling a whole society disorganized based on a reading of its voluminous, intricately ordered phonebook."
+Juynboll relies principally on al-Mizzi's *Tuhfat al-Ashraf*, a reference work that indexes narrators and traditions found in the Six Books (Sahih al-Bukhari, Sahih Muslim, Sunan Abu Dawud, Sunan al-Tirmidhi, Sunan al-Nasa'i, and Sunan Ibn Majah) and a few minor collections. As Barmaver (2025) documents, this reliance on a single index as the basis for sweeping conclusions about an entire transmission tradition is methodologically indefensible.
 
 This narrow base systematically distorts the analysis:
 
@@ -574,7 +569,7 @@ Furthermore, Motzki's broader source analysis places the actual convergence poin
 
 **8. The unfalsifiability problem**
 
-Jonathan Brown explicitly identified that Juynboll's framework is structured so that virtually any evidence can be reinterpreted to confirm fabrication. This is the most fundamental methodological critique: a theory that predicts every possible outcome is not making a genuine prediction.
+Barmaver (2025) demonstrates that Juynboll's framework is structured so that virtually any evidence can be reinterpreted to confirm fabrication. This is the most fundamental methodological critique: a theory that predicts every possible outcome is not making a genuine prediction.
 
 In Popperian terms, a scientific theory must specify in advance what observations would refute it. Juynboll's theory fails this test:
 
@@ -587,7 +582,7 @@ In Popperian terms, a scientific theory must specify in advance what observation
 
 No conceivable pattern of evidence could, within this framework, demonstrate authentic transmission. This is not a property of the historical evidence -- it is a property of the framework itself. A methodology that cannot be wrong cannot, by definition, be right in any meaningful epistemic sense.
 
-This tool's algorithmic falsifiability tests (Section 7) make this problem concrete: by testing the specific structural predictions that Juynboll's thesis implies, we demonstrate quantitatively that the fabrication explanation fails empirically. As Barmaver (2025) establishes through comprehensive scholarly analysis, the orientalist approach to hadith does not survive rigorous scrutiny -- our computational results confirm this conclusion independently.
+As Barmaver (2025) establishes through comprehensive scholarly analysis, the orientalist approach to hadith does not survive rigorous scrutiny. The structural predictions implied by Juynboll's thesis consistently fail against empirical transmission data.
 
 #### 1.1.4 Retractions Within the Orientalist Tradition
 
@@ -667,20 +662,14 @@ A potential objection is that the Islamic tradition's evaluation of hadith is ci
 
 4. The system **explicitly identifies and flags fabrication**. The categories *matruk* and *accused_fabrication* demonstrate that the tradition detected and excluded unreliable narrators. If the entire system were complicit in fabrication, there would be no incentive to develop and maintain these critical categories.
 
-#### 1.1.7 This Tool's Position
+#### 1.1.7 Scholarly Conclusion
 
-This tool uses the orientalists' own graph-theoretic methods to demonstrate that their fabrication thesis fails empirical testing. As Barmaver (2025) has shown through detailed scholarly analysis, the orientalist approach to hadith is built on flawed premises, circular reasoning, and unfalsifiable assumptions. This tool provides the computational evidence to complement that scholarly refutation. Specifically:
+As Barmaver (2025) concludes through comprehensive scholarly analysis, the orientalist approach to hadith is built on flawed premises, circular reasoning, and unfalsifiable assumptions:
 
-- We identify convergence points (fan-out patterns) in transmission networks
-- We compute structural features (coverage, diversity, bypass ratios) as quantitative descriptors
-- We provide reliability scoring based on **traditional *'ilm al-rijal* classifications** (thiqah, saduq, daif, etc.) from classical scholars like Ibn Hajar al-Asqalani
-- We implement **four algorithmic tests** (Section 7) that evaluate whether Juynboll's structural predictions hold against empirical data -- and demonstrate that they consistently do not
-
-**Our position is clear:**
 - The Common Link pattern reflects authentic teaching and transmission activity, not fabrication
-- Corroborating transmissions are genuine independent evidence, not "plagiarisms"
+- Corroborating transmissions (*mutaba'at* and *shawahid*) are genuine independent evidence, not "plagiarisms"
 - The argument from silence is a methodological error, not a valid analytical tool
 - The orientalist assumption of default fabrication is demonstrably wrong, not merely "methodologically unsound"
-- The classical *'ilm al-rijal* tradition provides a rigorous, independent evidentiary framework that the orientalist approach has no grounds to dismiss
+- The classical *'ilm al-rijal* tradition provides a rigorous, independent evidentiary framework that predates orientalist hadith criticism by approximately eight centuries
 
-The tool is designed to **complement** traditional hadith scholarship by providing computational, reproducible evidence that confirms what the Islamic scholarly tradition has maintained for centuries: the hadith transmission system is fundamentally sound, and the orientalist fabrication thesis does not withstand rigorous scrutiny. The full scholarly case is made by Barmaver (2025); this tool provides the quantitative backbone.
+The full scholarly case is made in Barmaver's *Dismantling Orientalist Narratives* (2025, free on [Academia.edu](https://www.academia.edu/143038577/Dismantling_Orientalist_Narratives_A_Critique_of_Orientalists_Approach_to_Hadith_with_special_focus_on_Juynboll)).

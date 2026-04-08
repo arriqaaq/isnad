@@ -13,7 +13,7 @@ fn rid(table: &str, key: &str) -> RecordId {
     RecordId::new(table, key)
 }
 
-fn now_iso() -> String {
+pub fn now_iso() -> String {
     // Generate ISO 8601 timestamp without chrono crate
     let dur = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -317,28 +317,19 @@ pub async fn update_note(
         return Err(StatusCode::BAD_REQUEST);
     }
 
-    // MERGE and SET cannot be combined in SurrealDB — do MERGE first, then SET updated_at
-    state
-        .db
-        .query("UPDATE $rid MERGE $data WHERE device_id = $did")
-        .bind(("rid", rid("user_note", &id)))
-        .bind(("data", serde_json::Value::Object(update)))
-        .bind(("did", did.clone()))
-        .await
-        .map_err(|e| {
-            tracing::error!("Update note MERGE failed: {e}");
-            StatusCode::INTERNAL_SERVER_ERROR
-        })?;
+    // Protect created_at from being overwritten + add updated_at
+    update.remove("created_at");
+    update.insert("updated_at".to_string(), serde_json::json!(now_iso()));
 
     let mut res = state
         .db
-        .query("UPDATE $rid SET updated_at = $updated_at WHERE device_id = $did RETURN AFTER")
+        .query("UPDATE $rid MERGE $data WHERE device_id = $did RETURN AFTER")
         .bind(("rid", rid("user_note", &id)))
+        .bind(("data", serde_json::Value::Object(update)))
         .bind(("did", did))
-        .bind(("updated_at", now_iso()))
         .await
         .map_err(|e| {
-            tracing::error!("Update note SET failed: {e}");
+            tracing::error!("Update note failed: {e}");
             StatusCode::INTERNAL_SERVER_ERROR
         })?;
 
@@ -415,7 +406,7 @@ pub async fn bulk_note_refs(
         .query(
             "SELECT ref_id, color, count() AS count FROM user_note \
              WHERE device_id = $did AND ref_type = $ref_type AND ref_id IN $ref_ids \
-             GROUP BY ref_id, color",
+             GROUP BY ref_id",
         )
         .bind(("did", did.clone()))
         .bind(("ref_type", params.ref_type.clone()))

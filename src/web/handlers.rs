@@ -1322,7 +1322,9 @@ pub async fn link_preview(
     // Check cache first
     let mut res = state
         .db
-        .query("SELECT * FROM link_preview WHERE url = $url LIMIT 1")
+        .query(
+            "SELECT *, <string>fetched_at AS fetched_at FROM link_preview WHERE url = $url LIMIT 1",
+        )
         .bind(("url", url.clone()))
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -1381,13 +1383,15 @@ pub async fn link_preview(
         .and_then(|s| s.split('/').next())
         .map(|s| s.to_string());
 
-    // Cache the result
+    // Cache the result (delete old + create new to handle duplicates)
+    let now = crate::web::note_handlers::now_iso();
     let _ = state
         .db
         .query(
-            "CREATE link_preview CONTENT {
+            "DELETE link_preview WHERE url = $url; \
+             CREATE link_preview CONTENT {
                 url: $url, title: $title, description: $desc,
-                image: $image, domain: $domain, fetched_at: time::now()
+                image: $image, domain: $domain, fetched_at: $now
             }",
         )
         .bind(("url", url.clone()))
@@ -1395,6 +1399,7 @@ pub async fn link_preview(
         .bind(("desc", og_desc.clone()))
         .bind(("image", og_image.clone()))
         .bind(("domain", domain.clone()))
+        .bind(("now", now))
         .await;
 
     Ok(Json(ApiLinkPreview {

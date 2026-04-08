@@ -30,6 +30,7 @@ Rust backend serving a SvelteKit SPA, with SurrealDB as a unified graph + vector
 - **Ask AI (GraphRAG)** — Natural language Q&A grounded in Quran/Hadith via local Ollama, with isnad-aware context
 - **Early Manuscripts** — Per-ayah high-resolution manuscript images from Corpus Coranicum (Berlin-Brandenburg Academy), viewable with zoom
 - **Isnad Analysis** — Hadith family clustering, mustalah-based chain grading (sahih/hasan/da'eef), transmission breadth (mutawatir/mashhur/aziz/gharib), corroboration detection (mutaba'at/shawahid), word-level matn diffing
+- **Personal Study Notes** — Annotate any ayah or hadith, collect evidence by topic with @mentions that embed Quran verses and hadiths inline, tag-based organization, color-coded highlights, and full-text search across your notes
 
 ## Quick Start
 
@@ -103,6 +104,20 @@ SurrealDB stores narrators, hadiths, and books as documents connected by `heard_
 </p>
 
 Per-ayah manuscript images from [Corpus Coranicum](https://corpuscoranicum.de/) (Berlin-Brandenburg Academy of Sciences). Click "Manuscripts" on any ayah to view high-resolution scans of early Quranic manuscripts — fetched live from the Corpus Coranicum API.
+
+## Personal Study Notes
+
+<p align="center">
+  <img src="img/notes.svg" alt="Personal Study Notes" width="700">
+</p>
+
+Annotate any ayah or hadith with personal notes. Collect evidence by topic using @mentions that embed Quran verses and hadiths inline as rich cards. Organize with tags and color-coded highlights. Notes are stored in a separate `user_note` table — safely deletable without impacting ingested data.
+
+- **@Mentions** — type `@2:255` to embed a Quran ayah, `@im_1` for a hadith, or search narrators by name
+- **Topic Collections** — save ayahs and hadiths from anywhere into named study notes via the "Save" button
+- **Tags & Search** — tag notes for organization, search across all notes by content or tag
+- **Color Highlights** — 5 color options (yellow, green, blue, pink, purple) for visual categorization
+- **Rich Embeds** — embedded references show the actual Arabic text and translation inline
 
 ## Training Pipeline
 

@@ -87,7 +87,10 @@ export function serializeEditor(container: HTMLElement): string {
 
   for (const node of container.childNodes) {
     if (node.nodeType === Node.TEXT_NODE) {
-      result += node.textContent ?? '';
+      // Strip \u00A0 (non-breaking space) used for cursor positioning after atoms
+      let text = node.textContent ?? '';
+      text = text.replace(/\u00A0/g, ' ').replace(/^ $/, ' ');
+      result += text;
     } else if (node.nodeType === Node.ELEMENT_NODE) {
       const el = node as HTMLElement;
       if (el.classList.contains('ref-atom')) {
@@ -104,15 +107,16 @@ export function serializeEditor(container: HTMLElement): string {
         result += '\n';
       } else {
         // Recurse into divs/spans the browser may create
-        result += serializeEditor(el);
-        // Browsers wrap lines in divs — add newline after block elements
-        if (el.tagName === 'DIV' || el.tagName === 'P') {
+        const inner = serializeEditor(el);
+        result += inner;
+        // Only add newline for block elements that have content and aren't the last child
+        if ((el.tagName === 'DIV' || el.tagName === 'P') && inner.length > 0 && el.nextSibling) {
           result += '\n';
         }
       }
     }
   }
-  return result;
+  return result.replace(/\n+$/, '');
 }
 
 /**

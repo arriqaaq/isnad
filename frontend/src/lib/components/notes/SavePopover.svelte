@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { UserNote } from '$lib/types';
   import { fetchAllNotes, addRefToNote, createNote } from '$lib/api';
-  import { onMount } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
 
   let { refType, refId, refLabel, anchorX = 0, anchorY = 0, onclose }: {
     refType: 'ayah' | 'hadith';
@@ -18,6 +18,15 @@
   let newTitle = $state('');
   let searchQuery = $state('');
   let flash = $state('');
+  let timers: ReturnType<typeof setTimeout>[] = [];
+
+  onDestroy(() => { timers.forEach(clearTimeout); });
+
+  function safeTimeout(fn: () => void, ms: number) {
+    const t = setTimeout(fn, ms);
+    timers.push(t);
+    return t;
+  }
 
   onMount(() => {
     fetchAllNotes({ ref_type: 'topic', limit: 5 })
@@ -37,10 +46,10 @@
     try {
       await addRefToNote(note.id, { ref_type: refType, ref_id: refId });
       flash = `Added to "${note.title}"`;
-      setTimeout(() => { onclose(); }, 800);
+      safeTimeout(() => { onclose(); }, 800);
     } catch {
       flash = 'Failed to add';
-      setTimeout(() => { flash = ''; }, 1500);
+      safeTimeout(() => { flash = ''; }, 1500);
     }
   }
 
@@ -55,10 +64,10 @@
         refs: [{ ref_type: refType, ref_id: refId }],
       });
       flash = `Created "${note.title}"`;
-      setTimeout(() => { onclose(); }, 800);
+      safeTimeout(() => { onclose(); }, 800);
     } catch {
       flash = 'Failed to create';
-      setTimeout(() => { flash = ''; }, 1500);
+      safeTimeout(() => { flash = ''; }, 1500);
     }
   }
 
@@ -135,7 +144,7 @@
     z-index: 200;
   }
   .save-popover-inner {
-    position: absolute;
+    position: fixed;
     min-width: 280px;
     max-width: 320px;
     max-height: 400px;

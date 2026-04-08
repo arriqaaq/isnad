@@ -60,11 +60,15 @@
     if (q.length >= 2) {
       matchType = 'narrator';
       if (debounceTimer) clearTimeout(debounceTimer);
+      const searchQuery = q; // capture for staleness check
       debounceTimer = setTimeout(async () => {
         narratorLoading = true;
         try {
-          const res = await getNarrators({ q, limit: 5 });
-          narratorResults = res.data;
+          const res = await getNarrators({ q: searchQuery, limit: 5 });
+          // Only update if query hasn't changed since we fired
+          if (query === searchQuery) {
+            narratorResults = res.data;
+          }
         } catch { /* ignore */ }
         finally { narratorLoading = false; }
       }, 250);
