@@ -110,11 +110,20 @@ pub struct CorpusJuynbollSummary {
 /// A bypass variant is one that contains both ancestors and descendants of the CL
 /// but does not contain the CL itself. A bypass is "reliable" if all narrators in
 /// the bypass path with known reliability have prior >= 0.65 (saduq or better).
-pub(crate) fn compute_reliable_bypass(graph: &FamilyGraph, cl_id: &str) -> ReliableBypassResult {
+pub(crate) fn compute_reliable_bypass(
+    graph: &mut FamilyGraph,
+    cl_id: &str,
+) -> ReliableBypassResult {
     let total_variants = graph.variant_ids.len();
 
-    let node = match graph.nodes.get(cl_id) {
-        Some(n) => n,
+    // Extract missing variants before mutable borrows
+    let missing: Vec<String> = match graph.nodes.get(cl_id) {
+        Some(node) => graph
+            .variant_ids
+            .iter()
+            .filter(|v| !node.variants.contains(*v))
+            .cloned()
+            .collect(),
         None => {
             return ReliableBypassResult {
                 cl_narrator_id: cl_id.to_string(),
@@ -127,15 +136,8 @@ pub(crate) fn compute_reliable_bypass(graph: &FamilyGraph, cl_id: &str) -> Relia
         }
     };
 
-    let ancestors = graph.reachable_set(cl_id, Direction::Teachers);
-    let descendants = graph.reachable_set(cl_id, Direction::Students);
-
-    // Variants NOT containing this CL
-    let missing: Vec<&String> = graph
-        .variant_ids
-        .iter()
-        .filter(|v| !node.variants.contains(*v))
-        .collect();
+    let ancestors = graph.reachable_set_cached(cl_id, Direction::Teachers);
+    let descendants = graph.reachable_set_cached(cl_id, Direction::Students);
 
     let mut details = Vec::new();
 
@@ -144,11 +146,11 @@ pub(crate) fn compute_reliable_bypass(graph: &FamilyGraph, cl_id: &str) -> Relia
         let has_ancestor = graph
             .nodes
             .iter()
-            .any(|(nid, n)| n.variants.contains(*variant) && ancestors.contains(nid));
+            .any(|(nid, n)| n.variants.contains(variant) && ancestors.contains(nid));
         let has_descendant = graph
             .nodes
             .iter()
-            .any(|(nid, n)| n.variants.contains(*variant) && descendants.contains(nid));
+            .any(|(nid, n)| n.variants.contains(variant) && descendants.contains(nid));
 
         if !has_ancestor || !has_descendant {
             continue;
@@ -158,7 +160,7 @@ pub(crate) fn compute_reliable_bypass(graph: &FamilyGraph, cl_id: &str) -> Relia
         let bypass_narrators: Vec<String> = graph
             .nodes
             .iter()
-            .filter(|(nid, n)| n.variants.contains(*variant) && *nid != cl_id)
+            .filter(|(nid, n)| n.variants.contains(variant) && *nid != cl_id)
             .map(|(nid, _)| nid.clone())
             .collect();
 
@@ -182,7 +184,7 @@ pub(crate) fn compute_reliable_bypass(graph: &FamilyGraph, cl_id: &str) -> Relia
         let all_reliable = has_any_known && all_known_reliable;
 
         details.push(BypassDetail {
-            variant_id: (*variant).clone(),
+            variant_id: variant.clone(),
             bypass_narrators,
             min_reliability,
             avg_reliability,
@@ -212,7 +214,7 @@ pub(crate) fn compute_reliable_bypass(graph: &FamilyGraph, cl_id: &str) -> Relia
 
 /// Check whether CLs in a family are independent (no ancestor-descendant relationship).
 pub(crate) fn compute_independent_cls(
-    graph: &FamilyGraph,
+    graph: &mut FamilyGraph,
     cl_ids: &[String],
     family_id: &str,
 ) -> IndependentClResult {
@@ -224,8 +226,8 @@ pub(crate) fn compute_independent_cls(
             let cl_a = &cl_ids[i];
             let cl_b = &cl_ids[j];
 
-            let ancestors_a = graph.reachable_set(cl_a, Direction::Teachers);
-            let descendants_a = graph.reachable_set(cl_a, Direction::Students);
+            let ancestors_a = graph.reachable_set_cached(cl_a, Direction::Teachers);
+            let descendants_a = graph.reachable_set_cached(cl_a, Direction::Students);
 
             let independent = !ancestors_a.contains(cl_b) && !descendants_a.contains(cl_b);
             if independent {
@@ -325,7 +327,7 @@ pub(crate) fn compute_pre_cl_diversity(graph: &FamilyGraph, cl_id: &str) -> PreC
 
 /// Run all per-family Juynboll falsifiability tests.
 pub(crate) fn analyze_family_juynboll(
-    graph: &FamilyGraph,
+    graph: &mut FamilyGraph,
     cl_ids: &[String],
     family_id: &str,
 ) -> FamilyJuynbollResult {
@@ -573,11 +575,11 @@ mod tests {
             });
         }
 
-        FamilyGraph {
+        FamilyGraph::new(
             nodes,
-            edges: graph_edges,
-            variant_ids: variant_ids.iter().map(|s| s.to_string()).collect(),
-        }
+            graph_edges,
+            variant_ids.iter().map(|s| s.to_string()).collect(),
+        )
     }
 
     // ── Test 1: Reliable Bypass ──
@@ -589,7 +591,7 @@ mod tests {
 
     #[test]
     fn test_reliable_bypass_detected() {
-        let graph = build_test_graph(
+        let mut graph = build_test_graph(
             vec![
                 ("cl", Some(0.75), true),
                 ("teacher_a", Some(0.75), true),
@@ -617,7 +619,7 @@ mod tests {
             vec!["v1", "v2", "v3", "v4"],
         );
 
-        let result = compute_reliable_bypass(&graph, "cl");
+        let result = compute_reliable_bypass(&mut graph, "cl");
         assert_eq!(result.bypass_count, 1);
         assert_eq!(result.reliable_bypass_count, 1);
         assert!(result.details[0].all_reliable);
@@ -625,7 +627,7 @@ mod tests {
 
     #[test]
     fn test_unreliable_bypass_not_counted() {
-        let graph = build_test_graph(
+        let mut graph = build_test_graph(
             vec![
                 ("cl", Some(0.75), true),
                 ("teacher_a", Some(0.75), true),
@@ -653,7 +655,7 @@ mod tests {
             vec!["v1", "v2", "v3", "v4"],
         );
 
-        let result = compute_reliable_bypass(&graph, "cl");
+        let result = compute_reliable_bypass(&mut graph, "cl");
         assert_eq!(result.bypass_count, 1);
         assert_eq!(result.reliable_bypass_count, 0);
         assert!(!result.details[0].all_reliable);
@@ -661,7 +663,7 @@ mod tests {
 
     #[test]
     fn test_bypass_unknown_reliability() {
-        let graph = build_test_graph(
+        let mut graph = build_test_graph(
             vec![
                 ("cl", Some(0.75), true),
                 ("teacher_a", Some(0.75), true),
@@ -689,7 +691,7 @@ mod tests {
             vec!["v1", "v2", "v3", "v4"],
         );
 
-        let result = compute_reliable_bypass(&graph, "cl");
+        let result = compute_reliable_bypass(&mut graph, "cl");
         assert_eq!(result.bypass_count, 1);
         // bypass_n has None, but student_1 (0.65) and teacher_a (0.75) are known+reliable.
         // Unknown narrators don't disqualify — only known unreliable ones do.
@@ -698,7 +700,7 @@ mod tests {
 
     #[test]
     fn test_bypass_mixed_reliability() {
-        let graph = build_test_graph(
+        let mut graph = build_test_graph(
             vec![
                 ("cl", Some(0.75), true),
                 ("teacher_a", Some(0.75), true),
@@ -726,7 +728,7 @@ mod tests {
             vec!["v1", "v2", "v3", "v4"],
         );
 
-        let result = compute_reliable_bypass(&graph, "cl");
+        let result = compute_reliable_bypass(&mut graph, "cl");
         assert_eq!(result.bypass_count, 1);
         assert_eq!(result.reliable_bypass_count, 0);
         assert!(!result.details[0].all_reliable);
@@ -734,7 +736,7 @@ mod tests {
 
     #[test]
     fn test_no_bypass_variants() {
-        let graph = build_test_graph(
+        let mut graph = build_test_graph(
             vec![
                 ("cl", Some(0.75), true),
                 ("teacher_a", Some(0.75), true),
@@ -756,7 +758,7 @@ mod tests {
             vec!["v1", "v2"],
         );
 
-        let result = compute_reliable_bypass(&graph, "cl");
+        let result = compute_reliable_bypass(&mut graph, "cl");
         assert_eq!(result.bypass_count, 0);
         assert_eq!(result.reliable_bypass_count, 0);
     }
@@ -766,7 +768,7 @@ mod tests {
     #[test]
     fn test_independent_cls_detected() {
         // Two CLs on separate branches — no ancestor/descendant relationship
-        let graph = build_test_graph(
+        let mut graph = build_test_graph(
             vec![
                 ("source", Some(0.75), true),
                 ("cl_a", Some(0.75), true),
@@ -796,8 +798,11 @@ mod tests {
             vec!["v1", "v2", "v3", "v4"],
         );
 
-        let result =
-            compute_independent_cls(&graph, &["cl_a".to_string(), "cl_b".to_string()], "fam1");
+        let result = compute_independent_cls(
+            &mut graph,
+            &["cl_a".to_string(), "cl_b".to_string()],
+            "fam1",
+        );
         assert_eq!(result.pairs_checked, 1);
         assert_eq!(result.independent_pairs, 1);
         assert!(result.pairs[0].independent);
@@ -806,7 +811,7 @@ mod tests {
     #[test]
     fn test_dependent_cls_not_independent() {
         // cl_b is a student of cl_a — they are in ancestor-descendant relationship
-        let graph = build_test_graph(
+        let mut graph = build_test_graph(
             vec![
                 ("source", Some(0.75), true),
                 ("cl_a", Some(0.75), true),
@@ -830,8 +835,11 @@ mod tests {
             vec!["v1", "v2"],
         );
 
-        let result =
-            compute_independent_cls(&graph, &["cl_a".to_string(), "cl_b".to_string()], "fam1");
+        let result = compute_independent_cls(
+            &mut graph,
+            &["cl_a".to_string(), "cl_b".to_string()],
+            "fam1",
+        );
         assert_eq!(result.pairs_checked, 1);
         assert_eq!(result.independent_pairs, 0);
         assert!(!result.pairs[0].independent);
@@ -839,14 +847,14 @@ mod tests {
 
     #[test]
     fn test_single_cl_no_pairs() {
-        let graph = build_test_graph(
+        let mut graph = build_test_graph(
             vec![("cl", Some(0.75), true)],
             vec![],
             vec![("cl", vec!["v1"])],
             vec!["v1"],
         );
 
-        let result = compute_independent_cls(&graph, &["cl".to_string()], "fam1");
+        let result = compute_independent_cls(&mut graph, &["cl".to_string()], "fam1");
         assert_eq!(result.pairs_checked, 0);
         assert_eq!(result.independent_pairs, 0);
     }
@@ -856,7 +864,7 @@ mod tests {
     #[test]
     fn test_pre_cl_diversity_all_reliable() {
         // CL with upstream narrators all having high reliability
-        let graph = build_test_graph(
+        let mut graph = build_test_graph(
             vec![
                 ("cl", Some(0.75), true),
                 ("t1", Some(0.75), true), // thiqah
@@ -876,7 +884,7 @@ mod tests {
     #[test]
     fn test_pre_cl_diversity_branching() {
         // CL with upstream narrators that have multiple students (branching)
-        let graph = build_test_graph(
+        let mut graph = build_test_graph(
             vec![
                 ("cl", Some(0.75), true),
                 ("t1", Some(0.75), true),
@@ -905,7 +913,7 @@ mod tests {
     #[test]
     fn test_pre_cl_diversity_single_strand() {
         // CL with linear upstream chain (all single-student)
-        let graph = build_test_graph(
+        let mut graph = build_test_graph(
             vec![
                 ("cl", Some(0.75), true),
                 ("t1", Some(0.75), true),

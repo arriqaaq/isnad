@@ -1,6 +1,6 @@
 # Hadith Translation via Google Colab
 
-Translate Arabic hadiths to English using Qwen2.5-7B-Instruct-AWQ on Colab's free T4 GPU.
+Translate Arabic hadiths to English using Command-R7B-Arabic on Colab's free T4 GPU.
 Each book is translated across multiple Colab sessions with checkpointing.
 
 ## Prerequisites
@@ -33,7 +33,7 @@ splits/muslim.json               # 5,330 hadiths
 5. Run all remaining cells
 
 The notebook will:
-- Load the Qwen model (~2 min)
+- Load the Command-R7B-Arabic model (~2 min)
 - Translate narrator names (~5-30 min depending on count)
 - Translate hadiths one by one (~30s each)
 - Checkpoint every 50 hadiths automatically

@@ -30,7 +30,7 @@ enum Commands {
         translate: bool,
 
         /// Ollama model for fallback translation
-        #[arg(long, default_value = "qwen3:8b")]
+        #[arg(long, default_value = "command-r7b-arabic")]
         translate_model: String,
 
         /// Path to SurrealDB data directory
@@ -200,6 +200,31 @@ async fn async_main() -> Result<()> {
                     .await?;
                 let family_rows: Vec<IdOnly> = res.take(0)?;
 
+                // Check which families are already analyzed (resume support)
+                #[derive(Debug, SurrealValue)]
+                struct FamilyRef {
+                    family: RecordId,
+                }
+                let mut done_res = db.query("SELECT family FROM juynboll_analysis").await?;
+                let done_rows: Vec<FamilyRef> = done_res.take(0)?;
+                let already_done: std::collections::HashSet<String> = done_rows
+                    .iter()
+                    .map(|r| hadith::models::record_id_key_string(&r.family))
+                    .collect();
+                let remaining = family_rows.len() - already_done.len().min(family_rows.len());
+                if !already_done.is_empty() {
+                    println!(
+                        "   Resuming: {remaining} families remaining ({} already done)",
+                        already_done.len()
+                    );
+                }
+
+                let pb = indicatif::ProgressBar::new(remaining as u64);
+                pb.set_style(
+                    indicatif::ProgressStyle::default_bar()
+                        .template("   {bar:40.green/black} {pos}/{len} families ({eta})")
+                        .unwrap(),
+                );
                 let mut cl_families = 0usize;
                 let mut juynboll_families = 0usize;
                 for row in &family_rows {
@@ -208,7 +233,7 @@ async fn async_main() -> Result<()> {
                         .as_ref()
                         .map(hadith::models::record_id_key_string)
                         .unwrap_or_default();
-                    if fid.is_empty() {
+                    if fid.is_empty() || already_done.contains(&fid) {
                         continue;
                     }
                     let result =
@@ -225,7 +250,9 @@ async fn async_main() -> Result<()> {
                         analysis::juynboll::store_juynboll_results(&db, j).await?;
                         juynboll_families += 1;
                     }
+                    pb.inc(1);
                 }
+                pb.finish_and_clear();
 
                 println!(
                     "   CL/PCL analysis: {} families with candidates",

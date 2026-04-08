@@ -37,7 +37,7 @@ Rust backend serving a SvelteKit SPA, with SurrealDB as a unified graph + vector
 
 - [Rust](https://rustup.rs/) (latest stable)
 - [Node.js](https://nodejs.org/) (v20+)
-- [Ollama](https://ollama.ai/) — `ollama pull qwen3:8b && ollama serve`
+- [Ollama](https://ollama.ai/) — `ollama pull command-r7b-arabic && ollama serve`
 
 ### Build & Run
 

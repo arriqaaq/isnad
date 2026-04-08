@@ -50,7 +50,7 @@
   <circle cx="56" cy="264" r="15" fill="#d63384"/>
   <text x="56" y="269" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="12" font-weight="700" fill="#ffffff">4</text>
   <text x="84" y="260" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="13" font-weight="700" fill="#1a1a2e">LoRA Fine-tune</text>
-  <text x="84" y="276" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="11" fill="#9ca3af">MLX LoRA on Phi-4-mini-instruct (3.8B) or Qwen2.5-3B — 1,000 iterations, 16 LoRA layers</text>
+  <text x="84" y="276" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="11" fill="#9ca3af">MLX LoRA on Phi-4-mini-instruct (3.8B) or Command-R7B-Arabic — 1,000 iterations, 16 LoRA layers</text>
   <!-- Path chips -->
   <rect x="84" y="286" width="100" height="18" rx="9" fill="rgba(214,51,132,0.08)" stroke="rgba(214,51,132,0.15)" stroke-width="1"/>
   <text x="134" y="299" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="9" font-weight="600" fill="#4a4a68">Path A: MLX local</text>

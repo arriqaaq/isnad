@@ -14,14 +14,14 @@ frontend:
 backend:
 	cargo build
 
-# Start server (foreground) with qwen3:8b
+# Start server (foreground) with command-r7b-arabic
 server: build
-	cargo run -- serve --port 3000 --ollama-model qwen3:8b
+	cargo run -- serve --port 3000 --ollama-model command-r7b-arabic
 
-# Build everything and start server in background with qwen3:8b
+# Build everything and start server in background with command-r7b-arabic
 dev: build
 	@echo "Starting server on http://localhost:3000..."
-	@cargo run -- serve --port 3000 --ollama-model qwen3:8b &
+	@cargo run -- serve --port 3000 --ollama-model command-r7b-arabic &
 	@sleep 2
 	@echo "Server running at http://localhost:3000 (use 'make stop' to shut down)"
 
@@ -82,7 +82,7 @@ hadith-ingest:
 
 # Full ingest with Ollama translation for remaining gaps
 ingest-full:
-	cargo run -- ingest --translate --translate-model qwen3:8b
+	cargo run -- ingest --translate --translate-model command-r7b-arabic
 
 # Ingest with sunnah.com English translations (no Ollama needed)
 ingest:

@@ -290,7 +290,7 @@
               { n: '1', title: 'Raw Data', desc: 'SemanticHadith 34K · QUL · Sunnah.com' },
               { n: '2', title: 'Parse & Enrich', desc: 'Join translations + narrator bios + tafsir' },
               { n: '3', title: 'Generate QA', desc: 'ChatML pairs matching RAG prompt pattern' },
-              { n: '4', title: 'LoRA Fine-tune', desc: 'MLX on Phi-4-mini / Qwen' },
+              { n: '4', title: 'LoRA Fine-tune', desc: 'MLX on Phi-4-mini / Command-R' },
               { n: '5', title: 'GGUF → Ollama', desc: 'Quantize Q4_K_M · ollama create · serve' },
             ] as step, i}
               <div class="pipe-card animate-on-scroll stagger-{Math.min(i + 1, 4)}" use:inview>

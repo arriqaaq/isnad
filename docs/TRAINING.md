@@ -274,7 +274,7 @@ MLX is Apple's native ML framework, optimized for unified memory on Apple Silico
 - ~2GB memory footprint in 4-bit quantization
 
 Alternative lighter models:
-- `mlx-community/Qwen2.5-3B-Instruct-4bit` — 2.8B params, ChatML, 32K context
+- `CohereForAI/c4ai-command-r7b-arabic` — 7B params, Arabic-tuned, strong multilingual
 - `mlx-community/SmolLM2-1.7B-Instruct-4bit` — 1.7B params, ultra-light (fits in 8GB)
 
 #### Setup Virtual Environment
@@ -507,5 +507,5 @@ cargo run -- serve --model hadith-scholar
 
 ### Model doesn't understand Arabic
 - Phi-4-mini has multilingual support but may need more Arabic training examples
-- Consider Qwen2.5 models which have stronger Arabic/multilingual capabilities
+- Consider Command-R7B-Arabic (`CohereForAI/c4ai-command-r7b-arabic`) which has native Arabic support
 - Ensure training data includes Arabic terms with transliterations

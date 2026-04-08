@@ -47,7 +47,7 @@
 
     <div class="nav-divider"></div>
 
-    {#each hadithItems as item}
+    {#each quranItems as item}
       <a
         href={item.path}
         class="nav-item"
@@ -60,7 +60,7 @@
 
     <div class="nav-divider"></div>
 
-    {#each quranItems as item}
+    {#each hadithItems as item}
       <a
         href={item.path}
         class="nav-item"

@@ -110,6 +110,9 @@ pub(crate) struct FamilyGraph {
     pub(crate) nodes: HashMap<String, NarratorNode>,
     pub(crate) edges: HashMap<String, Vec<Edge>>, // key: "student->teacher"
     pub(crate) variant_ids: HashSet<String>,
+    ancestors_cache: HashMap<String, HashSet<String>>,
+    descendants_cache: HashMap<String, HashSet<String>>,
+    variant_narrator_map: Option<HashMap<String, HashSet<String>>>,
 }
 
 fn norm(val: f64, min: f64, max: f64) -> f64 {
@@ -135,20 +138,43 @@ fn parse_generation(generation: &str) -> Option<i64> {
 // ── Core analysis ──
 
 impl FamilyGraph {
-    fn compute_features(&self) -> HashMap<String, FeatureVector> {
+    pub(crate) fn new(
+        nodes: HashMap<String, NarratorNode>,
+        edges: HashMap<String, Vec<Edge>>,
+        variant_ids: HashSet<String>,
+    ) -> Self {
+        Self {
+            nodes,
+            edges,
+            variant_ids,
+            ancestors_cache: HashMap::new(),
+            descendants_cache: HashMap::new(),
+            variant_narrator_map: None,
+        }
+    }
+
+    fn compute_features(&mut self) -> HashMap<String, FeatureVector> {
         let total_variants = self.variant_ids.len();
         if total_variants == 0 {
             return HashMap::new();
         }
 
+        // Ensure variant→narrator map is built once before the loop
+        self.ensure_variant_narrator_map();
+
+        // Collect node ids to avoid borrowing self immutably while mutating caches
+        let nids: Vec<String> = self.nodes.keys().cloned().collect();
+
         let mut features = HashMap::new();
 
-        for (nid, node) in &self.nodes {
-            // 1. Fan-out
-            let fan_out = node.direct_students.len();
-
-            // 2. Bundle coverage
-            let bundle_coverage = node.variants.len() as f64 / total_variants as f64;
+        for nid in &nids {
+            let (fan_out, bundle_coverage) = {
+                let node = &self.nodes[nid];
+                (
+                    node.direct_students.len(),
+                    node.variants.len() as f64 / total_variants as f64,
+                )
+            };
 
             // 3. Collector diversity: distinct terminal narrators reachable downstream
             let collectors = self.reachable_terminals(nid);
@@ -248,7 +274,7 @@ impl FamilyGraph {
 
     /// Compute bypass ratio: fraction of variants that bypass this narrator
     /// (have both ancestors and descendants but don't include this narrator).
-    fn compute_bypass_ratio(&self, nid: &str) -> f64 {
+    fn compute_bypass_ratio(&mut self, nid: &str) -> f64 {
         let node = match self.nodes.get(nid) {
             Some(n) => n,
             None => return 0.0,
@@ -260,28 +286,26 @@ impl FamilyGraph {
         }
 
         // Variants NOT containing this narrator
-        let missing: Vec<&String> = self
+        let missing: Vec<String> = self
             .variant_ids
             .iter()
             .filter(|v| !node.variants.contains(*v))
+            .cloned()
             .collect();
 
-        let ancestors = self.reachable_set(nid, Direction::Teachers);
-        let descendants = self.reachable_set(nid, Direction::Students);
+        let ancestors = self.reachable_set_cached(nid, Direction::Teachers);
+        let descendants = self.reachable_set_cached(nid, Direction::Students);
+
+        let variant_narrators = self.variant_narrator_map.as_ref().unwrap();
 
         let mut bypass_count = 0;
         for variant in &missing {
-            // Check if any narrator in this variant is an ancestor AND any is a descendant
-            let has_ancestor = self
-                .nodes
-                .values()
-                .any(|n| n.variants.contains(*variant) && ancestors.contains(&self.node_key(n)));
-            let has_descendant = self
-                .nodes
-                .values()
-                .any(|n| n.variants.contains(*variant) && descendants.contains(&self.node_key(n)));
-            if has_ancestor && has_descendant {
-                bypass_count += 1;
+            if let Some(narrators) = variant_narrators.get(variant) {
+                let has_ancestor = narrators.iter().any(|n| ancestors.contains(n));
+                let has_descendant = narrators.iter().any(|n| descendants.contains(n));
+                if has_ancestor && has_descendant {
+                    bypass_count += 1;
+                }
             }
         }
 
@@ -319,6 +343,36 @@ impl FamilyGraph {
         visited
     }
 
+    pub(crate) fn reachable_set_cached(&mut self, nid: &str, dir: Direction) -> HashSet<String> {
+        let cache = match dir {
+            Direction::Teachers => &self.ancestors_cache,
+            Direction::Students => &self.descendants_cache,
+        };
+        if let Some(cached) = cache.get(nid) {
+            return cached.clone();
+        }
+        let result = self.reachable_set(nid, dir);
+        let cache = match dir {
+            Direction::Teachers => &mut self.ancestors_cache,
+            Direction::Students => &mut self.descendants_cache,
+        };
+        cache.insert(nid.to_string(), result.clone());
+        result
+    }
+
+    fn ensure_variant_narrator_map(&mut self) {
+        if self.variant_narrator_map.is_some() {
+            return;
+        }
+        let mut map: HashMap<String, HashSet<String>> = HashMap::new();
+        for (nid, node) in &self.nodes {
+            for vid in &node.variants {
+                map.entry(vid.clone()).or_default().insert(nid.clone());
+            }
+        }
+        self.variant_narrator_map = Some(map);
+    }
+
     fn compute_chronology_ratio(&self, nid: &str) -> f64 {
         let mut total_edges = 0usize;
         let mut conflict_edges = 0usize;
@@ -346,7 +400,7 @@ impl FamilyGraph {
         }
     }
 
-    fn compute_provenance(&self, nid: &str) -> f64 {
+    fn compute_provenance(&mut self, nid: &str) -> f64 {
         // Fraction of narrators in this narrator's chains that have biographical data
         let _node = match self.nodes.get(nid) {
             Some(n) => n,
@@ -354,8 +408,8 @@ impl FamilyGraph {
         };
 
         let chain_narrators: HashSet<String> = {
-            let mut all = self.reachable_set(nid, Direction::Teachers);
-            all.extend(self.reachable_set(nid, Direction::Students));
+            let mut all = self.reachable_set_cached(nid, Direction::Teachers);
+            all.extend(self.reachable_set_cached(nid, Direction::Students));
             all.insert(nid.to_string());
             all
         };
@@ -373,6 +427,7 @@ impl FamilyGraph {
     }
 }
 
+#[derive(Clone, Copy)]
 pub(crate) enum Direction {
     Teachers,
     Students,
@@ -491,23 +546,28 @@ pub(crate) async fn build_family_graph(
     };
 
     let mut bio_map: HashMap<String, NarratorBio> = HashMap::new();
-    for nid in &narrator_ids {
-        let mut res = db
-            .query("SELECT id, bio, generation, reliability_prior FROM $rid")
-            .bind(("rid", RecordId::new("narrator", nid.as_str())))
-            .await?;
-        let bio: Option<NarratorBio> = res.take(0)?;
-        if let Some(b) = bio {
-            bio_map.insert(nid.clone(), b);
+    let narrator_rids: Vec<RecordId> = narrator_ids
+        .iter()
+        .map(|nid| RecordId::new("narrator", nid.as_str()))
+        .collect();
+    let mut res = db
+        .query("SELECT id, bio, generation, reliability_prior FROM narrator WHERE id IN $ids")
+        .bind(("ids", narrator_rids))
+        .await?;
+    let bios: Vec<NarratorBio> = res.take(0)?;
+    for bio in bios {
+        if let Some(ref id) = bio.id {
+            let key = crate::models::record_id_key_string(id);
+            bio_map.insert(key, bio);
         }
     }
 
     // 5. Build the family graph
-    let mut graph = FamilyGraph {
-        nodes: HashMap::new(),
-        edges: HashMap::new(),
-        variant_ids: hadith_keys.iter().cloned().collect(),
-    };
+    let mut graph = FamilyGraph::new(
+        HashMap::new(),
+        HashMap::new(),
+        hadith_keys.iter().cloned().collect(),
+    );
 
     // Initialize nodes from narrates edges
     for nr in &narrates {
@@ -564,7 +624,7 @@ pub async fn analyze_family(
     family_id: &str,
     profile: &str, // "structural_only" or "reliability_weighted"
 ) -> Result<FamilyAnalysisResult> {
-    let graph = match build_family_graph(db, family_id).await? {
+    let mut graph = match build_family_graph(db, family_id).await? {
         Some(g) => g,
         None => {
             return Ok(FamilyAnalysisResult {
@@ -600,7 +660,7 @@ pub async fn analyze_family(
         }
         if f.fan_out >= PCL_MIN_FAN_OUT && f.bundle_coverage >= PCL_MIN_BUNDLE_COVERAGE {
             // Determine mode
-            let ancestors = graph.reachable_set(nid, Direction::Teachers);
+            let ancestors = graph.reachable_set_cached(nid, Direction::Teachers);
             let is_cl_anchored = ancestors.iter().any(|a| cl_set.contains(a));
             let mode = if is_cl_anchored {
                 "cl_anchored"
@@ -707,7 +767,7 @@ pub async fn analyze_family(
     // 10. Juynboll falsifiability analysis (runs on families with CLs)
     let juynboll = if !cl_candidates.is_empty() {
         Some(super::juynboll::analyze_family_juynboll(
-            &graph,
+            &mut graph,
             &cl_candidates,
             family_id,
         ))
