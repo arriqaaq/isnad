@@ -1,4 +1,4 @@
-use std::collections::{HashSet, VecDeque};
+use std::collections::HashSet;
 
 use anyhow::Result;
 use serde::Serialize;
@@ -6,7 +6,7 @@ use surrealdb::Surreal;
 use surrealdb::types::{RecordId, SurrealValue};
 
 use crate::db::Db;
-use crate::models::{Hadith, HadithSearchResult, Narrator, record_id_key_string, record_id_string};
+use crate::models::{HadithSearchResult, Narrator, record_id_key_string, record_id_string};
 
 /// Output from a structured tool execution, ready for both SSE and LLM context.
 pub struct ToolOutput {
@@ -93,22 +93,59 @@ pub async fn count_hadiths(
     let name = narrator.name_ar.as_deref().unwrap_or(&narrator.name_en);
 
     let (count, book_label) = if let Some(book_name) = book {
-        // Book-specific count via graph traversal
+        // Resolve book name → book_id first, then use indexed int comparison.
+        // hadith.book_id has hadith_book index; narrates.in has narrates_in_idx.
         #[derive(Debug, SurrealValue)]
-        struct CountRow {
-            count: i64,
+        struct BookRow {
+            book_number: i64,
+            name_en: String,
         }
-
-        let sql = "SELECT count() AS count FROM narrates \
-                   WHERE in = $nid AND out.book_name CONTAINS $book \
-                   GROUP ALL";
-        let mut res = db
-            .query(sql)
-            .bind(("nid", nid.clone()))
-            .bind(("book", book_name.to_string()))
+        let mut book_res = db
+            .query(
+                "SELECT book_number, name_en FROM book \
+                 WHERE string::lowercase(name_en) CONTAINS string::lowercase($name) \
+                 LIMIT 1",
+            )
+            .bind(("name", book_name.to_string()))
             .await?;
-        let row: Option<CountRow> = res.take(0).unwrap_or(None);
-        (row.map(|r| r.count).unwrap_or(0), Some(book_name))
+        let resolved_book: Option<BookRow> = book_res.take(0).unwrap_or(None);
+
+        if let Some(bk) = resolved_book {
+            #[derive(Debug, SurrealValue)]
+            struct CountRow {
+                count: i64,
+            }
+            // Use book_id (int) comparison — out.book_id uses hadith_book index
+            let sql = "SELECT count() AS count FROM narrates \
+                       WHERE in = $nid AND out.book_id = $book_id \
+                       GROUP ALL";
+            let mut res = db
+                .query(sql)
+                .bind(("nid", nid.clone()))
+                .bind(("book_id", bk.book_number))
+                .await?;
+            let row: Option<CountRow> = res.take(0).unwrap_or(None);
+            (row.map(|r| r.count).unwrap_or(0), Some(bk.name_en))
+        } else {
+            // Book not found — fall back to string match on book_name
+            #[derive(Debug, SurrealValue)]
+            struct CountRow {
+                count: i64,
+            }
+            let sql = "SELECT count() AS count FROM narrates \
+                       WHERE in = $nid AND out.book_name CONTAINS $book \
+                       GROUP ALL";
+            let mut res = db
+                .query(sql)
+                .bind(("nid", nid.clone()))
+                .bind(("book", book_name.to_string()))
+                .await?;
+            let row: Option<CountRow> = res.take(0).unwrap_or(None);
+            (
+                row.map(|r| r.count).unwrap_or(0),
+                Some(book_name.to_string()),
+            )
+        }
     } else {
         // Use pre-computed hadith_count
         (narrator.hadith_count.unwrap_or(0), None)
@@ -119,7 +156,7 @@ pub async fn count_hadiths(
     if let Some(generation) = &narrator.generation {
         context.push_str(&format!("Generation (Tabaqah): {generation}\n"));
     }
-    if let Some(book_label) = book_label {
+    if let Some(ref book_label) = book_label {
         context.push_str(&format!("Hadiths narrated in {book_label}: {count}\n"));
     } else {
         context.push_str(&format!("Total hadiths narrated: {count}\n"));
@@ -216,11 +253,6 @@ struct StudentsResult {
     students: Vec<Narrator>,
 }
 
-#[derive(Debug, SurrealValue)]
-struct HadithsResult {
-    hadiths: Vec<Hadith>,
-}
-
 /// Get narrator's teachers (who they heard from).
 pub async fn narrator_teachers(db: &Surreal<Db>, narrator: &Narrator) -> Result<ToolOutput> {
     let nid = narrator.id.as_ref().unwrap();
@@ -307,18 +339,18 @@ pub async fn narrator_hadiths(
 ) -> Result<ToolOutput> {
     let nid = narrator.id.as_ref().unwrap();
     let name = narrator.name_ar.as_deref().unwrap_or(&narrator.name_en);
+    let total = narrator.hadith_count.unwrap_or(0);
 
+    // Query narrates edges directly with LIMIT — avoids fetching all hadiths into memory.
+    // Uses narrates_in_idx on `in`.
     let sql = format!(
-        "SELECT ->narrates->hadith.{{{}}} AS hadiths FROM $nid",
-        crate::models::HADITH_SEARCH_FIELDS
+        "SELECT out.id AS id, out.hadith_number AS hadith_number, out.book_id AS book_id, \
+         out.text_ar AS text_ar, out.text_en AS text_en, out.narrator_text AS narrator_text \
+         FROM narrates WHERE in = $nid LIMIT {limit}"
     );
 
     let mut res = db.query(&sql).bind(("nid", nid.clone())).await?;
-
-    let result: Option<HadithsResult> = res.take(0).unwrap_or(None);
-    let hadiths = result.map(|r| r.hadiths).unwrap_or_default();
-    let total = hadiths.len();
-    let sample: Vec<&Hadith> = hadiths.iter().take(limit).collect();
+    let sample: Vec<HadithSearchResult> = res.take(0).unwrap_or_default();
 
     let mut context = format!("## Hadiths narrated by {name} ({})\n\n", narrator.name_en);
     context.push_str(&format!(
@@ -338,28 +370,16 @@ pub async fn narrator_hadiths(
         }
     }
 
-    let hadith_sources: Vec<HadithSearchResult> = sample
-        .iter()
-        .map(|h| HadithSearchResult {
-            id: h.id.clone(),
-            hadith_number: h.hadith_number,
-            book_id: h.book_id,
-            text_ar: h.text_ar.clone(),
-            text_en: h.text_en.clone(),
-            narrator_text: h.narrator_text.clone(),
-            score: None,
-        })
-        .collect();
-
     let source = narrator_to_source(narrator, vec![], vec![]);
     Ok(ToolOutput {
         context,
         narrator_sources: vec![source],
-        hadith_sources,
+        hadith_sources: sample,
     })
 }
 
-/// Find a transmission path between two narrators via BFS over heard_from edges.
+/// Find a transmission path between two narrators via batched BFS over heard_from edges.
+/// Uses 2 queries per depth level (one for each edge direction) instead of 1 per node.
 pub async fn chain_between(
     db: &Surreal<Db>,
     narrator1: &Narrator,
@@ -373,79 +393,117 @@ pub async fn chain_between(
     let id1_str = record_id_string(id1);
     let id2_str = record_id_string(id2);
 
-    // BFS from narrator1, expanding both directions of heard_from
+    // Batched BFS: query ALL frontier nodes at once per depth level.
+    // 2 queries per level (outward + inward edges) instead of 1 query per node.
     let max_depth = 6;
     let mut visited: HashSet<String> = HashSet::new();
-    let mut queue: VecDeque<(RecordId, Vec<(String, String)>)> = VecDeque::new();
-    // (current_node, path_of (id_str, name) pairs)
+    // Map from node id_str -> (parent_id_str, node_name) for path reconstruction
+    let mut parent: std::collections::HashMap<String, (String, String)> =
+        std::collections::HashMap::new();
 
     visited.insert(id1_str.clone());
-    queue.push_back((id1.clone(), vec![(id1_str.clone(), name1.to_string())]));
+    parent.insert(id1_str.clone(), ("".to_string(), name1.to_string()));
 
-    let mut found_path: Option<Vec<(String, String)>> = None;
+    let mut frontier: Vec<RecordId> = vec![id1.clone()];
+    let mut found = false;
 
+    // Edge row: one side is a frontier node, the other is the neighbor
     #[derive(Debug, SurrealValue)]
-    struct Neighbor {
-        id: Option<RecordId>,
-        name_ar: Option<String>,
-        name_en: String,
+    struct EdgeRow {
+        from_id: RecordId,
+        to_id: RecordId,
+        to_name_ar: Option<String>,
+        to_name_en: String,
     }
 
-    while let Some((current, path)) = queue.pop_front() {
-        if path.len() > max_depth {
+    for _depth in 0..max_depth {
+        if frontier.is_empty() {
             break;
         }
 
-        // Expand both directions: teachers and students
+        // Batch query: outward edges (frontier -> heard_from -> narrator)
+        // Uses heard_from_out_idx on `out` (frontier nodes are `out` in heard_from)
+        // heard_from: in=student, out=teacher. "out heard_from in" = "out's teacher is in"
+        // Wait — re-reading schema: RELATION FROM narrator TO narrator
+        // RELATE $from->heard_from->$to means $from heard from $to
+        // So `out` = the person being heard from (teacher), `in` = the one who heard (student)
+        // ->heard_from-> traverses outward: gets teachers
+        // <-heard_from<- traverses inward: gets students
+        //
+        // For edges where frontier nodes are the `in` side (student): teachers
         let mut res = db
             .query(
-                "SELECT array::distinct(array::flatten([\
-                    ->heard_from->narrator.{id, name_ar, name_en}, \
-                    <-heard_from<-narrator.{id, name_ar, name_en}\
-                ])) AS neighbors FROM $nid",
+                "SELECT in AS from_id, out AS to_id, out.name_ar AS to_name_ar, out.name_en AS to_name_en \
+                 FROM heard_from WHERE in IN $frontier",
             )
-            .bind(("nid", current))
+            .bind(("frontier", frontier.clone()))
             .await?;
+        let outward: Vec<EdgeRow> = res.take(0).unwrap_or_default();
 
-        #[derive(Debug, SurrealValue)]
-        struct NeighborsResult {
-            neighbors: Vec<Neighbor>,
-        }
+        // For edges where frontier nodes are the `out` side (teacher): students
+        let mut res2 = db
+            .query(
+                "SELECT out AS from_id, in AS to_id, in.name_ar AS to_name_ar, in.name_en AS to_name_en \
+                 FROM heard_from WHERE out IN $frontier",
+            )
+            .bind(("frontier", frontier.clone()))
+            .await?;
+        let inward: Vec<EdgeRow> = res2.take(0).unwrap_or_default();
 
-        let result: Option<NeighborsResult> = res.take(0).unwrap_or(None);
-        let neighbors = result.map(|r| r.neighbors).unwrap_or_default();
+        let mut next_frontier: Vec<RecordId> = Vec::new();
 
-        for n in neighbors {
-            let Some(ref nid) = n.id else { continue };
-            let nid_str = record_id_string(nid);
-            if visited.contains(&nid_str) {
+        for edge in outward.iter().chain(inward.iter()) {
+            let from_str = record_id_string(&edge.from_id);
+            let to_str = record_id_string(&edge.to_id);
+
+            if visited.contains(&to_str) {
                 continue;
             }
-            visited.insert(nid_str.clone());
+            visited.insert(to_str.clone());
 
-            let nname = n.name_ar.as_deref().unwrap_or(&n.name_en).to_string();
-            let mut new_path = path.clone();
-            new_path.push((nid_str.clone(), nname));
+            let to_name = edge
+                .to_name_ar
+                .as_deref()
+                .unwrap_or(&edge.to_name_en)
+                .to_string();
+            parent.insert(to_str.clone(), (from_str, to_name));
 
-            if nid_str == id2_str {
-                found_path = Some(new_path);
+            if to_str == id2_str {
+                found = true;
                 break;
             }
-
-            queue.push_back((nid.clone(), new_path));
+            next_frontier.push(edge.to_id.clone());
         }
 
-        if found_path.is_some() {
+        if found {
             break;
         }
+        frontier = next_frontier;
     }
+
+    // Reconstruct path from parent map
+    let found_path = if found {
+        let mut path = Vec::new();
+        let mut current = id2_str.clone();
+        while !current.is_empty() {
+            if let Some((prev, name)) = parent.get(&current) {
+                path.push(name.clone());
+                current = prev.clone();
+            } else {
+                break;
+            }
+        }
+        path.reverse();
+        Some(path)
+    } else {
+        None
+    };
 
     let mut context = format!("## Transmission Chain: {} ↔ {}\n\n", name1, name2);
 
     if let Some(ref path) = found_path {
         context.push_str(&format!("Found a path of {} steps:\n\n", path.len() - 1));
-        let names: Vec<&str> = path.iter().map(|(_, name)| name.as_str()).collect();
-        context.push_str(&format!("{}\n", names.join(" → ")));
+        context.push_str(&format!("{}\n", path.join(" → ")));
     } else {
         context.push_str(&format!(
             "No transmission path found between {name1} and {name2} within {max_depth} steps.\n"
