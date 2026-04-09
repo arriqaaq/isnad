@@ -29,7 +29,7 @@
   }
 
   onMount(() => {
-    fetchAllNotes({ ref_type: 'topic', limit: 5 })
+    fetchAllNotes({ limit: 10 })
       .then(res => { recentNotes = res.data; })
       .catch(() => {})
       .finally(() => { loading = false; });
