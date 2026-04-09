@@ -54,7 +54,7 @@ struct CsvAyah {
     tafsir_en: String,
 }
 
-pub async fn ingest(db: &Surreal<Db>, csv_path: &str) -> Result<()> {
+pub async fn ingest(db: &Surreal<Db>, csv_path: &str, embedder: &Embedder) -> Result<()> {
     // 1. Create surah records from hardcoded metadata
     println!("📖 Creating surah records...");
     create_surahs(db).await?;
@@ -109,7 +109,7 @@ pub async fn ingest(db: &Surreal<Db>, csv_path: &str) -> Result<()> {
 
     // 3. Generate embeddings
     println!("🧠 Generating ayah embeddings...");
-    embed_all_ayahs(db).await?;
+    embed_all_ayahs(db, embedder).await?;
 
     Ok(())
 }
@@ -146,9 +146,7 @@ struct AyahForEmbed {
     text_en: Option<String>,
 }
 
-async fn embed_all_ayahs(db: &Surreal<Db>) -> Result<()> {
-    let embedder = Embedder::new()?;
-
+async fn embed_all_ayahs(db: &Surreal<Db>, embedder: &Embedder) -> Result<()> {
     let mut response = db
         .query("SELECT id, surah_number, ayah_number, text_ar, text_en FROM ayah WHERE embedding IS NONE")
         .await?;

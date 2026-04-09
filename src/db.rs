@@ -10,9 +10,10 @@ pub async fn connect(path: &str) -> Result<Surreal<Db>> {
     Ok(db)
 }
 
-pub async fn init_schema(db: &Surreal<Db>) -> Result<()> {
+pub async fn init_schema(db: &Surreal<Db>, embed_dim: usize) -> Result<()> {
+    let schema = SCHEMA.replace("DIMENSION 1024", &format!("DIMENSION {embed_dim}"));
     // Execute schema statements individually to get better error reporting
-    for (i, stmt) in SCHEMA
+    for (i, stmt) in schema
         .split(';')
         .map(|s| s.trim())
         .filter(|s| !s.is_empty() && !s.starts_with("--"))
@@ -348,8 +349,9 @@ DEFINE INDEX IF NOT EXISTS tafsir_chunk_vec ON TABLE tafsir_chunk FIELDS embeddi
 DEFINE INDEX IF NOT EXISTS tafsir_chunk_ayah ON TABLE tafsir_chunk FIELDS ayah_id
 "#;
 
-pub async fn init_tafsir_chunk_schema(db: &Surreal<Db>) -> Result<()> {
-    for (i, stmt) in TAFSIR_CHUNK_SCHEMA
+pub async fn init_tafsir_chunk_schema(db: &Surreal<Db>, embed_dim: usize) -> Result<()> {
+    let schema = TAFSIR_CHUNK_SCHEMA.replace("DIMENSION 1024", &format!("DIMENSION {embed_dim}"));
+    for (i, stmt) in schema
         .split(';')
         .map(|s| s.trim())
         .filter(|s| !s.is_empty() && !s.starts_with("--"))
@@ -368,8 +370,9 @@ pub async fn init_tafsir_chunk_schema(db: &Surreal<Db>) -> Result<()> {
     Ok(())
 }
 
-pub async fn init_quran_schema(db: &Surreal<Db>) -> Result<()> {
-    for (i, stmt) in QURAN_SCHEMA
+pub async fn init_quran_schema(db: &Surreal<Db>, embed_dim: usize) -> Result<()> {
+    let schema = QURAN_SCHEMA.replace("DIMENSION 1024", &format!("DIMENSION {embed_dim}"));
+    for (i, stmt) in schema
         .split(';')
         .map(|s| s.trim())
         .filter(|s| !s.is_empty() && !s.starts_with("--"))

@@ -185,6 +185,7 @@ pub async fn ingest(
     db: &Surreal<Db>,
     json_path: &str,
     limit_per_book: Option<usize>,
+    embedder: &crate::embed::Embedder,
 ) -> Result<()> {
     let path = Path::new(json_path);
     if !path.exists() {
@@ -610,7 +611,7 @@ pub async fn ingest(
 
     // Generate embeddings
     println!("🔢 Generating embeddings...");
-    crate::embed::embed_all_hadiths(db).await?;
+    crate::embed::embed_all_hadiths(db, embedder).await?;
 
     // Backfill narrator hadith counts
     println!("📊 Computing narrator hadith counts...");

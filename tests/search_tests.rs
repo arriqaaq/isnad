@@ -1,7 +1,7 @@
 use std::sync::OnceLock;
 
 use hadith::db::{self, Db};
-use hadith::embed::Embedder;
+use hadith::embed::{EmbedModel, Embedder};
 use hadith::models::record_id_string;
 use hadith::search;
 use surrealdb::Surreal;
@@ -18,14 +18,17 @@ async fn get_db() -> &'static Surreal<Db> {
         let db = db::connect("db_data")
             .await
             .expect("Failed to connect to db_data/");
-        db::init_schema(&db).await.expect("Failed to init schema");
+        db::init_schema(&db, EmbedModel::default().dimension())
+            .await
+            .expect("Failed to init schema");
         db
     })
     .await
 }
 
 fn get_embedder() -> &'static Embedder {
-    EMBEDDER.get_or_init(|| Embedder::new().expect("Failed to create embedder"))
+    EMBEDDER
+        .get_or_init(|| Embedder::new(EmbedModel::default()).expect("Failed to create embedder"))
 }
 
 // -- Helper types for raw queries --

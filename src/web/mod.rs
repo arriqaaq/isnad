@@ -12,7 +12,7 @@ use tower_http::cors::{Any, CorsLayer};
 use tower_http::services::{ServeDir, ServeFile};
 
 use crate::db::Db;
-use crate::embed::Embedder;
+use crate::embed::{EmbedModel, Embedder};
 use crate::rag::OllamaClient;
 
 #[derive(Clone)]
@@ -27,8 +27,9 @@ pub async fn serve(
     port: u16,
     ollama_url: Option<String>,
     ollama_model: Option<String>,
+    embed_model: EmbedModel,
 ) -> Result<()> {
-    let embedder = Arc::new(Embedder::new()?);
+    let embedder = Arc::new(Embedder::new(embed_model)?);
     let ollama = Some(Arc::new(OllamaClient::new(ollama_url, ollama_model)));
 
     let state = AppState {

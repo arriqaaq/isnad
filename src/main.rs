@@ -1,3 +1,4 @@
+use hadith::embed::EmbedModel;
 use hadith::{analysis, db, embed, ingest, quran, web};
 
 use anyhow::Result;
@@ -36,6 +37,11 @@ enum Commands {
         /// Path to SurrealDB data directory
         #[arg(long, default_value = "db_data")]
         db_path: String,
+
+        /// Embedding model to use
+        /// Embedding model: e5-small is faster, bge-m3 is higher quality but slower
+        #[arg(long, default_value = "bge-m3", value_enum)]
+        embed_model: EmbedModel,
     },
     /// Run analysis on ingested data (families, narrator enrichment)
     Analyze {
@@ -54,6 +60,11 @@ enum Commands {
         /// Skip families larger than this (degenerate clusters hang analysis)
         #[arg(long, default_value = "500")]
         max_family_size: usize,
+
+        /// Embedding model to use
+        /// Embedding model: e5-small is faster, bge-m3 is higher quality but slower
+        #[arg(long, default_value = "bge-m3", value_enum)]
+        embed_model: EmbedModel,
     },
     /// Ingest Quran data (Arabic + English + Tafsir Ibn Kathir)
     IngestQuran {
@@ -64,6 +75,11 @@ enum Commands {
         /// Path to SurrealDB data directory
         #[arg(long, default_value = "db_data")]
         db_path: String,
+
+        /// Embedding model to use
+        /// Embedding model: e5-small is faster, bge-m3 is higher quality but slower
+        #[arg(long, default_value = "bge-m3", value_enum)]
+        embed_model: EmbedModel,
     },
     /// Ingest Quran→Hadith reference mappings from Quran.com
     IngestQuranHadithRefs {
@@ -112,6 +128,11 @@ enum Commands {
         /// Ollama model name
         #[arg(long, env = "OLLAMA_MODEL")]
         ollama_model: Option<String>,
+
+        /// Embedding model to use
+        /// Embedding model: e5-small is faster, bge-m3 is higher quality but slower
+        #[arg(long, default_value = "bge-m3", value_enum)]
+        embed_model: EmbedModel,
     },
 }
 
@@ -142,6 +163,7 @@ async fn async_main() -> Result<()> {
             translate,
             translate_model,
             db_path,
+            embed_model,
         } => {
             if !std::path::Path::new(&file).exists() {
                 anyhow::bail!(
@@ -151,13 +173,15 @@ async fn async_main() -> Result<()> {
             }
 
             let db = db::connect(&db_path).await?;
-            db::init_schema(&db).await?;
+            db::init_schema(&db, embed_model.dimension()).await?;
             // Define fulltext indexes BEFORE ingesting data — on an empty table
             // this is instant, and subsequent inserts incrementally update the
             // index. This avoids the "memtable history insufficient" error that
             // occurs when building a fulltext index over thousands of rows.
             db::init_fulltext_indexes(&db).await?;
-            ingest::semantic::ingest(&db, &file, limit).await?;
+            let embedder = embed::Embedder::new(embed_model)?;
+            embed::check_embedding_dimension(&db, embed_model.dimension()).await?;
+            ingest::semantic::ingest(&db, &file, limit, &embedder).await?;
 
             // Merge human English translations from sunnah.com (better quality)
             println!("🌐 Merging human English translations from sunnah.com...");
@@ -176,14 +200,15 @@ async fn async_main() -> Result<()> {
             families,
             mustalah,
             max_family_size,
+            embed_model,
         } => {
             let db = db::connect(&db_path).await?;
-            db::init_schema(&db).await?;
+            db::init_schema(&db, embed_model.dimension()).await?;
 
             let mut did_something = false;
 
             if families {
-                let embedder = embed::Embedder::new()?;
+                let embedder = embed::Embedder::new(embed_model)?;
                 let count = analysis::family::compute_families(&db, &embedder).await?;
                 tracing::info!("Created {count} hadith families");
                 did_something = true;
@@ -276,7 +301,11 @@ async fn async_main() -> Result<()> {
                 tracing::warn!("No analysis flags specified. Use --families or --mustalah.");
             }
         }
-        Commands::IngestQuran { file, db_path } => {
+        Commands::IngestQuran {
+            file,
+            db_path,
+            embed_model,
+        } => {
             if !std::path::Path::new(&file).exists() {
                 anyhow::bail!(
                     "Quran CSV not found at {file}. Run: python scripts/prepare_quran_data.py"
@@ -284,28 +313,30 @@ async fn async_main() -> Result<()> {
             }
 
             let db = db::connect(&db_path).await?;
-            db::init_schema(&db).await?;
-            db::init_quran_schema(&db).await?;
-            db::init_tafsir_chunk_schema(&db).await?;
+            let dim = embed_model.dimension();
+            db::init_schema(&db, dim).await?;
+            db::init_quran_schema(&db, dim).await?;
+            db::init_tafsir_chunk_schema(&db, dim).await?;
             // Define fulltext indexes BEFORE ingesting data — on an empty table
             // this is instant, and subsequent inserts incrementally update the
             // index. This avoids the "memtable history insufficient" error that
             // occurs when building a fulltext index over thousands of rows in a
             // single long-running transaction after ingestion.
             db::init_quran_fulltext_indexes(&db).await?;
-            quran::ingest::ingest(&db, &file).await?;
+            let embedder = embed::Embedder::new(embed_model)?;
+            embed::check_embedding_dimension(&db, embed_model.dimension()).await?;
+            quran::ingest::ingest(&db, &file, &embedder).await?;
 
             // Chunk and embed tafsir texts
             println!("📝 Chunking and embedding tafsir texts...");
-            let embedder = embed::Embedder::new()?;
             quran::ingest::embed_tafsir_chunks(&db, &embedder).await?;
 
             tracing::info!("Quran ingestion complete");
         }
         Commands::IngestQuranHadithRefs { db_path } => {
             let db = db::connect(&db_path).await?;
-            db::init_schema(&db).await?;
-            db::init_quran_schema(&db).await?;
+            db::init_schema(&db, EmbedModel::default().dimension()).await?;
+            db::init_quran_schema(&db, EmbedModel::default().dimension()).await?;
             quran::hadith_refs::ingest_hadith_refs(&db).await?;
             tracing::info!("Quran-Hadith reference ingestion complete");
         }
@@ -328,7 +359,7 @@ async fn async_main() -> Result<()> {
         }
         Commands::IngestQuranSimilar { qul_dir, db_path } => {
             let db = db::connect(&db_path).await?;
-            db::init_quran_schema(&db).await?;
+            db::init_quran_schema(&db, EmbedModel::default().dimension()).await?;
             db::init_quran_word_schema(&db).await?;
             db::init_quran_similar_schema(&db).await?;
             println!("Ingesting shared phrases and similar ayahs from {qul_dir}...");
@@ -340,18 +371,21 @@ async fn async_main() -> Result<()> {
             db_path,
             ollama_url,
             ollama_model,
+            embed_model,
         } => {
             let db = db::connect(&db_path).await?;
-            db::init_schema(&db).await?;
-            db::init_quran_schema(&db).await?;
+            let dim = embed_model.dimension();
+            db::init_schema(&db, dim).await?;
+            db::init_quran_schema(&db, dim).await?;
             db::init_quran_word_schema(&db).await?;
             db::init_quran_similar_schema(&db).await?;
-            db::init_tafsir_chunk_schema(&db).await?;
+            db::init_tafsir_chunk_schema(&db, dim).await?;
             db::init_reciter_schema(&db).await?;
             db::init_user_note_schema(&db).await?;
             db::init_link_preview_schema(&db).await?;
             quran::audio::init_reciters(&db).await?;
-            web::serve(db, port, ollama_url, ollama_model).await?;
+            embed::check_embedding_dimension(&db, embed_model.dimension()).await?;
+            web::serve(db, port, ollama_url, ollama_model, embed_model).await?;
         }
     }
 
