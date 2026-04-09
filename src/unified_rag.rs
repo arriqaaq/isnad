@@ -1,6 +1,5 @@
 use anyhow::Result;
 use futures::stream::Stream;
-use serde::Serialize;
 use surrealdb::Surreal;
 use surrealdb::types::SurrealValue;
 
@@ -9,24 +8,11 @@ use crate::embed::Embedder;
 use crate::models::{HadithSearchResult, record_id_string};
 use crate::quran::models::AyahSearchResult;
 use crate::quran::surah_name;
-use crate::rag::OllamaClient;
+use crate::rag::{ChatMessage, ChatRequest, OllamaClient};
 
 const CONTEXT_AYAH_COUNT: usize = 4;
 const CONTEXT_HADITH_COUNT: usize = 4;
 const MAX_TAFSIR_CHARS: usize = 1000;
-
-#[derive(Serialize)]
-struct ChatRequest {
-    model: String,
-    messages: Vec<ChatMessage>,
-    stream: bool,
-}
-
-#[derive(Serialize, Clone)]
-struct ChatMessage {
-    role: String,
-    content: String,
-}
 
 impl OllamaClient {
     /// Retrieve relevant ayahs and hadiths, then stream an LLM answer grounded in both.
@@ -174,6 +160,7 @@ impl OllamaClient {
                 },
             ],
             stream: true,
+            format: None,
         };
 
         let response = self

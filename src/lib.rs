@@ -1,4 +1,6 @@
+pub mod agentic_rag;
 pub mod analysis;
+pub mod classify;
 pub mod db;
 pub mod embed;
 pub mod ingest;
@@ -6,6 +8,7 @@ pub mod models;
 pub mod quran;
 pub mod rag;
 pub mod search;
+pub mod tools;
 pub mod unified;
 pub mod unified_rag;
 pub mod web;

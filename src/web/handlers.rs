@@ -1220,33 +1220,63 @@ pub async fn unified_ask(
     })?;
 
     let model_name = body.model.clone();
-    let (ayah_sources, hadith_sources, byte_stream) = ollama
-        .ask_unified(&state.db, &state.embedder, &question, model_name.as_deref())
+
+    // Use agentic RAG: classify intent, run structured queries or fallback to semantic
+    let result = ollama
+        .ask_agentic(&state.db, &state.embedder, &question, model_name.as_deref())
         .await
         .map_err(|e| {
-            tracing::error!("Unified RAG ask failed: {e}");
+            tracing::error!("Agentic RAG ask failed: {e}");
             StatusCode::INTERNAL_SERVER_ERROR
         })?;
 
+    use crate::agentic_rag::AgenticResult;
     use crate::quran::models::ApiAyahSearchResult;
 
-    let quran_sources: Vec<ApiAyahSearchResult> = ayah_sources
-        .into_iter()
-        .map(ApiAyahSearchResult::from)
-        .collect();
-    let hadith_api_sources: Vec<ApiHadithSearchResult> = hadith_sources
-        .into_iter()
-        .map(ApiHadithSearchResult::from)
-        .collect();
-
-    let sources_event = format!(
-        "data: {}\n\n",
-        serde_json::to_string(&serde_json::json!({
-            "quran_sources": quran_sources,
-            "hadith_sources": hadith_api_sources,
-        }))
-        .unwrap()
-    );
+    let (sources_event, byte_stream) = match result {
+        AgenticResult::Structured {
+            narrator_sources,
+            hadith_sources,
+            byte_stream,
+        } => {
+            let hadith_api: Vec<ApiHadithSearchResult> = hadith_sources
+                .into_iter()
+                .map(ApiHadithSearchResult::from)
+                .collect();
+            let event = format!(
+                "data: {}\n\n",
+                serde_json::to_string(&serde_json::json!({
+                    "narrator_sources": narrator_sources,
+                    "hadith_sources": hadith_api,
+                }))
+                .unwrap()
+            );
+            (event, byte_stream)
+        }
+        AgenticResult::Semantic {
+            ayah_sources,
+            hadith_sources,
+            byte_stream,
+        } => {
+            let quran_api: Vec<ApiAyahSearchResult> = ayah_sources
+                .into_iter()
+                .map(ApiAyahSearchResult::from)
+                .collect();
+            let hadith_api: Vec<ApiHadithSearchResult> = hadith_sources
+                .into_iter()
+                .map(ApiHadithSearchResult::from)
+                .collect();
+            let event = format!(
+                "data: {}\n\n",
+                serde_json::to_string(&serde_json::json!({
+                    "quran_sources": quran_api,
+                    "hadith_sources": hadith_api,
+                }))
+                .unwrap()
+            );
+            (event, byte_stream)
+        }
+    };
 
     let sse_stream =
         futures::stream::once(

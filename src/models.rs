@@ -39,6 +39,8 @@ pub struct Narrator {
     pub reliability_rating: Option<String>,
     pub reliability_source: Option<String>,
     pub ibn_hajar_rank: Option<String>,
+    // Pre-computed count (backfilled via backfill_narrator_hadith_counts)
+    pub hadith_count: Option<i64>,
 }
 
 #[derive(Debug, SurrealValue, Serialize, Clone)]

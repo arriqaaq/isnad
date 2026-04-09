@@ -5,11 +5,27 @@
 
   type SourceMode = 'both' | 'quran' | 'hadith';
 
+  interface NarratorSource {
+    id: string;
+    name_ar?: string;
+    name_en: string;
+    generation?: string;
+    hadith_count?: number;
+    reliability_rating?: string;
+    ibn_hajar_rank?: string;
+    kunya?: string;
+    bio?: string;
+    death_year?: number;
+    teachers?: { id: string; name_ar?: string; name_en: string; generation?: string }[];
+    students?: { id: string; name_ar?: string; name_en: string; generation?: string }[];
+  }
+
   interface Message {
     role: 'user' | 'assistant';
     content: string;
     hadith_sources?: ApiHadithSearchResult[];
     quran_sources?: ApiAyahSearchResult[];
+    narrator_sources?: NarratorSource[];
     streaming?: boolean;
   }
 
@@ -50,8 +66,8 @@
   const suggestions: Record<SourceMode, { label: string; text: string }[]> = {
     both: [
       { label: 'Patience', text: 'What do the Quran and Hadith say about patience?' },
-      { label: 'Charity', text: 'What is the ruling on charity from Quran and Sunnah?' },
-      { label: 'Prayer', text: 'What do the Quran and Hadith teach about prayer?' },
+      { label: 'Abu Huraira', text: 'How many hadiths did Abu Huraira narrate?' },
+      { label: 'Teachers', text: "Who were Imam al-Bukhari's teachers?" },
     ],
     quran: [
       { label: 'Patience', text: 'What does the Quran say about patience?' },
@@ -60,8 +76,8 @@
     ],
     hadith: [
       { label: 'Neighbors', text: 'What did the Prophet say about kindness to neighbors?' },
-      { label: 'Prayer times', text: 'What are the hadiths about prayer times?' },
-      { label: 'Fasting', text: 'What did Abu Huraira narrate about fasting?' },
+      { label: 'Abu Huraira', text: 'How many hadiths did Abu Huraira narrate?' },
+      { label: 'Teachers', text: "Who were Imam al-Bukhari's teachers?" },
     ],
   };
 
@@ -116,12 +132,13 @@
           if (!jsonStr) continue;
           try {
             const data = JSON.parse(jsonStr);
-            // Unified: {quran_sources, hadith_sources}
-            if (data.quran_sources || data.hadith_sources) {
+            // Unified: {quran_sources, hadith_sources, narrator_sources}
+            if (data.quran_sources || data.hadith_sources || data.narrator_sources) {
               messages[idx] = {
                 ...messages[idx],
                 quran_sources: data.quran_sources,
                 hadith_sources: data.hadith_sources,
+                narrator_sources: data.narrator_sources,
               };
             }
             // Hadith-only: {sources}
@@ -215,6 +232,28 @@
                 </div>
               </details>
             {/if}
+
+            {#if msg.narrator_sources && msg.narrator_sources.length > 0}
+              <details class="sources" open>
+                <summary>Narrator Sources ({msg.narrator_sources.length})</summary>
+                <div class="source-list">
+                  {#each msg.narrator_sources as n}
+                    <a href="/narrators/{n.id}" class="source-card narrator-card">
+                      <div class="narrator-header">
+                        <span class="source-narrator">{n.name_en}</span>
+                        {#if n.name_ar}<span class="source-arabic" dir="rtl">{n.name_ar}</span>{/if}
+                      </div>
+                      <div class="narrator-meta">
+                        {#if n.generation}<span class="narrator-tag">Gen {n.generation}</span>{/if}
+                        {#if n.hadith_count}<span class="narrator-tag">{n.hadith_count} hadiths</span>{/if}
+                        {#if n.reliability_rating}<span class="narrator-tag">{n.reliability_rating}</span>{/if}
+                        {#if n.death_year}<span class="narrator-tag">d. {n.death_year} AH</span>{/if}
+                      </div>
+                    </a>
+                  {/each}
+                </div>
+              </details>
+            {/if}
           {:else}
             <div>{msg.content}</div>
           {/if}
@@ -292,6 +331,10 @@
   .source-narrator { color: var(--accent); font-size: 0.8rem; }
   .source-arabic { color: var(--text-primary); font-size: 0.95rem; }
   .source-text { color: var(--text-secondary); }
+  .narrator-card { gap: 6px; }
+  .narrator-header { display: flex; align-items: baseline; gap: 8px; }
+  .narrator-meta { display: flex; flex-wrap: wrap; gap: 4px; }
+  .narrator-tag { font-size: 0.7rem; padding: 2px 8px; background: var(--bg-secondary); border-radius: 10px; color: var(--text-muted); white-space: nowrap; }
   .input-area { display: flex; gap: 8px; padding: 16px 24px; border-top: 1px solid var(--border); background: var(--bg-secondary); }
   .chat-input { flex: 1; padding: 12px 16px; font-size: 0.9rem; }
   .send-btn { padding: 12px 24px; background: var(--accent); color: white; border: none; border-radius: var(--radius); font-weight: 600; font-size: 0.85rem; cursor: pointer; transition: background var(--transition); }

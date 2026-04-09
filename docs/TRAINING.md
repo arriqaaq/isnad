@@ -30,9 +30,9 @@ pip install mlx-lm datasets
 # 2. Generate Quran CSV (loads QUL QPC Hafs + QUL Tafsir Ibn Kathir)
 python3 scripts/prepare_quran_data.py
 
-# 3. Generate training data from hadith/Quran sources
-#    Requires: Ollama running with llama3.2 (ollama pull llama3.2 && ollama serve)
-#    Parses sanadset.csv (30K hadiths) → enriches with translations → generates ~1,400 Q&A examples
+# 3. Generate training data from SemanticHadith KG + Quran
+#    Uses semantic_hadith.json (6,786 narrators + 34K hadiths with chains)
+#    Ollama optional (for RAG Q&A category only): ollama pull command-r7b-arabic
 python3 scripts/prepare_training_data.py
 
 # 4. Fine-tune Phi-4-mini with LoRA (~20-30 min on Apple Silicon)
@@ -101,159 +101,60 @@ python3 scripts/prepare_quran_data.py
 
 ## Step 1: Prepare Training Data
 
-### Data Hierarchy
+### Data Source: SemanticHadith Knowledge Graph
 
-**Sanadset is the source of truth.** After ingestion, SurrealDB contains the fully joined data: hadiths with Arabic text, English translations (merged from sunnah.com), narrator chains (graph edges), and narrator metadata. The other CSVs enrich sanadset during ingest.
+The training pipeline uses `data/semantic_hadith.json` (SemanticHadith KG V2) as the primary source. No SurrealDB dependency — everything comes from this JSON + `data/quran.csv`.
 
-| Source | Role | Content |
-|--------|------|---------|
-| `data/sanadset.csv` (368K rows) | **Primary** — ingested into SurrealDB | Arabic text, matn, narrator chains (isnad) |
-| `data/translations/*.csv` (33,738 rows) | Enrichment — merged during ingest | English translations, chapter titles, grades |
-| `data/ar_sanad_narrators.csv` (18K+ rows) | Enrichment — merged during ingest | Narrator reliability ratings, bios |
-| `data/quran.csv` (6,236 rows) | Separate corpus | Quran verses, translations, Tafsir Ibn Kathir |
+| Source | Content |
+|--------|---------|
+| `data/semantic_hadith.json` | 6,786 narrators (with Ibn Hajar reliability grades, generation, biographical data) + 34,011 hadiths (Arabic + English text, full narrator chains) across 6 books |
+| `data/quran.csv` | 6,236 Quran verses with Arabic, English, Tafsir Ibn Kathir |
 
-### Data Extraction: Parse Raw CSVs Directly
+Each narrator in the KG has: name, popularName, generation (tabaqah 1-12), reliabilityGrade (thiqah/saduq/maqbul/majhul/daif/matruk), ibnHajarRank (full Arabic assessment text), teknonym, lineage, residence, death/birth year.
 
-The training pipeline works from raw CSV files — no SurrealDB dependency. This keeps the pipeline standalone and reproducible.
+Each hadith has: full narrator chain (as ordered list of narrator IDs), Arabic text, English text, book, referenced Quran verses.
 
-**Sanadset parsing** (`data/sanadset.csv`):
-- Column 0 (`Hadith`): Full Arabic text with XML tags — strip `<SANAD>`, `<MATN>`, `<NAR>` tags
-- Column 1 (`Book`): Arabic book name (e.g., "صحيح البخاري")
-- Column 2 (`Num_hadith`): Hadith number (global ID)
-- Column 3 (`Matn`): Content without isnad (the actual teaching)
-- Column 4 (`Sanad`): Narrator chain as Python list string: `['narrator1', 'narrator2', ...]`
-- Column 5 (`Sanad_Length`): Chain length
+### Training Example Categories (6 categories)
 
-**Enrichment from translations** (`data/translations/*.csv`):
-- Match sanadset hadiths to translations by book + hadith number
-- Adds: English text, chapter titles, grades
+#### Category 1: Hadith Science Terminology (~58 examples)
+Hardcoded scholarly definitions from at-Tahhaan's *Tayseer Mustalah al-Hadeeth*. Teaches the model domain vocabulary:
+- Chain continuity: muttasil, munqati, mursal, muallaq, mudal
+- Breadth classes: mutawatir, mashhur, aziz, gharib
+- Narrator reliability: thiqah, saduq, da'if, matruk, majhul, maqbul
+- Tabaqat: Sahabi, Tabi'i, Tabi' al-Tabi'in
+- Corroboration: mutaba'at, shawahid, i'tibaar
+- Structural concepts: Common Link, madar al-isnad, fan-out, bundle coverage, bypass
+- Hadith grading: sahih, hasan, da'if, mawdu'
 
-**Enrichment from narrator bios** (`data/ar_sanad_narrators.csv`, optional):
-- Match narrator names from sanadset's Sanad column
-- Adds: reliability ratings, generation, biographical info
+#### Category 2: Narrator Chain Analysis (~300 examples)
+From KG narrator data + chains. Given a hadith with its full narrator chain (resolved to names, generation, reliability grades, Ibn Hajar assessments), the model learns to assess chain reliability — identifying strong links, weak links, and overall chain strength.
 
-The script builds a unified hadith record: `(hadith_number, book, text_ar, matn, sanad_chain[], text_en?, chapter_title?, narrator_reliability?)`
+#### Category 3: Isnad Structural Analysis (~200 examples)
+From KG chain patterns. Identifies Common Links (narrators appearing in many chains), analyzes their role in transmission, and evaluates their reliability. Uses actual hadith-count-per-narrator data from the KG.
 
-### Why Training Data Must Match the Runtime Pattern
+#### Category 4: Hadith RAG Q&A (~300 examples, uses Ollama)
+From KG hadiths with English text. Matches the runtime RAG prompt pattern from `src/rag.rs` — system prompt with hadith context + narrator chains, user question, scholarly answer citing hadith numbers.
 
-At runtime, the ask loop in `src/rag.rs` sends the LLM a **specific prompt pattern**:
+#### Category 5: Quran + Tafsir (~200 examples)
+From `data/quran.csv`. Uses tafsir text directly as the answer (no Ollama). Long tafsir entries truncated to ~500 words.
 
+#### Category 6: Cross-Domain Hadith↔Quran (~100 examples)
+From KG's `quranVerses` field (580 hadiths reference specific Quran verses). Teaches the model to connect hadith narrations with Quranic teachings.
+
+**Target: ~1,150 total examples (~1,035 train + ~115 valid)**
+
+### Running the Script
+
+```bash
+# All categories except RAG Q&A (instant, no Ollama needed):
+python3 scripts/prepare_training_data.py --rag 0
+
+# Full generation including RAG Q&A (~15 min with 4 Ollama workers):
+python3 scripts/prepare_training_data.py --rag 300 --workers 4
+
+# Custom targets:
+python3 scripts/prepare_training_data.py --terminology 200 --narrator 300 --structural 200 --rag 300 --tafsir 200 --crossdomain 100
 ```
-System: You are a knowledgeable Islamic scholar assistant...
-        Answer questions using ONLY the hadiths provided below as context.
-        Always cite the hadith number when referencing a hadith.
-        When relevant, mention the chain of narration (isnad)...
-
-        ## Relevant Hadiths:
-
-        Hadith #1234 — Abu Hurayra
-        Chain of narration: Abu Hurayra → Ibn Shihab → Malik
-        [hadith English text]
-
-        Hadith #5678 — Aisha
-        Chain of narration: Aisha → Urwa → Az-Zuhri
-        [hadith English text]
-
-User:   What does Islam say about intentions?
-```
-
-**The training data must mirror this exact pattern.** The model's job is to reason over provided hadith context — not to recall hadiths from memory. Training with standalone Q&A would teach the wrong task.
-
-### Training Data Format
-
-ChatML messages JSONL (compatible with both mlx-lm and SFTTrainer):
-
-```jsonl
-{"messages": [{"role": "system", "content": "You are a knowledgeable Islamic scholar assistant...\n\n## Relevant Hadiths:\n\nHadith #1 — Umar bin Al-Khattab\nChain of narration: Al-Humaydi → Sufyan → Yahya bin Said\nNarrated Umar bin Al-Khattab: I heard Allah's Messenger saying, \"The reward of deeds depends upon the intentions...\"\n\n"}, {"role": "user", "content": "What is the significance of intentions in Islam?"}, {"role": "assistant", "content": "According to Hadith #1, narrated by Umar bin Al-Khattab through the chain Al-Humaydi → Sufyan → Yahya bin Said, the Prophet (ﷺ) said: \"The reward of deeds depends upon the intentions.\" This foundational hadith establishes that every action in Islam is judged by its underlying intention (niyyah). The chain includes Al-Humaydi (thiqah/trustworthy) and Sufyan ibn Uyaynah (thiqah), making this a strong chain..."}]}
-```
-
-### Training Example Categories
-
-The script generates examples in **3 categories**, each matching a real usage pattern:
-
-#### Category 1: Hadith RAG Q&A (~800 examples)
-Parses sanadset CSV, enriches with translations. For each example:
-1. Samples 2-4 hadiths from the same book (simulating RAG retrieval)
-2. Extracts the narrator chain from sanadset's `Sanad` column (parsed from Python list string)
-3. Formats them with the exact system prompt from `rag.rs`, including chain of narration
-4. Generates a question about the topic
-5. Generates an answer that cites hadith numbers, discusses the isnad, and explains the teaching
-
-**Question templates** (varied):
-- "What does {Book} say about {topic}?"
-- "Explain the teaching in these hadiths"
-- "What guidance did the Prophet give regarding {topic}?"
-- "Assess the reliability of these narrations on {topic}"
-
-**Answer generation**: Use Ollama (llama3.2) to generate answers given the full hadith context (text + chains + reliability ratings), then post-process to ensure citations are present.
-
-#### Category 2: Quran Tafsir Q&A (~400 examples)
-Uses `data/quran.csv`. For each verse with tafsir:
-1. Provides the verse (Arabic + English) as context
-2. Question: "What is the meaning of Surah {name}, Ayah {num}?"
-3. Answer: Tafsir explanation
-
-**Note on tafsir length**: Some tafsir entries are very long (2000+ words for key verses like Al-Baqarah). Since training uses a fixed sequence length (2048 tokens default), examples exceeding this are silently truncated. Two options:
-- **Option A**: Increase `--max-seq-length 4096` during training (uses more memory but preserves full tafsir)
-- **Option B**: For very long tafsir entries, use Ollama to generate a concise scholarly summary preserving key references, keeping within the default sequence budget
-
-#### Category 3: Narrator Chain Analysis (~200 examples)
-Uses sanadset narrator chains, optionally enriched with ar_sanad_narrators reliability data. Given a hadith:
-1. Extracts the narrator chain from sanadset's `Sanad` column, cross-references with `ar_sanad_narrators.csv` for reliability ratings
-2. Question: "How reliable is the chain of narration for this hadith?"
-3. Answer: Assesses each narrator's reliability rating (thiqah, saduq, da'if, etc.), notes any weak links, overall chain strength
-
-### Data Generation Script
-
-Create `scripts/prepare_training_data.py`:
-
-```python
-#!/usr/bin/env python3
-"""
-Generate instruction-tuning data for hadith-scholar model.
-
-Parses raw CSV files directly (no SurrealDB dependency):
-  - data/sanadset.csv        (source of truth: Arabic text + narrator chains)
-  - data/translations/*.csv  (enrichment: English translations + chapter titles)
-  - data/ar_sanad_narrators.csv (enrichment: narrator reliability ratings)
-  - data/quran.csv           (Quran verses + Tafsir Ibn Kathir)
-
-Uses Ollama to generate Q&A pairs formatted to match the RAG prompt
-pattern in src/rag.rs.
-
-Prerequisites:
-  - Ollama running locally with llama3.2
-  - data/quran.csv (run: python3 scripts/prepare_quran_data.py)
-
-Output:
-  - data/train.jsonl  (~1400 examples)
-  - data/valid.jsonl   (~150 examples)
-"""
-```
-
-The script should:
-1. Parse sanadset CSV → extract hadith text, matn, narrator chains (strip XML tags, parse Sanad list)
-2. Parse translation CSVs → build lookup by book+hadith_number for English text + chapter titles
-3. Optionally parse ar_sanad_narrators CSV → build narrator name → reliability rating lookup
-4. Join: enrich sanadset hadiths with English translations and narrator reliability
-5. Group hadiths by book for RAG simulation
-6. Parse `data/quran.csv` for tafsir examples
-4. For each training example, call Ollama to generate the assistant response
-5. Format as ChatML messages JSONL matching the `rag.rs` system prompt
-6. Shuffle and split 90/10 into `train.jsonl` / `valid.jsonl`
-7. Validate: ensure every example has citations, reasonable length
-
-**Target: ~1,400 training + ~150 validation examples.**
-
-### Data Quality Rules
-
-- Every assistant response MUST cite at least one hadith number (e.g., "Hadith #1234")
-- Every response mentioning a hadith MUST reference its narrator and chain
-- Narrator reliability assessments must use the actual ratings from the DB (not hallucinated)
-- Tafsir responses must reference the surah and ayah number
-- Answers should be 100-500 words (matching the concise style in the system prompt)
-- Arabic terms should include English in parentheses: "isnad (chain of narration)"
-- No hallucinated hadith numbers — only use numbers present in the context
 
 ---
 
