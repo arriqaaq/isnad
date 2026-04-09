@@ -4,7 +4,7 @@
 
 <p align="center">
   <strong>Search the Quran & Sunnah. <em>Deeply.</em></strong><br>
-  A semantic search platform for Islamic scholarship — Quran with tafsir, 368K+ hadiths with narrator chains, and interactive isnad graphs.
+  A semantic search platform for Islamic scholarship — Quran with tafsir, 34K+ hadiths with narrator chains, and interactive isnad graphs.
 </p>
 
 ---
@@ -24,7 +24,7 @@ Rust backend serving a SvelteKit SPA, with SurrealDB as a unified graph + vector
 ## Features
 
 - **Quran Reader** — 114 surahs with Tajweed Arabic, Sahih International translation, expandable Tafsir Ibn Kathir per ayah
-- **Hadith Explorer** — 368K+ hadiths from 926 books across the 6 canonical collections
+- **Hadith Explorer** — 34K+ hadiths from 926 books across the 6 canonical collections
 - **Narrator Networks** — 18K+ narrators with interactive Cytoscape.js graph visualization, Ibn Hajar reliability grades
 - **Hybrid Search** — BM25 full-text + 1024-dim semantic vectors fused with Reciprocal Rank Fusion
 - **Ask AI (GraphRAG)** — Natural language Q&A grounded in Quran/Hadith via local Ollama, with isnad-aware context

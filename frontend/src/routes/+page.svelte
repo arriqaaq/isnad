@@ -32,14 +32,12 @@
     <div class="hero-glow"></div>
     <div class="hero-glow-2"></div>
 
-    <p class="bismillah" dir="rtl">بِسۡمِ ٱللَّهِ ٱلرَّحۡمَـٰنِ ٱلرَّحِيمِ</p>
-
     <div class="hero-title-group">
       <h1 class="hero-title">
         <span class="title-en">Ilm</span>
         <span class="title-ar" dir="rtl">عِلْم</span>
       </h1>
-      <p class="hero-tagline">Search the Quran & Sunnah. <em>Deeply.</em></p>
+      <p class="hero-tagline">Search the Quran & Sunnah</p>
     </div>
 
     <p class="hero-desc">
@@ -118,7 +116,7 @@
       <div class="feat-visual">
         <div class="app-frame">
           <div class="frame-dots"><span></span><span></span><span></span></div>
-          <img src="/img/feature-search.png" alt="Unified search across Quran and Hadith" />
+          <img src="/img/feature-search.svg" alt="Unified search across Quran and Hadith" />
         </div>
       </div>
       <div class="feat-text">
@@ -133,7 +131,7 @@
       <div class="feat-visual">
         <div class="app-frame">
           <div class="frame-dots"><span></span><span></span><span></span></div>
-          <img src="/img/feature-quran.png" alt="Quran reader with tajweed and tafsir" />
+          <img src="/img/feature-quran.svg" alt="Quran reader with tajweed and tafsir" />
         </div>
       </div>
       <div class="feat-text">
@@ -148,12 +146,12 @@
       <div class="feat-visual">
         <div class="app-frame">
           <div class="frame-dots"><span></span><span></span><span></span></div>
-          <img src="/img/feature-hadith.png" alt="Hadith browsing with narrator chains" />
+          <img src="/img/feature-hadith.svg" alt="Hadith browsing with narrator chains" />
         </div>
       </div>
       <div class="feat-text">
         <h3>Hadith Explorer</h3>
-        <p>Browse hundreds of thousands of hadiths from 926 books across 6 canonical collections, each with full narrator chains and source attribution.</p>
+        <p>Browse 34K+ hadiths from 926 books across 6 canonical collections, each with full narrator chains and source attribution.</p>
         <a href="/hadiths" class="feat-link">Explore Hadiths &rarr;</a>
       </div>
     </div>
@@ -163,7 +161,7 @@
       <div class="feat-visual">
         <div class="app-frame">
           <div class="frame-dots"><span></span><span></span><span></span></div>
-          <img src="/img/feature-narrators.png" alt="Interactive narrator graph visualization" />
+          <img src="/img/feature-narrators.svg" alt="Interactive narrator graph visualization" />
         </div>
       </div>
       <div class="feat-text">
@@ -395,11 +393,12 @@
     border-radius: 20px;
   }
   .section-header h2 {
-    font-size: 2rem;
-    font-weight: 700;
+    font-size: 2.5rem;
+    font-weight: 600;
     color: var(--text-primary);
     margin-bottom: 12px;
     letter-spacing: -0.5px;
+    font-style: italic;
   }
   .section-header p {
     font-size: 0.95rem;
@@ -423,14 +422,14 @@
     overflow: hidden;
   }
 
-  /* Shifting gradient background — pink shades, fades at edges */
+  /* Shifting gradient background — warm gold/sand shades */
   .hero-glow {
     position: absolute;
     inset: 0;
     background: linear-gradient(135deg,
-      #fff5f8, #fce4ec, #f9e0f0, #fdf2f8, #f5c6d8, #fff5f8
-    ) 0 0 / 300% 300%;
-    animation: hero-gradient 12s ease infinite;
+      #faf7f0, #f0e4c8, #e8d5a8, #f5edd8, #dcc89a, #f8f0dd, #faf7f0
+    ) 0 0 / 400% 400%;
+    animation: hero-gradient 10s ease infinite;
     pointer-events: none;
     mask-image: linear-gradient(to bottom, transparent 0%, black 15%, black 70%, transparent 100%);
     -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 15%, black 70%, transparent 100%);
@@ -439,7 +438,7 @@
 
   :global([data-theme="dark"]) .hero-glow {
     background: linear-gradient(135deg,
-      #1a1020, #2a1525, #1e1028, #251a2e, #3b2040, #1a1020
+      #1a1820, #221e15, #1e1a10, #25201a, #2a2218, #1a1820
     ) 0 0 / 300% 300%;
     animation: hero-gradient 12s ease infinite;
   }
@@ -451,23 +450,11 @@
   }
 
   @keyframes hero-gradient {
-    0% { background-position: 0% 0%; }
-    50% { background-position: 100% 100%; }
-    100% { background-position: 0% 0%; }
-  }
-
-  /* Bismillah */
-  .bismillah {
-    position: relative;
-    z-index: 1;
-    font-family: 'Scheherazade New', var(--font-arabic);
-    font-size: 2.2rem;
-    color: var(--accent);
-    font-weight: 400;
-    line-height: 2.4;
-    letter-spacing: 2px;
-    opacity: 0;
-    animation: fade-in 1s 0.1s ease forwards;
+    0% { background-position: 0% 50%; }
+    25% { background-position: 50% 0%; }
+    50% { background-position: 100% 50%; }
+    75% { background-position: 50% 100%; }
+    100% { background-position: 0% 50%; }
   }
 
   @keyframes fade-in {
@@ -497,7 +484,7 @@
     margin: 0;
   }
   .title-en {
-    font-size: 5rem;
+    font-size: 6rem;
     font-weight: 800;
     color: var(--accent);
     letter-spacing: -3px;
@@ -505,7 +492,7 @@
   }
   .title-ar {
     font-family: var(--font-arabic);
-    font-size: 3.2rem;
+    font-size: 4rem;
     color: var(--text-muted);
     font-weight: 400;
     line-height: 1;
@@ -515,14 +502,7 @@
     color: var(--text-primary);
     font-weight: 600;
     letter-spacing: -0.3px;
-    margin: 0;
-  }
-  .hero-tagline em {
-    font-family: 'EB Garamond', Georgia, serif;
-    color: var(--accent);
-    font-style: italic;
-    font-size: 1.35em;
-    font-weight: 600;
+    margin: 8px 0 0;
   }
 
   /* Description */
@@ -589,7 +569,7 @@
   }
   .hero-search-bar:focus-within {
     border-color: var(--accent);
-    box-shadow: 0 4px 24px rgba(214,51,132,0.12), 0 0 0 3px rgba(214,51,132,0.06);
+    box-shadow: 0 4px 24px rgba(200,169,106,0.12), 0 0 0 3px rgba(200,169,106,0.06);
   }
   .search-icon {
     width: 20px;
@@ -623,7 +603,7 @@
   }
   .search-btn:hover {
     background: var(--accent-hover);
-    box-shadow: 0 2px 12px rgba(214,51,132,0.3);
+    box-shadow: 0 2px 12px rgba(200,169,106,0.3);
   }
 
   /* CTAs */
@@ -650,7 +630,7 @@
   .cta-filled:hover {
     background: var(--accent-hover);
     color: white;
-    box-shadow: 0 4px 20px rgba(214,51,132,0.3);
+    box-shadow: 0 4px 20px rgba(200,169,106,0.3);
     transform: translateY(-1px);
   }
   .cta-outline {
@@ -662,7 +642,7 @@
     border-color: var(--accent);
     color: white;
     background: var(--accent);
-    box-shadow: 0 4px 20px rgba(214,51,132,0.3);
+    box-shadow: 0 4px 20px rgba(200,169,106,0.3);
     transform: translateY(-1px);
   }
 
@@ -770,14 +750,15 @@
     gap: 16px;
   }
   .feat-text h3 {
-    font-size: 1.8rem;
-    font-weight: 700;
+    font-size: 2.2rem;
+    font-weight: 600;
     color: var(--text-primary);
-    letter-spacing: -0.5px;
+    letter-spacing: -0.3px;
     line-height: 1.2;
   }
   .feat-text p {
-    font-size: 1rem;
+    font-family: var(--font-serif);
+    font-size: 1.05rem;
     color: var(--text-secondary);
     line-height: 1.7;
   }
@@ -854,7 +835,7 @@
   }
   .source-card:hover {
     border-color: var(--accent);
-    box-shadow: 0 6px 28px rgba(214,51,132,0.08);
+    box-shadow: 0 6px 28px rgba(200,169,106,0.08);
     transform: translateY(-3px);
   }
   .source-card:hover::before {
@@ -886,9 +867,9 @@
     position: relative;
     background: linear-gradient(180deg,
       var(--bg-primary) 0%,
-      rgba(214,51,132,0.06) 15%,
-      rgba(214,51,132,0.10) 50%,
-      rgba(214,51,132,0.06) 85%,
+      rgba(200,169,106,0.06) 15%,
+      rgba(200,169,106,0.10) 50%,
+      rgba(200,169,106,0.06) 85%,
       var(--bg-primary) 100%
     );
     padding: 80px 24px;
@@ -901,7 +882,7 @@
     transform: translate(-50%, -50%);
     width: 700px;
     height: 500px;
-    background: radial-gradient(ellipse, rgba(214,51,132,0.06) 0%, transparent 70%);
+    background: radial-gradient(ellipse, rgba(200,169,106,0.06) 0%, transparent 70%);
     filter: blur(80px);
     animation: glow-breathe 4s ease-in-out infinite alternate;
     pointer-events: none;
@@ -955,7 +936,7 @@
   }
   .glass-card:hover {
     border-color: var(--accent);
-    box-shadow: 0 4px 24px rgba(214,51,132,0.1);
+    box-shadow: 0 4px 24px rgba(200,169,106,0.1);
     transform: translateY(-2px);
   }
   .layer-label {
@@ -985,7 +966,7 @@
     flex: 1;
     padding: 6px 0;
     background: var(--accent-muted);
-    border: 1px solid rgba(214,51,132,0.15);
+    border: 1px solid rgba(200,169,106,0.15);
     border-radius: 8px;
     font-size: 0.7rem;
     color: var(--text-secondary);
@@ -1008,7 +989,7 @@
   .line-pulse {
     width: 2px;
     height: 100%;
-    background: linear-gradient(180deg, var(--accent), rgba(214,51,132,0.2));
+    background: linear-gradient(180deg, var(--accent), rgba(200,169,106,0.2));
     position: relative;
   }
   .line-pulse::after {
@@ -1020,7 +1001,7 @@
     height: 6px;
     background: var(--accent);
     border-radius: 50%;
-    box-shadow: 0 0 8px rgba(214,51,132,0.4);
+    box-shadow: 0 0 8px rgba(200,169,106,0.4);
     animation: dot-travel 2s ease-in-out infinite;
   }
   @keyframes dot-travel {
@@ -1062,7 +1043,7 @@
   }
   .pipe-card:hover {
     border-color: var(--accent);
-    box-shadow: 0 4px 20px rgba(214,51,132,0.1);
+    box-shadow: 0 4px 20px rgba(200,169,106,0.1);
     transform: translateY(-1px);
   }
   .pipe-num {
@@ -1077,7 +1058,7 @@
     border-radius: 50%;
     font-weight: 700;
     font-size: 0.75rem;
-    box-shadow: 0 0 10px rgba(214,51,132,0.2);
+    box-shadow: 0 0 10px rgba(200,169,106,0.2);
   }
   .pipe-text strong {
     display: block;

@@ -201,8 +201,8 @@
 
 <style>
   .ayah-card {
-    padding: 20px 0;
-    border-bottom: 1px solid var(--border);
+    padding: 24px 16px;
+    border-bottom: 1px solid var(--border-subtle);
   }
   .ayah-card.compact {
     padding: 14px 16px;
@@ -235,17 +235,18 @@
   }
   .verse-badge {
     display: inline;
-    font-size: 0.65em;
+    font-size: 0.6em;
+    font-family: var(--font-serif);
     color: var(--accent);
     vertical-align: middle;
-    font-family: var(--font-mono);
   }
   .ayah-translation {
-    line-height: 1.7;
+    font-family: var(--font-serif);
+    line-height: 1.8;
     color: var(--text-secondary);
     text-align: left;
-    margin-bottom: 8px;
-    padding: 0 8px;
+    margin-bottom: 10px;
+    padding: 0 12px;
   }
   .ayah-footer {
     display: flex;
@@ -266,6 +267,7 @@
   .ayah-card.active {
     border-left: 3px solid var(--accent);
     background: var(--accent-muted);
+    border-radius: 0 var(--radius) var(--radius) 0;
   }
   .word-grid {
     display: flex;
@@ -291,6 +293,7 @@
   .word-token:hover {
     border-color: var(--accent);
     background: var(--accent-muted);
+    transform: translateY(-1px);
   }
   .word-ar {
     color: var(--text-primary);

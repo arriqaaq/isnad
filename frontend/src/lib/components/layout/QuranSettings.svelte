@@ -7,7 +7,6 @@
     { key: 'light', label: 'Light', color: '#ffffff' },
     { key: 'dark', label: 'Night', color: '#0d1117' },
     { key: 'brown', label: 'Sepia', color: '#f5ecd7' },
-    { key: 'pink', label: 'Pink', color: '#fff0f5' },
   ];
 
   function setTheme(t: Theme) {

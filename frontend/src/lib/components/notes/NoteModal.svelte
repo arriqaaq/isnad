@@ -240,7 +240,7 @@
     font-weight: 400;
   }
   .title-input:focus {
-    border-color: var(--gold-accent);
+    border-color: var(--accent);
   }
   .existing-notes {
     display: flex;
@@ -260,17 +260,17 @@
     font-size: 0.9rem;
     font-family: var(--font-serif);
     font-weight: 600;
-    color: var(--gold-accent);
+    color: var(--accent);
     background: none;
-    border: 1.5px dashed var(--gold-accent-muted);
+    border: 1.5px dashed var(--accent-muted);
     border-radius: var(--radius-xl);
     cursor: pointer;
     transition: all var(--transition);
     text-align: center;
   }
   .btn-create-new:hover {
-    background: var(--gold-accent-muted);
-    border-color: var(--gold-accent);
+    background: var(--accent-muted);
+    border-color: var(--accent);
   }
   @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
   @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }

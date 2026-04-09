@@ -47,7 +47,7 @@
   }
 
   function getNodeColor(type: string): string {
-    if (type === 'center') return getThemeColor('--graph-center', '#d63384');
+    if (type === 'center') return getThemeColor('--graph-center', '#c8a96a');
     if (type === 'student') return getThemeColor('--graph-student', '#b8860b');
     return getThemeColor('--graph-teacher', '#16a34a');
   }
@@ -290,7 +290,7 @@
           if (!extremities.includes(_hoveredNode)) {
             res.hidden = true;
           } else {
-            res.color = getThemeColor('--graph-edge-hover', '#d63384');
+            res.color = getThemeColor('--graph-edge-hover', '#c8a96a');
             res.size = 2.5;
           }
         }
@@ -620,7 +620,7 @@
     color: var(--text-muted);
   }
 
-  .dot-center { background: var(--graph-center, #d63384); }
+  .dot-center { background: var(--graph-center, #c8a96a); }
   .dot-teacher { background: var(--graph-teacher, #16a34a); }
   .dot-student { background: var(--graph-student, #b8860b); }
 

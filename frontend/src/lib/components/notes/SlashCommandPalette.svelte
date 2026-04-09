@@ -130,8 +130,8 @@
     width: 32px;
     height: 32px;
     border-radius: var(--radius);
-    background: var(--gold-accent-muted);
-    color: var(--gold-accent);
+    background: var(--accent-muted);
+    color: var(--accent);
     font-size: 0.9rem;
     font-weight: 600;
     flex-shrink: 0;

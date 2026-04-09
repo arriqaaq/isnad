@@ -358,12 +358,12 @@
     line-height: 1.3;
   }
   .rich-editor :global(blockquote) {
-    border-left: 3px solid var(--gold-accent);
+    border-left: 3px solid var(--accent);
     padding: 4px 16px;
     margin: 12px 0;
     color: var(--text-secondary);
     font-style: italic;
-    background: var(--gold-accent-muted);
+    background: var(--accent-muted);
     border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
   }
   .rich-editor :global(ul),

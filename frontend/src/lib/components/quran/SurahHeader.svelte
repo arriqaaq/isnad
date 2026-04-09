@@ -37,8 +37,9 @@
   }
   .header-card {
     background: var(--bg-secondary);
-    border: 1px solid var(--border);
-    border-radius: 16px;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-2xl);
+    box-shadow: var(--shadow-card);
     padding: 28px 32px 20px;
     text-align: center;
     position: relative;
@@ -73,6 +74,7 @@
     margin-bottom: 12px;
   }
   .surah-translit {
+    font-family: var(--font-serif);
     font-size: 1.2rem;
     font-weight: 600;
     color: var(--text-primary);
@@ -82,6 +84,7 @@
     font-size: 0.8rem;
   }
   .surah-meaning {
+    font-family: var(--font-serif);
     font-size: 0.95rem;
     color: var(--text-secondary);
     font-style: italic;
@@ -124,7 +127,8 @@
     text-align: center;
   }
   .bismillah-en {
-    font-size: 0.8rem;
+    font-family: var(--font-serif);
+    font-size: 0.85rem;
     color: var(--text-muted);
     font-style: italic;
     letter-spacing: 0.3px;

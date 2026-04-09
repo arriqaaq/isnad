@@ -14,12 +14,12 @@
   <rect x="20" y="20" width="5" height="380" rx="2" fill="#f59e0b"/>
 
   <!-- Title -->
-  <text x="50" y="52" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="9" font-weight="700" letter-spacing="1.5" fill="#d63384">STUDY NOTE</text>
+  <text x="50" y="52" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="9" font-weight="700" letter-spacing="1.5" fill="#c8a96a">STUDY NOTE</text>
   <text x="50" y="76" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="18" font-weight="700" fill="#1a1a2e">Refutation of Critics</text>
 
   <!-- Tags -->
-  <rect x="50" y="90" width="58" height="22" rx="11" fill="rgba(236,72,153,0.1)" stroke="rgba(236,72,153,0.2)" stroke-width="1"/>
-  <text x="79" y="105" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" font-weight="600" fill="#ec4899">dawah</text>
+  <rect x="50" y="90" width="58" height="22" rx="11" fill="rgba(200,169,106,0.1)" stroke="rgba(200,169,106,0.2)" stroke-width="1"/>
+  <text x="79" y="105" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" font-weight="600" fill="#c8a96a">dawah</text>
 
   <rect x="116" y="90" width="40" height="22" rx="11" fill="rgba(59,130,246,0.1)" stroke="rgba(59,130,246,0.2)" stroke-width="1"/>
   <text x="136" y="105" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" font-weight="600" fill="#3b82f6">fiqh</text>
@@ -37,14 +37,14 @@
   <rect x="50" y="176" width="610" height="30" rx="8" fill="#f3f4f6"/>
   <rect x="50" y="198" width="610" height="8" fill="#f3f4f6"/>
   <!-- QURAN badge -->
-  <rect x="62" y="182" width="58" height="18" rx="9" fill="rgba(214,51,132,0.1)"/>
-  <text x="91" y="195" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9" font-weight="700" fill="#d63384">QURAN</text>
+  <rect x="62" y="182" width="58" height="18" rx="9" fill="rgba(200,169,106,0.1)"/>
+  <text x="91" y="195" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9" font-weight="700" fill="#c8a96a">QURAN</text>
   <!-- Ref -->
   <text x="130" y="195" font-family="ui-monospace, 'SF Mono', monospace" font-size="11" font-weight="600" fill="#1a1a2e">2:256</text>
   <!-- Arrow -->
   <text x="640" y="195" font-family="system-ui, sans-serif" font-size="11" fill="#9ca3af">\u2192</text>
-  <!-- Arabic text -->
-  <text x="640" y="228" text-anchor="end" font-family="system-ui, sans-serif" font-size="15" fill="#1a1a2e" direction="rtl" unicode-bidi="bidi-override">&#x644;&#x627; &#x625;&#x643;&#x631;&#x627;&#x647; &#x641;&#x64A; &#x627;&#x644;&#x62F;&#x64A;&#x646; &#x2022; &#x642;&#x62F; &#x62A;&#x628;&#x64A;&#x646; &#x627;&#x644;&#x631;&#x634;&#x62F; &#x645;&#x646; &#x627;&#x644;&#x63A;&#x64A;</text>
+  <!-- Arabic text right-aligned -->
+  <text x="640" y="228" text-anchor="end" font-family="'Traditional Arabic', 'Noto Naskh Arabic', serif" font-size="16" fill="#1a1a2e">&#x644;&#x64E;&#x627; &#x625;&#x650;&#x643;&#x652;&#x631;&#x64E;&#x627;&#x647;&#x64E; &#x641;&#x650;&#x64A; &#x627;&#x644;&#x62F;&#x64F;&#x651;&#x64A;&#x646;&#x650; &#x2022; &#x642;&#x64E;&#x62F; &#x62A;&#x64E;&#x628;&#x64E;&#x64A;&#x64E;&#x651;&#x646;&#x64E; &#x627;&#x644;&#x631;&#x64F;&#x651;&#x634;&#x652;&#x62F;&#x64F; &#x645;&#x650;&#x646;&#x64E; &#x627;&#x644;&#x652;&#x63A;&#x64E;&#x64A;&#x64F;&#x651;</text>
   <!-- English -->
   <text x="62" y="250" font-family="Georgia, 'Times New Roman', serif" font-size="11" fill="#9ca3af">There is no compulsion in religion. The right course has become distinct from the wrong.</text>
 
@@ -52,8 +52,8 @@
   <text x="50" y="290" font-family="Georgia, 'Times New Roman', serif" font-size="13" fill="#6b7280">Ibn Kathir explains this was revealed about the Ansar. See also</text>
 
   <!-- Narrator chip inline -->
-  <rect x="50" y="300" width="100" height="22" rx="11" fill="rgba(214,51,132,0.08)" stroke="rgba(214,51,132,0.15)" stroke-width="1"/>
-  <text x="100" y="315" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" font-weight="600" fill="#d63384">@Ibn Umar</text>
+  <rect x="50" y="300" width="100" height="22" rx="11" fill="rgba(200,169,106,0.08)" stroke="rgba(200,169,106,0.15)" stroke-width="1"/>
+  <text x="100" y="315" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" font-weight="600" fill="#c8a96a">@Ibn Umar</text>
   <text x="160" y="315" font-family="Georgia, 'Times New Roman', serif" font-size="13" fill="#6b7280"> for his narration on this topic.</text>
 
   <!-- Bottom bar: color dots + meta -->

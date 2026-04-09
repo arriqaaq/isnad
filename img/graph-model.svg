@@ -6,8 +6,8 @@
     <marker id="arrow-green" viewBox="0 0 10 7" refX="10" refY="3.5" markerWidth="8" markerHeight="6" orient="auto-start-reverse">
       <path d="M 0 0 L 10 3.5 L 0 7 z" fill="#16a34a" opacity="0.7"/>
     </marker>
-    <marker id="arrow-pink" viewBox="0 0 10 7" refX="10" refY="3.5" markerWidth="8" markerHeight="6" orient="auto-start-reverse">
-      <path d="M 0 0 L 10 3.5 L 0 7 z" fill="#d63384" opacity="0.7"/>
+    <marker id="arrow-gold" viewBox="0 0 10 7" refX="10" refY="3.5" markerWidth="8" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 3.5 L 0 7 z" fill="#c8a96a" opacity="0.7"/>
     </marker>
     <marker id="arrow-gold" viewBox="0 0 10 7" refX="10" refY="3.5" markerWidth="8" markerHeight="6" orient="auto-start-reverse">
       <path d="M 0 0 L 10 3.5 L 0 7 z" fill="#b8860b" opacity="0.7"/>
@@ -34,17 +34,17 @@
   <text x="372" y="47" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="9" font-style="italic" fill="#16a34a">heard_from</text>
 
   <!-- Hadith node -->
-  <rect x="240" y="140" width="120" height="50" rx="12" fill="rgba(214,51,132,0.08)" stroke="#d63384" stroke-width="1.5" filter="url(#shadow)"/>
-  <text x="300" y="170" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="12" font-weight="700" fill="#d63384">Hadith</text>
+  <rect x="240" y="140" width="120" height="50" rx="12" fill="rgba(200,169,106,0.08)" stroke="#c8a96a" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="300" y="170" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="12" font-weight="700" fill="#c8a96a">Hadith</text>
 
   <!-- narrates edges (A→H, B→H, C→H) -->
-  <line x1="75" y1="80" x2="245" y2="145" stroke="#d63384" stroke-width="1.5" opacity="0.6" marker-end="url(#arrow-pink)"/>
-  <line x1="275" y1="80" x2="295" y2="135" stroke="#d63384" stroke-width="1.5" opacity="0.6" marker-end="url(#arrow-pink)"/>
-  <line x1="475" y1="80" x2="355" y2="145" stroke="#d63384" stroke-width="1.5" opacity="0.6" marker-end="url(#arrow-pink)"/>
+  <line x1="75" y1="80" x2="245" y2="145" stroke="#c8a96a" stroke-width="1.5" opacity="0.6" marker-end="url(#arrow-gold)"/>
+  <line x1="275" y1="80" x2="295" y2="135" stroke="#c8a96a" stroke-width="1.5" opacity="0.6" marker-end="url(#arrow-gold)"/>
+  <line x1="475" y1="80" x2="355" y2="145" stroke="#c8a96a" stroke-width="1.5" opacity="0.6" marker-end="url(#arrow-gold)"/>
 
   <!-- narrates label (centered) -->
-  <text x="155" y="110" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="9" font-style="italic" fill="#d63384">narrates</text>
-  <text x="445" y="110" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="9" font-style="italic" fill="#d63384">narrates</text>
+  <text x="155" y="110" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="9" font-style="italic" fill="#c8a96a">narrates</text>
+  <text x="445" y="110" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="9" font-style="italic" fill="#c8a96a">narrates</text>
 
   <!-- Book node -->
   <rect x="560" y="140" width="120" height="50" rx="12" fill="rgba(184,134,11,0.08)" stroke="#b8860b" stroke-width="1.5" filter="url(#shadow)"/>

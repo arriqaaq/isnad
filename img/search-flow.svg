@@ -4,7 +4,7 @@
       <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#000" flood-opacity="0.06"/>
     </filter>
     <marker id="arrow" viewBox="0 0 10 7" refX="10" refY="3.5" markerWidth="8" markerHeight="6" orient="auto-start-reverse">
-      <path d="M 0 0 L 10 3.5 L 0 7 z" fill="#d63384" opacity="0.6"/>
+      <path d="M 0 0 L 10 3.5 L 0 7 z" fill="#c8a96a" opacity="0.6"/>
     </marker>
     <marker id="arrow-muted" viewBox="0 0 10 7" refX="10" refY="3.5" markerWidth="8" markerHeight="6" orient="auto-start-reverse">
       <path d="M 0 0 L 10 3.5 L 0 7 z" fill="#9ca3af" opacity="0.5"/>
@@ -12,22 +12,22 @@
   </defs>
 
   <!-- User Query (start pill) -->
-  <rect x="10" y="135" width="110" height="42" rx="21" fill="#d63384" filter="url(#shadow)"/>
+  <rect x="10" y="135" width="110" height="42" rx="21" fill="#c8a96a" filter="url(#shadow)"/>
   <text x="65" y="161" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="12" font-weight="600" fill="#ffffff">User Query</text>
 
   <!-- Arrow to diamond -->
-  <line x1="120" y1="156" x2="160" y2="156" stroke="#d63384" stroke-width="2" opacity="0.5" marker-end="url(#arrow)"/>
+  <line x1="120" y1="156" x2="160" y2="156" stroke="#c8a96a" stroke-width="2" opacity="0.5" marker-end="url(#arrow)"/>
 
   <!-- Decision diamond -->
   <g transform="translate(196, 156)">
-    <rect x="-32" y="-32" width="64" height="64" rx="6" transform="rotate(45)" fill="#ffffff" stroke="#d63384" stroke-width="1.5" filter="url(#shadow)"/>
-    <text x="0" y="4" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="10" font-weight="700" fill="#d63384">Type</text>
+    <rect x="-32" y="-32" width="64" height="64" rx="6" transform="rotate(45)" fill="#ffffff" stroke="#c8a96a" stroke-width="1.5" filter="url(#shadow)"/>
+    <text x="0" y="4" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="10" font-weight="700" fill="#c8a96a">Type</text>
   </g>
 
   <!-- ═══ HYBRID BRANCH (top) ═══ -->
   <!-- Arrow from diamond to split -->
-  <line x1="238" y1="125" x2="280" y2="60" stroke="#d63384" stroke-width="1.5" opacity="0.5" marker-end="url(#arrow)"/>
-  <text x="242" y="85" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="9" font-weight="600" fill="#d63384">Hybrid</text>
+  <line x1="238" y1="125" x2="280" y2="60" stroke="#c8a96a" stroke-width="1.5" opacity="0.5" marker-end="url(#arrow)"/>
+  <text x="242" y="85" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="9" font-weight="600" fill="#c8a96a">Hybrid</text>
 
   <!-- BM25 card -->
   <rect x="285" y="16" width="140" height="44" rx="10" fill="#ffffff" stroke="#e5e7eb" stroke-width="1" filter="url(#shadow)"/>
@@ -40,20 +40,20 @@
   <text x="355" y="106" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="9" fill="#9ca3af">cosine similarity</text>
 
   <!-- Arrows from BM25 + Vector to RRF -->
-  <line x1="425" y1="38" x2="470" y2="60" stroke="#d63384" stroke-width="1.5" opacity="0.4" marker-end="url(#arrow)"/>
-  <line x1="425" y1="94" x2="470" y2="72" stroke="#d63384" stroke-width="1.5" opacity="0.4" marker-end="url(#arrow)"/>
+  <line x1="425" y1="38" x2="470" y2="60" stroke="#c8a96a" stroke-width="1.5" opacity="0.4" marker-end="url(#arrow)"/>
+  <line x1="425" y1="94" x2="470" y2="72" stroke="#c8a96a" stroke-width="1.5" opacity="0.4" marker-end="url(#arrow)"/>
 
   <!-- RRF card -->
-  <rect x="475" y="42" width="130" height="44" rx="10" fill="rgba(214,51,132,0.08)" stroke="rgba(214,51,132,0.2)" stroke-width="1" filter="url(#shadow)"/>
-  <text x="540" y="61" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="11" font-weight="700" fill="#d63384">RRF Fusion</text>
+  <rect x="475" y="42" width="130" height="44" rx="10" fill="rgba(200,169,106,0.08)" stroke="rgba(200,169,106,0.2)" stroke-width="1" filter="url(#shadow)"/>
+  <text x="540" y="61" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="11" font-weight="700" fill="#c8a96a">RRF Fusion</text>
   <text x="540" y="76" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="9" fill="#9ca3af">reciprocal rank</text>
 
   <!-- Arrow from RRF to Results -->
-  <line x1="605" y1="64" x2="650" y2="156" stroke="#d63384" stroke-width="1.5" opacity="0.4" marker-end="url(#arrow)"/>
+  <line x1="605" y1="64" x2="650" y2="156" stroke="#c8a96a" stroke-width="1.5" opacity="0.4" marker-end="url(#arrow)"/>
 
   <!-- ═══ TEXT BRANCH (middle) ═══ -->
-  <line x1="238" y1="156" x2="340" y2="156" stroke="#d63384" stroke-width="1.5" opacity="0.5" marker-end="url(#arrow)"/>
-  <text x="275" y="148" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="9" font-weight="600" fill="#d63384">Text</text>
+  <line x1="238" y1="156" x2="340" y2="156" stroke="#c8a96a" stroke-width="1.5" opacity="0.5" marker-end="url(#arrow)"/>
+  <text x="275" y="148" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="9" font-weight="600" fill="#c8a96a">Text</text>
 
   <!-- Text search card -->
   <rect x="345" y="135" width="170" height="44" rx="10" fill="#ffffff" stroke="#e5e7eb" stroke-width="1" filter="url(#shadow)"/>
@@ -61,11 +61,11 @@
   <text x="430" y="169" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="9" fill="#9ca3af">CONTAINS on text_en + text_ar</text>
 
   <!-- Arrow to Results -->
-  <line x1="515" y1="157" x2="640" y2="157" stroke="#d63384" stroke-width="1.5" opacity="0.4" marker-end="url(#arrow)"/>
+  <line x1="515" y1="157" x2="640" y2="157" stroke="#c8a96a" stroke-width="1.5" opacity="0.4" marker-end="url(#arrow)"/>
 
   <!-- ═══ SEMANTIC BRANCH (bottom) ═══ -->
-  <line x1="238" y1="188" x2="280" y2="252" stroke="#d63384" stroke-width="1.5" opacity="0.5" marker-end="url(#arrow)"/>
-  <text x="240" y="228" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="9" font-weight="600" fill="#d63384">Semantic</text>
+  <line x1="238" y1="188" x2="280" y2="252" stroke="#c8a96a" stroke-width="1.5" opacity="0.5" marker-end="url(#arrow)"/>
+  <text x="240" y="228" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="9" font-weight="600" fill="#c8a96a">Semantic</text>
 
   <!-- FastEmbed card -->
   <rect x="285" y="230" width="140" height="44" rx="10" fill="#ffffff" stroke="#e5e7eb" stroke-width="1" filter="url(#shadow)"/>
@@ -73,7 +73,7 @@
   <text x="355" y="264" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="9" fill="#9ca3af">query → 1024-dim vector</text>
 
   <!-- Arrow to HNSW -->
-  <line x1="425" y1="252" x2="470" y2="252" stroke="#d63384" stroke-width="1.5" opacity="0.4" marker-end="url(#arrow)"/>
+  <line x1="425" y1="252" x2="470" y2="252" stroke="#c8a96a" stroke-width="1.5" opacity="0.4" marker-end="url(#arrow)"/>
 
   <!-- HNSW card -->
   <rect x="475" y="230" width="130" height="44" rx="10" fill="#ffffff" stroke="#e5e7eb" stroke-width="1" filter="url(#shadow)"/>
@@ -81,9 +81,9 @@
   <text x="540" y="264" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="9" fill="#9ca3af">approximate NN</text>
 
   <!-- Arrow to Results -->
-  <line x1="605" y1="252" x2="650" y2="160" stroke="#d63384" stroke-width="1.5" opacity="0.4" marker-end="url(#arrow)"/>
+  <line x1="605" y1="252" x2="650" y2="160" stroke="#c8a96a" stroke-width="1.5" opacity="0.4" marker-end="url(#arrow)"/>
 
   <!-- Results (end pill) -->
-  <rect x="645" y="135" width="105" height="42" rx="21" fill="#d63384" filter="url(#shadow)"/>
+  <rect x="645" y="135" width="105" height="42" rx="21" fill="#c8a96a" filter="url(#shadow)"/>
   <text x="697" y="161" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="12" font-weight="600" fill="#ffffff">Results</text>
 </svg>

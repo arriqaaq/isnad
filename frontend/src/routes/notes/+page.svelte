@@ -197,16 +197,16 @@
     font-size: 0.85rem;
     font-weight: 600;
     color: #fff;
-    background: var(--gold-accent);
+    background: var(--accent);
     border: none;
     border-radius: var(--radius);
     cursor: pointer;
     transition: background var(--transition), box-shadow var(--transition);
-    box-shadow: 0 2px 8px var(--gold-accent-muted);
+    box-shadow: 0 2px 8px var(--accent-muted);
   }
   .btn-new:hover {
-    background: var(--gold-accent-hover);
-    box-shadow: 0 4px 16px var(--gold-accent-muted);
+    background: var(--accent-hover);
+    box-shadow: 0 4px 16px var(--accent-muted);
   }
   .btn-export {
     padding: 8px 16px;
@@ -244,8 +244,8 @@
     font-style: italic;
   }
   .search-bar input:focus {
-    border-color: var(--gold-accent-muted);
-    box-shadow: var(--shadow-card), 0 0 0 3px var(--gold-accent-muted);
+    border-color: var(--accent-muted);
+    box-shadow: var(--shadow-card), 0 0 0 3px var(--accent-muted);
   }
 
   /* Filters */
@@ -273,13 +273,13 @@
     transition: all var(--transition);
   }
   .tag-chip:hover {
-    border-color: var(--gold-accent);
-    color: var(--gold-accent);
+    border-color: var(--accent);
+    color: var(--accent);
   }
   .tag-chip.active {
-    background: var(--gold-accent);
+    background: var(--accent);
     color: #fff;
-    border-color: var(--gold-accent);
+    border-color: var(--accent);
   }
   .color-filters {
     display: flex;
@@ -299,9 +299,9 @@
     transform: scale(1.15);
   }
   .color-dot.active {
-    border-color: var(--gold-accent);
+    border-color: var(--accent);
     transform: scale(1.2);
-    box-shadow: 0 0 0 3px var(--gold-accent-muted);
+    box-shadow: 0 0 0 3px var(--accent-muted);
   }
   .clear-filters {
     font-size: 0.75rem;
@@ -311,7 +311,7 @@
     cursor: pointer;
     transition: color var(--transition);
   }
-  .clear-filters:hover { color: var(--gold-accent); }
+  .clear-filters:hover { color: var(--accent); }
 
   /* Notes grid */
   .notes-list {
@@ -359,15 +359,15 @@
     padding: 10px 32px;
     font-size: 0.85rem;
     font-family: var(--font-serif);
-    color: var(--gold-accent);
+    color: var(--accent);
     background: none;
-    border: 1px solid var(--gold-accent);
+    border: 1px solid var(--accent);
     border-radius: var(--radius-xl);
     cursor: pointer;
     transition: all var(--transition);
   }
   .load-more:hover {
-    background: var(--gold-accent-muted);
+    background: var(--accent-muted);
   }
 
   @media (max-width: 768px) {

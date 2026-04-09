@@ -308,8 +308,9 @@
   }
 
   .tafsir-content {
-    font-size: 0.85rem;
-    line-height: 1.7;
+    font-family: var(--font-serif);
+    font-size: 0.9rem;
+    line-height: 1.8;
     color: var(--text-secondary);
   }
 

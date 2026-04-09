@@ -98,16 +98,16 @@
   .sidebar {
     width: var(--sidebar-width);
     height: 100%;
-    background: var(--bg-secondary);
-    border-right: 1px solid var(--border);
+    background: var(--bg-primary);
+    border-right: 1px solid var(--border-subtle);
     display: flex;
     flex-direction: column;
     flex-shrink: 0;
   }
 
   .sidebar-header {
-    padding: 16px;
-    border-bottom: 1px solid var(--border);
+    padding: 20px;
+    border-bottom: 1px solid var(--border-subtle);
     display: flex;
     align-items: center;
     gap: 10px;
@@ -117,24 +117,26 @@
     transition: opacity var(--transition);
   }
   .sidebar-header:hover {
-    opacity: 0.8;
+    opacity: 0.85;
     color: inherit;
   }
 
   .logo {
     color: var(--accent);
-    font-size: 1.3rem;
+    font-size: 1.1rem;
   }
 
   .logo-text {
+    font-family: var(--font-serif);
     font-weight: 600;
-    font-size: 0.95rem;
+    font-size: 1.15rem;
     color: var(--text-primary);
+    letter-spacing: -0.02em;
   }
 
   .nav-items {
     flex: 1;
-    padding: 8px;
+    padding: 12px;
     display: flex;
     flex-direction: column;
     gap: 2px;
@@ -143,19 +145,21 @@
 
   .nav-divider {
     height: 1px;
-    background: var(--border);
+    background: var(--border-subtle);
     margin: 8px 12px;
   }
 
   .nav-item {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 10px 12px;
+    gap: 12px;
+    padding: 10px 14px;
     border-radius: var(--radius);
     color: var(--text-secondary);
     transition: all var(--transition);
-    font-size: 0.9rem;
+    font-family: var(--font-serif);
+    font-size: 0.95rem;
+    text-decoration: none;
   }
 
   .nav-item:hover {
@@ -166,25 +170,29 @@
   .nav-item.active {
     background: var(--accent-muted);
     color: var(--accent);
+    font-weight: 600;
   }
 
   .nav-item.featured {
     font-weight: 600;
+    color: var(--text-primary);
   }
 
   .nav-icon {
     width: 20px;
     text-align: center;
-    font-size: 1rem;
+    font-size: 0.95rem;
   }
 
   .sidebar-footer {
-    padding: 16px;
-    border-top: 1px solid var(--border);
+    padding: 16px 20px;
+    border-top: 1px solid var(--border-subtle);
   }
 
   .footer-text {
+    font-family: var(--font-serif);
     font-size: 0.75rem;
+    font-style: italic;
     color: var(--text-muted);
   }
 </style>

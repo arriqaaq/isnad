@@ -1,6 +1,6 @@
 import { writable } from 'svelte/store';
 
-export type Theme = 'light' | 'dark' | 'brown' | 'pink';
+export type Theme = 'light' | 'dark' | 'brown';
 export type QuranFontMode = 'uthmani' | 'madani' | 'tajweed';
 
 export interface QuranPreferences {
@@ -18,7 +18,7 @@ export const DEFAULTS: QuranPreferences = {
   englishFontSize: 0.9,
   theme: 'light',
   selectedReciter: null,
-  quranFont: 'uthmani',
+  quranFont: 'tajweed',
 };
 
 const STORAGE_KEY = 'quran-preferences';
@@ -27,7 +27,17 @@ function load(): QuranPreferences {
   if (typeof localStorage === 'undefined') return DEFAULTS;
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? { ...DEFAULTS, ...JSON.parse(raw) } : DEFAULTS;
+    if (!raw) return DEFAULTS;
+    const saved = { ...DEFAULTS, ...JSON.parse(raw) };
+    // Migrate: uthmani font has broken glyph coverage, switch to tajweed
+    if (saved.quranFont === 'uthmani') {
+      saved.quranFont = 'tajweed';
+    }
+    // Migrate: pink theme removed
+    if ((saved.theme as string) === 'pink') {
+      saved.theme = 'light';
+    }
+    return saved;
   } catch {
     return DEFAULTS;
   }

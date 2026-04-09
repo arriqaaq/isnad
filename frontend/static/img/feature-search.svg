@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500">
+  <defs>
+    <filter id="shadow" x="-4%" y="-4%" width="108%" height="112%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#000" flood-opacity="0.06"/>
+    </filter>
+  </defs>
+
+  <!-- Sidebar -->
+  <rect x="20" y="20" width="140" height="460" rx="12" fill="#ffffff" stroke="#e5e7eb" stroke-width="1" filter="url(#shadow)"/>
+  <text x="40" y="50" font-family="Georgia, serif" font-size="14" font-weight="700" fill="#1a1a2e">&#9670; Ilm</text>
+  <line x1="30" y1="62" x2="150" y2="62" stroke="#f0f1f3" stroke-width="1"/>
+  <rect x="28" y="70" width="124" height="26" rx="6" fill="rgba(200,169,106,0.1)"/>
+  <text x="42" y="88" font-family="system-ui, sans-serif" font-size="11" font-weight="600" fill="#c8a96a">&#10022; Explore</text>
+  <text x="42" y="114" font-family="system-ui, sans-serif" font-size="11" fill="#9ca3af">&#9671; Ask</text>
+  <line x1="30" y1="128" x2="150" y2="128" stroke="#f0f1f3" stroke-width="1"/>
+  <text x="42" y="148" font-family="system-ui, sans-serif" font-size="11" fill="#4a4a68">&#9672; Quran</text>
+  <text x="42" y="172" font-family="system-ui, sans-serif" font-size="11" fill="#9ca3af">&#9781; Hadiths</text>
+  <text x="42" y="196" font-family="system-ui, sans-serif" font-size="11" fill="#9ca3af">&#9678; Narrators</text>
+
+  <!-- Main content -->
+  <rect x="170" y="20" width="610" height="460" rx="12" fill="#ffffff" stroke="#e5e7eb" stroke-width="1" filter="url(#shadow)"/>
+
+  <!-- Title -->
+  <text x="200" y="58" font-family="Georgia, serif" font-size="20" font-weight="700" fill="#1a1a2e">Quran &amp; Sunnah</text>
+
+  <!-- Search bar -->
+  <rect x="200" y="72" width="340" height="30" rx="15" fill="#f9fafb" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="220" y="92" font-family="system-ui, sans-serif" font-size="11" fill="#9ca3af">prayer</text>
+  <rect x="560" y="74" width="50" height="24" rx="12" fill="#c8a96a"/>
+  <text x="585" y="90" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9" font-weight="600" fill="#ffffff">Hybrid</text>
+  <rect x="616" y="74" width="56" height="24" rx="12" fill="#f9fafb" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="644" y="90" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9" font-weight="600" fill="#9ca3af">Semantic</text>
+  <rect x="678" y="74" width="50" height="24" rx="12" fill="#c8a96a"/>
+  <text x="703" y="90" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9" font-weight="600" fill="#fff">Search</text>
+
+  <!-- Results count -->
+  <text x="200" y="124" font-family="system-ui, sans-serif" font-size="11" fill="#4a4a68">20 results</text>
+  <text x="268" y="124" font-family="system-ui, sans-serif" font-size="10" fill="#c8a96a">21 from Quran  &#183;  21 from Hadith</text>
+
+  <!-- Result card 1 - Quran -->
+  <rect x="200" y="138" width="550" height="120" rx="8" fill="#ffffff" stroke="#e5e7eb" stroke-width="1"/>
+  <!-- QURAN badge top-right -->
+  <rect x="694" y="142" width="50" height="18" rx="9" fill="rgba(200,169,106,0.1)"/>
+  <text x="719" y="155" text-anchor="middle" font-family="system-ui, sans-serif" font-size="8" font-weight="700" fill="#c8a96a">QURAN</text>
+  <!-- Arabic text right-aligned -->
+  <text x="738" y="182" text-anchor="end" font-family="'Traditional Arabic', 'Noto Naskh Arabic', serif" font-size="18" fill="#1a1a2e">&#x62D;&#x64E;&#x627;&#x641;&#x650;&#x638;&#x64F;&#x648;&#x627; &#x639;&#x64E;&#x644;&#x64E;&#x649; &#x627;&#x644;&#x635;&#x64E;&#x644;&#x64E;&#x648;&#x64E;&#x627;&#x62A;&#x650; &#x648;&#x64E;&#x627;&#x644;&#x635;&#x64E;&#x644;&#x64E;&#x627;&#x629;&#x650; &#x627;&#x644;&#x652;&#x648;&#x64F;&#x633;&#x652;&#x637;&#x64E;&#x649;&#x670;</text>
+  <!-- English -->
+  <text x="210" y="210" font-family="Georgia, serif" font-size="11" fill="#6b7280">Maintain with care the [obligatory] prayers and [in particular] the middle prayer</text>
+  <text x="210" y="226" font-family="Georgia, serif" font-size="11" fill="#6b7280">and stand before Allah, devoutly obedient.</text>
+  <!-- Footer -->
+  <text x="210" y="250" font-family="ui-monospace, monospace" font-size="10" fill="#9ca3af">2:238</text>
+  <rect x="248" y="237" width="24" height="18" rx="4" fill="#f9fafb" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="260" y="250" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#4a4a68">&#9654;</text>
+
+  <!-- Result card 2 - Hadith -->
+  <rect x="200" y="270" width="550" height="130" rx="8" fill="#ffffff" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="210" y="292" font-family="Georgia, serif" font-size="12" font-weight="700" fill="#1a1a2e">Book 3</text>
+  <text x="260" y="292" font-family="ui-monospace, monospace" font-size="10" fill="#9ca3af">#215</text>
+  <rect x="694" y="274" width="50" height="18" rx="9" fill="rgba(200,169,106,0.08)"/>
+  <text x="719" y="287" text-anchor="middle" font-family="system-ui, sans-serif" font-size="8" font-weight="700" fill="#c8a96a">HADITH</text>
+  <!-- Narrator chip -->
+  <rect x="210" y="300" width="120" height="20" rx="10" fill="rgba(200,169,106,0.08)"/>
+  <text x="270" y="314" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9" font-weight="600" fill="#c8a96a">Abu Sa'eed al-Khudri</text>
+  <!-- Arabic right-aligned -->
+  <text x="738" y="346" text-anchor="end" font-family="'Traditional Arabic', 'Noto Naskh Arabic', serif" font-size="16" fill="#1a1a2e">&#x641;&#x64E;&#x625;&#x650;&#x630;&#x64E;&#x627; &#x642;&#x64E;&#x636;&#x64E;&#x64A;&#x652;&#x62A;&#x64F;&#x645;&#x64F; &#x627;&#x644;&#x635;&#x64E;&#x644;&#x64E;&#x627;&#x629;&#x64E; &#x641;&#x64E;&#x627;&#x630;&#x652;&#x643;&#x64F;&#x631;&#x64F;&#x648;&#x627; &#x627;&#x644;&#x644;&#x64E;&#x651;&#x647;&#x64E;</text>
+  <!-- English -->
+  <text x="210" y="376" font-family="Georgia, serif" font-size="11" fill="#6b7280">And when you have completed the prayer, remember Allah standing, sitting,</text>
+  <text x="210" y="392" font-family="Georgia, serif" font-size="11" fill="#6b7280">or [lying] on your sides. But when you become secure, re-establish prayer.</text>
+</svg>

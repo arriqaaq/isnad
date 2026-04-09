@@ -142,7 +142,7 @@
     transition: background var(--transition);
   }
   .ref-header:hover {
-    background: var(--gold-accent-muted);
+    background: var(--accent-muted);
   }
   .ref-badge {
     font-size: 0.6rem;
@@ -153,8 +153,8 @@
     border-radius: 10px;
   }
   .ref-badge.ayah {
-    background: var(--gold-accent-muted);
-    color: var(--gold-accent);
+    background: var(--accent-muted);
+    color: var(--accent);
   }
   .ref-badge.hadith {
     background: var(--bg-active);

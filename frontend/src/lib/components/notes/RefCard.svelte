@@ -85,7 +85,7 @@
     font-style: italic;
     transition: color var(--transition);
   }
-  .add-annotation-btn:hover { color: var(--gold-accent); }
+  .add-annotation-btn:hover { color: var(--accent); }
   .annotation-input {
     width: 100%;
     border: 1px solid var(--border-subtle);
@@ -103,7 +103,7 @@
     transition: border-color var(--transition), box-shadow var(--transition);
   }
   .annotation-input:focus {
-    border-color: var(--gold-accent-muted);
-    box-shadow: 0 0 0 3px var(--gold-accent-muted);
+    border-color: var(--accent-muted);
+    box-shadow: 0 0 0 3px var(--accent-muted);
   }
 </style>

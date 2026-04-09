@@ -38,32 +38,34 @@
 
 <style>
   .ms-card {
-    width: 180px;
+    width: 200px;
     flex-shrink: 0;
     background: var(--bg-surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-xl);
     overflow: hidden;
     cursor: pointer;
+    box-shadow: var(--shadow-card);
     transition: all var(--transition);
     text-align: left;
     padding: 0;
   }
   .ms-card:hover {
     border-color: var(--accent);
-    background: var(--bg-hover);
+    box-shadow: var(--shadow-card-hover);
+    transform: translateY(-2px);
   }
   .ms-thumb {
     width: 100%;
-    height: 160px;
+    height: 180px;
     object-fit: cover;
-    border-radius: var(--radius-sm);
   }
   .ms-info {
-    padding: 8px;
+    padding: 10px 12px;
   }
   .ms-title {
-    font-size: 0.7rem;
+    font-family: var(--font-serif);
+    font-size: 0.75rem;
     color: var(--text-primary);
     overflow: hidden;
     text-overflow: ellipsis;
@@ -82,17 +84,19 @@
     font-size: 0.55rem;
     font-family: var(--font-mono);
     color: var(--accent);
-    background: var(--bg-hover);
-    border: 1px solid var(--border);
+    background: var(--accent-muted);
+    border: none;
     border-radius: var(--radius-sm);
-    padding: 1px 6px;
+    padding: 2px 8px;
   }
 
   /* Modal overlay */
   .modal-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.75);
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -103,7 +107,8 @@
     max-width: 90vw;
     max-height: 90vh;
     background: var(--bg-surface);
-    border-radius: var(--radius);
+    border-radius: var(--radius-2xl);
+    box-shadow: 0 16px 64px rgba(0, 0, 0, 0.3);
     overflow: hidden;
     display: flex;
     flex-direction: column;
@@ -134,15 +139,18 @@
     object-fit: contain;
   }
   .modal-caption {
-    padding: 12px 16px;
+    padding: 16px 20px;
   }
   .modal-title {
-    font-size: 0.85rem;
+    font-family: var(--font-serif);
+    font-size: 0.95rem;
     color: var(--text-primary);
     font-weight: 600;
   }
   .modal-archive {
-    font-size: 0.75rem;
+    font-family: var(--font-serif);
+    font-size: 0.8rem;
     color: var(--text-muted);
+    font-style: italic;
   }
 </style>

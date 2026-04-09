@@ -96,16 +96,16 @@
     transition: border-color var(--transition), box-shadow var(--transition);
   }
   .tags-row:focus-within {
-    border-color: var(--gold-accent-muted);
-    box-shadow: 0 0 0 3px var(--gold-accent-muted);
+    border-color: var(--accent-muted);
+    box-shadow: 0 0 0 3px var(--accent-muted);
   }
   .tag-pill {
     display: inline-flex;
     align-items: center;
     gap: 3px;
     padding: 3px 10px;
-    background: var(--gold-accent-muted);
-    color: var(--gold-accent);
+    background: var(--accent-muted);
+    color: var(--accent);
     border-radius: 12px;
     font-size: 0.72rem;
     font-weight: 600;
@@ -113,7 +113,7 @@
   .tag-remove {
     background: none;
     border: none;
-    color: var(--gold-accent);
+    color: var(--accent);
     cursor: pointer;
     font-size: 0.85rem;
     padding: 0 2px;

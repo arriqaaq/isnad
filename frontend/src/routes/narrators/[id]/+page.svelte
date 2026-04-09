@@ -317,7 +317,7 @@
   .location-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
   .location-tag { font-size: 0.75rem; padding: 2px 8px; background: var(--bg-surface); border: 1px solid var(--border); border-radius: 12px; color: var(--text-secondary); }
   .reliability-source { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 16px; font-style: italic; }
-  .bio { color: var(--text-secondary); font-size: 0.9rem; line-height: 1.6; padding: 16px; background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 20px; max-height: 200px; overflow: hidden; text-overflow: ellipsis; }
+  .bio { font-family: var(--font-serif); color: var(--text-secondary); font-size: 0.9rem; line-height: 1.7; padding: 16px; background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 20px; max-height: 200px; overflow: hidden; text-overflow: ellipsis; }
   .tabs {
     display: flex;
     gap: 4px;

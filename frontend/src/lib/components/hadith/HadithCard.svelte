@@ -67,9 +67,10 @@
   }
 
   .text-preview {
+    font-family: var(--font-serif);
     color: var(--text-secondary);
-    font-size: 0.85rem;
-    line-height: 1.5;
+    font-size: 0.88rem;
+    line-height: 1.6;
     margin-bottom: 8px;
   }
 

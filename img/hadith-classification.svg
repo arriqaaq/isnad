@@ -5,18 +5,18 @@
     </filter>
     <style>
       text { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; }
-      .section-label { font-size: 9px; font-weight: 700; letter-spacing: 1.5px; fill: #d63384; }
+      .section-label { font-size: 9px; font-weight: 700; letter-spacing: 1.5px; fill: #c8a96a; }
       .section-title { font-size: 14px; font-weight: 700; fill: #1a1a2e; }
       .card-title { font-size: 12px; font-weight: 700; fill: #1a1a2e; }
-      .card-title-ar { font-size: 13px; fill: #d63384; font-weight: 600; }
+      .card-title-ar { font-size: 13px; fill: #c8a96a; font-weight: 600; }
       .card-desc { font-size: 10px; fill: #4a4a68; }
       .card-detail { font-size: 9px; fill: #9ca3af; }
       .chip-text { font-size: 10px; font-weight: 600; fill: #4a4a68; }
-      .chip-ar { font-size: 11px; fill: #d63384; }
+      .chip-ar { font-size: 11px; fill: #c8a96a; }
       .chip-desc { font-size: 8.5px; fill: #9ca3af; }
-      .arrow-text { font-size: 9px; fill: #d63384; font-weight: 600; }
-      .connector { stroke: #d63384; stroke-width: 1.5; fill: none; opacity: 0.4; }
-      .connector-dot { fill: #d63384; opacity: 0.6; }
+      .arrow-text { font-size: 9px; fill: #c8a96a; font-weight: 600; }
+      .connector { stroke: #c8a96a; stroke-width: 1.5; fill: none; opacity: 0.4; }
+      .connector-dot { fill: #c8a96a; opacity: 0.6; }
     </style>
   </defs>
 
@@ -28,7 +28,7 @@
   <text x="350" y="56" text-anchor="middle" class="section-title">Mutawatir &amp; Ahad</text>
 
   <!-- Mutawatir card -->
-  <rect x="35" y="72" width="195" height="155" rx="8" fill="rgba(214,51,132,0.05)" stroke="rgba(214,51,132,0.2)" stroke-width="1"/>
+  <rect x="35" y="72" width="195" height="155" rx="8" fill="rgba(200,169,106,0.05)" stroke="rgba(200,169,106,0.2)" stroke-width="1"/>
   <text x="132" y="92" text-anchor="middle" class="card-title">Mutawatir</text>
   <text x="132" y="108" text-anchor="middle" class="card-title-ar">متواتر</text>
   <text x="132" y="126" text-anchor="middle" class="card-desc">Mass-transmitted; impossible</text>
@@ -36,9 +36,9 @@
   <text x="132" y="156" text-anchor="middle" class="card-detail">Conveys certain knowledge</text>
   <text x="132" y="168" text-anchor="middle" class="card-detail">(ilm darooree)</text>
   <!-- Sub-types -->
-  <rect x="48" y="180" width="80" height="28" rx="6" fill="rgba(214,51,132,0.08)" stroke="rgba(214,51,132,0.15)" stroke-width="1"/>
+  <rect x="48" y="180" width="80" height="28" rx="6" fill="rgba(200,169,106,0.08)" stroke="rgba(200,169,106,0.15)" stroke-width="1"/>
   <text x="88" y="198" text-anchor="middle" class="chip-text">Lafthee</text>
-  <rect x="138" y="180" width="80" height="28" rx="6" fill="rgba(214,51,132,0.08)" stroke="rgba(214,51,132,0.15)" stroke-width="1"/>
+  <rect x="138" y="180" width="80" height="28" rx="6" fill="rgba(200,169,106,0.08)" stroke="rgba(200,169,106,0.15)" stroke-width="1"/>
   <text x="178" y="198" text-anchor="middle" class="chip-text">Ma'nawee</text>
 
   <!-- Connector -->
@@ -87,20 +87,20 @@
   <text x="132" y="454" text-anchor="middle" style="font-size:9px;fill:#16a34a;font-weight:600;">Used as proof by consensus</text>
 
   <!-- Hasan li-Thaatihi -->
-  <rect x="250" y="320" width="195" height="145" rx="8" fill="rgba(214,51,132,0.05)" stroke="rgba(214,51,132,0.25)" stroke-width="1"/>
+  <rect x="250" y="320" width="195" height="145" rx="8" fill="rgba(200,169,106,0.05)" stroke="rgba(200,169,106,0.25)" stroke-width="1"/>
   <text x="347" y="340" text-anchor="middle" class="card-title">Hasan li-Thaatihi</text>
   <text x="347" y="354" text-anchor="middle" class="card-title-ar">حسن لذاته</text>
   <text x="265" y="374" class="card-detail">Same 5 conditions as sahih</text>
   <text x="265" y="388" class="card-detail">but with lesser degree of dabt</text>
   <text x="265" y="406" class="card-detail">e.g. narrator is saduq (honest)</text>
   <text x="265" y="420" class="card-detail">rather than thiqah (trustworthy)</text>
-  <text x="347" y="454" text-anchor="middle" style="font-size:9px;fill:#d63384;font-weight:600;">Used as proof, like sahih</text>
+  <text x="347" y="454" text-anchor="middle" style="font-size:9px;fill:#c8a96a;font-weight:600;">Used as proof, like sahih</text>
 
   <!-- Arrows down to li-ghayrihi -->
   <line x1="132" y1="465" x2="132" y2="485" class="connector" opacity="0.6"/>
-  <polygon points="128,483 132,491 136,483" fill="#d63384" opacity="0.5"/>
+  <polygon points="128,483 132,491 136,483" fill="#c8a96a" opacity="0.5"/>
   <line x1="347" y1="465" x2="347" y2="485" class="connector" opacity="0.6"/>
-  <polygon points="343,483 347,491 351,483" fill="#d63384" opacity="0.5"/>
+  <polygon points="343,483 347,491 351,483" fill="#c8a96a" opacity="0.5"/>
 
   <!-- Sahih li-Ghayrihi -->
   <rect x="35" y="490" width="195" height="55" rx="8" fill="rgba(22,163,74,0.04)" stroke="rgba(22,163,74,0.2)" stroke-width="1" stroke-dasharray="4,3"/>
@@ -109,7 +109,7 @@
   <text x="132" y="536" text-anchor="middle" class="card-detail">(mutaba'at / shawahid)</text>
 
   <!-- Hasan li-Ghayrihi -->
-  <rect x="250" y="490" width="195" height="55" rx="8" fill="rgba(214,51,132,0.04)" stroke="rgba(214,51,132,0.2)" stroke-width="1" stroke-dasharray="4,3"/>
+  <rect x="250" y="490" width="195" height="55" rx="8" fill="rgba(200,169,106,0.04)" stroke="rgba(200,169,106,0.2)" stroke-width="1" stroke-dasharray="4,3"/>
   <text x="347" y="510" text-anchor="middle" class="card-title">Hasan li-Ghayrihi</text>
   <text x="347" y="524" text-anchor="middle" class="card-detail">Da'eef + corroboration</text>
   <text x="347" y="536" text-anchor="middle" class="card-detail">(only if light weakness)</text>
@@ -252,7 +252,7 @@
   <text x="350" y="1318" text-anchor="middle" class="section-label">BASED ON WHOM IT IS ASCRIBED TO</text>
   <text x="350" y="1336" text-anchor="middle" class="section-title">Source Attribution</text>
 
-  <rect x="35" y="1350" width="148" height="68" rx="8" fill="rgba(214,51,132,0.05)" stroke="rgba(214,51,132,0.15)" stroke-width="1"/>
+  <rect x="35" y="1350" width="148" height="68" rx="8" fill="rgba(200,169,106,0.05)" stroke="rgba(200,169,106,0.15)" stroke-width="1"/>
   <text x="109" y="1370" text-anchor="middle" class="card-title">Qudsee</text>
   <text x="109" y="1384" text-anchor="middle" class="chip-ar">قدسي</text>
   <text x="109" y="1400" text-anchor="middle" class="card-detail">Meaning from Allah;</text>
@@ -293,7 +293,7 @@
   <text x="50" y="1596" class="card-detail">Qaasirah: agrees from a later point</text>
 
   <!-- Shaahid -->
-  <rect x="350" y="1510" width="315" height="110" rx="8" fill="rgba(214,51,132,0.05)" stroke="rgba(214,51,132,0.2)" stroke-width="1"/>
+  <rect x="350" y="1510" width="315" height="110" rx="8" fill="rgba(200,169,106,0.05)" stroke="rgba(200,169,106,0.2)" stroke-width="1"/>
   <text x="507" y="1530" text-anchor="middle" class="card-title">Shaahid (Supporting)</text>
   <text x="507" y="1544" text-anchor="middle" class="chip-ar">شاهد</text>
   <text x="507" y="1562" text-anchor="middle" class="card-desc">Different Sahabi, same meaning</text>

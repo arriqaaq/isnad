@@ -188,7 +188,7 @@
     gap: 4px;
   }
   .mention-hint code {
-    color: var(--gold-accent);
+    color: var(--accent);
     font-family: var(--font-mono);
   }
   .mention-match {
@@ -201,7 +201,7 @@
     letter-spacing: 0.5px;
     margin-bottom: 6px;
   }
-  .match-header.ayah { color: var(--gold-accent); }
+  .match-header.ayah { color: var(--accent); }
   .match-header.hadith { color: var(--success); }
   .match-preview {
     font-family: var(--font-serif);

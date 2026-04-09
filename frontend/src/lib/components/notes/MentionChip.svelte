@@ -41,8 +41,8 @@
     vertical-align: baseline;
   }
   .mention-ayah {
-    background: var(--gold-accent-muted);
-    color: var(--gold-accent);
+    background: var(--accent-muted);
+    color: var(--accent);
   }
   .mention-hadith {
     background: var(--bg-hover);

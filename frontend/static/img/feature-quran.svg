@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 300">
+  <defs>
+    <filter id="shadow" x="-4%" y="-4%" width="108%" height="112%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#000" flood-opacity="0.06"/>
+    </filter>
+  </defs>
+
+  <!-- Card -->
+  <rect x="20" y="20" width="660" height="260" rx="12" fill="#ffffff" stroke="#e5e7eb" stroke-width="1" filter="url(#shadow)"/>
+
+  <!-- Arabic Quran text - large, centered -->
+  <text x="350" y="80" text-anchor="middle" font-family="system-ui, sans-serif" font-size="24" fill="#1a1a2e" direction="rtl">
+    &#x630;&#x64E;&#x644;&#x650;&#x643;&#x64E; &#x627;&#x644;&#x643;&#x650;&#x62A;&#x64E;&#x627;&#x628;&#x64F; &#x644;&#x64E;&#x627; &#x631;&#x64E;&#x64A;&#x652;&#x628;&#x64E; &#x641;&#x650;&#x64A;&#x647;&#x650; &#x647;&#x64F;&#x62F;&#x64B;&#x649; &#x644;&#x650;&#x644;&#x645;&#x64F;&#x62A;&#x64E;&#x651;&#x642;&#x650;&#x64A;&#x646;&#x64E;
+  </text>
+  <!-- Verse number -->
+  <text x="640" y="80" font-family="Georgia, serif" font-size="14" fill="#c8a96a">&#x0662;</text>
+
+  <!-- Tajweed color indicators -->
+  <circle cx="248" cy="100" r="4" fill="#d4342a"/>
+  <text x="258" y="104" font-family="system-ui, sans-serif" font-size="8" fill="#9ca3af">Ghunna</text>
+  <circle cx="318" cy="100" r="4" fill="#169777"/>
+  <text x="328" y="104" font-family="system-ui, sans-serif" font-size="8" fill="#9ca3af">Idgham</text>
+  <circle cx="388" cy="100" r="4" fill="#4d80c6"/>
+  <text x="398" y="104" font-family="system-ui, sans-serif" font-size="8" fill="#9ca3af">Qalqala</text>
+
+  <!-- Separator -->
+  <line x1="50" y1="118" x2="650" y2="118" stroke="#f0f1f3" stroke-width="1"/>
+
+  <!-- Translation -->
+  <text x="50" y="148" font-family="Georgia, serif" font-size="13" fill="#4a4a68">This is the Book about which there is no doubt, a guidance for those conscious of Allah -</text>
+
+  <!-- Separator -->
+  <line x1="50" y1="168" x2="650" y2="168" stroke="#f0f1f3" stroke-width="1"/>
+
+  <!-- Footer actions -->
+  <text x="50" y="192" font-family="ui-monospace, monospace" font-size="11" fill="#9ca3af">2 : 2</text>
+  <!-- Play button -->
+  <rect x="90" y="178" width="28" height="22" rx="6" fill="#f9fafb" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="104" y="194" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" fill="#4a4a68">&#9654;</text>
+  <!-- Download -->
+  <rect x="124" y="178" width="28" height="22" rx="6" fill="#f9fafb" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="138" y="194" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" fill="#4a4a68">&#8595;</text>
+  <!-- Action pills -->
+  <rect x="164" y="178" width="52" height="22" rx="6" fill="#f9fafb" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="190" y="193" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#4a4a68">Words</text>
+  <rect x="222" y="178" width="72" height="22" rx="6" fill="#f9fafb" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="258" y="193" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#4a4a68">Show Tafsir</text>
+  <rect x="300" y="178" width="64" height="22" rx="6" fill="#f9fafb" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="332" y="193" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#4a4a68">Readings</text>
+  <rect x="370" y="178" width="52" height="22" rx="6" fill="#f9fafb" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="396" y="193" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#4a4a68">Similar</text>
+
+  <!-- Tafsir expanded section -->
+  <rect x="50" y="212" width="600" height="52" rx="6" fill="#faf8f5"/>
+  <text x="62" y="230" font-family="system-ui, sans-serif" font-size="9" font-weight="700" letter-spacing="1" fill="#c8a96a">TAFSIR IBN KATHIR</text>
+  <text x="62" y="250" font-family="Georgia, serif" font-size="11" fill="#6b7280">This is the Book of Allah, there is no doubt in it. It is a guidance for the pious believers,</text>
+</svg>

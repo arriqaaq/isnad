@@ -166,7 +166,7 @@
     font-size: 2rem;
     font-weight: 600;
     border: none;
-    border-bottom: 2px solid var(--gold-accent);
+    border-bottom: 2px solid var(--accent);
     background: transparent;
     color: var(--text-primary);
     width: 100%;
@@ -196,7 +196,7 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    color: var(--gold-accent);
+    color: var(--accent);
     margin-bottom: 14px;
     display: flex;
     align-items: center;
@@ -207,7 +207,7 @@
     display: inline-block;
     width: 3px;
     height: 14px;
-    background: var(--gold-accent);
+    background: var(--accent);
     border-radius: 2px;
   }
   .refs-list {
@@ -230,14 +230,14 @@
     padding: 6px 14px;
     font-size: 0.85rem;
     font-family: var(--font-serif);
-    color: var(--gold-accent);
+    color: var(--accent);
     text-decoration: none;
-    border: 1px solid var(--gold-accent-muted);
+    border: 1px solid var(--accent-muted);
     border-radius: var(--radius);
     transition: all var(--transition);
   }
   .back-link:hover {
-    background: var(--gold-accent-muted);
-    color: var(--gold-accent-hover);
+    background: var(--accent-muted);
+    color: var(--accent-hover);
   }
 </style>

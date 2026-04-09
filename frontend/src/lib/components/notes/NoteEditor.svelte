@@ -115,8 +115,8 @@
     transition: all var(--transition);
   }
   .editor-collapsed:hover {
-    border-color: var(--gold-accent-muted);
-    box-shadow: var(--shadow-card), 0 0 0 3px var(--gold-accent-muted);
+    border-color: var(--accent-muted);
+    box-shadow: var(--shadow-card), 0 0 0 3px var(--accent-muted);
   }
   .placeholder-text {
     font-family: var(--font-serif);
@@ -142,8 +142,8 @@
     transform: scale(1.2);
   }
   .color-circle.selected {
-    border-color: var(--gold-accent);
-    box-shadow: 0 0 0 2px var(--gold-accent-muted);
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-muted);
   }
   .editor-expanded {
     border: 1px solid var(--border-subtle);
@@ -175,14 +175,14 @@
     font-size: 0.8rem;
     font-weight: 600;
     color: #fff;
-    background: var(--gold-accent);
+    background: var(--accent);
     border: none;
     border-radius: var(--radius);
     cursor: pointer;
     transition: background var(--transition);
   }
   .btn-save:hover {
-    background: var(--gold-accent-hover);
+    background: var(--accent-hover);
   }
   .btn-cancel {
     padding: 5px 14px;
@@ -194,5 +194,5 @@
     cursor: pointer;
     transition: all var(--transition);
   }
-  .btn-cancel:hover { color: var(--gold-accent); border-color: var(--gold-accent-muted); }
+  .btn-cancel:hover { color: var(--accent); border-color: var(--accent-muted); }
 </style>

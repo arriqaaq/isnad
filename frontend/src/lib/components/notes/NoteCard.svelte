@@ -47,7 +47,7 @@
   let contentParts = $derived(parseContent(note.content));
 </script>
 
-<div class="note-card" style="background: var(--note-{note.color}-tint); --card-accent: var(--note-{note.color})">
+<div class="note-card" style="--card-accent: var(--note-{note.color})">
   <div class="note-header">
     <div class="note-meta">
       {#if note.title}
@@ -157,11 +157,11 @@
   .note-ref {
     font-size: 0.75rem;
     font-family: var(--font-mono);
-    color: var(--gold-accent);
+    color: var(--accent);
     text-decoration: none;
     font-weight: 600;
   }
-  .note-ref:hover { text-decoration: underline; color: var(--gold-accent-hover); }
+  .note-ref:hover { text-decoration: underline; color: var(--accent-hover); }
   .ref-count {
     font-size: 0.7rem;
     color: var(--text-muted);

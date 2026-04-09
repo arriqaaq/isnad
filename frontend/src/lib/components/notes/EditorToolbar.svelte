@@ -209,8 +209,8 @@
     color: var(--text-primary);
   }
   .fmt-btn.active {
-    background: var(--gold-accent-muted);
-    color: var(--gold-accent);
+    background: var(--accent-muted);
+    color: var(--accent);
   }
   .italic-btn {
     font-style: italic;
@@ -285,7 +285,7 @@
     background: var(--bg-hover);
   }
   .menu-item.active {
-    color: var(--gold-accent);
+    color: var(--accent);
     font-weight: 600;
   }
   .menu-icon {

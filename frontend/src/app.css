@@ -20,10 +20,10 @@
   --text-primary: #1a1a2e;
   --text-secondary: #4a4a68;
   --text-muted: #9ca3af;
-  --accent: #d63384;
-  --accent-hover: #b52871;
-  --accent-muted: rgba(214, 51, 132, 0.1);
-  --accent-secondary: #b8860b;
+  --accent: #c8a96a;
+  --accent-hover: #b09050;
+  --accent-muted: rgba(200, 169, 106, 0.1);
+  --accent-secondary: #8b6914;
   --btn-text: #6b7280;
   --btn-bg: #f9fafb;
   --btn-border: #e5e7eb;
@@ -45,12 +45,12 @@
   --transition: 150ms ease;
 
   /* Graph visualization */
-  --graph-center: #d63384;
+  --graph-center: #c8a96a;
   --graph-teacher: #16a34a;
   --graph-student: #b8860b;
   --graph-edge: rgba(156, 163, 175, 0.35);
-  --graph-edge-hover: #d63384;
-  --graph-shadow-center: rgba(214, 51, 132, 0.3);
+  --graph-edge-hover: #c8a96a;
+  --graph-shadow-center: rgba(200, 169, 106, 0.3);
   --graph-shadow-teacher: rgba(22, 163, 74, 0.3);
   --graph-shadow-student: rgba(184, 134, 11, 0.3);
 
@@ -61,7 +61,7 @@
   --note-pink-bg: #fce7f3;   --note-pink: #ec4899;
   --note-purple-bg: #ede9fe; --note-purple: #8b5cf6;
 
-  /* Notes UI — warm scholarly tokens */
+  /* Scholarly UI tokens */
   --font-serif: 'EB Garamond', Georgia, serif;
   --radius-xl: 16px;
   --radius-2xl: 20px;
@@ -70,14 +70,6 @@
   --shadow-editor: 0 4px 24px rgba(0, 0, 0, 0.08);
   --note-editor-bg: #faf8f5;
   --note-card-bg: #fffdfb;
-  --gold-accent: #c8a96a;
-  --gold-accent-hover: #b09050;
-  --gold-accent-muted: rgba(200, 169, 106, 0.12);
-  --note-yellow-tint: rgba(245, 158, 11, 0.06);
-  --note-green-tint: rgba(16, 185, 129, 0.06);
-  --note-blue-tint: rgba(59, 130, 246, 0.06);
-  --note-pink-tint: rgba(236, 72, 153, 0.06);
-  --note-purple-tint: rgba(139, 92, 246, 0.06);
 }
 
 *, *::before, *::after {
@@ -106,6 +98,7 @@ a:hover {
 }
 
 h1, h2, h3, h4 {
+  font-family: var(--font-serif);
   color: var(--text-primary);
   font-weight: 600;
 }
@@ -206,9 +199,9 @@ input::placeholder {
   --text-primary: #e6edf3;
   --text-secondary: #9ca3af;
   --text-muted: #6b7280;
-  --accent: #e77aab;
-  --accent-hover: #d63384;
-  --accent-muted: rgba(231, 122, 171, 0.15);
+  --accent: #e5c890;
+  --accent-hover: #d4b57f;
+  --accent-muted: rgba(229, 200, 144, 0.15);
   --accent-secondary: #daa520;
   --btn-text: #9ca3af;
   --btn-bg: #1c2128;
@@ -220,12 +213,12 @@ input::placeholder {
   --error: #f85149;
 
   /* Graph visualization */
-  --graph-center: #e77aab;
+  --graph-center: #e5c890;
   --graph-teacher: #3fb950;
   --graph-student: #daa520;
   --graph-edge: rgba(107, 114, 128, 0.35);
-  --graph-edge-hover: #e77aab;
-  --graph-shadow-center: rgba(231, 122, 171, 0.35);
+  --graph-edge-hover: #e5c890;
+  --graph-shadow-center: rgba(229, 200, 144, 0.35);
   --graph-shadow-teacher: rgba(63, 185, 80, 0.35);
   --graph-shadow-student: rgba(218, 165, 32, 0.35);
 
@@ -239,14 +232,6 @@ input::placeholder {
   /* Notes UI — warm dark overrides */
   --note-editor-bg: #1a1e2a;
   --note-card-bg: #1c2030;
-  --gold-accent: #e5c890;
-  --gold-accent-hover: #d4b57f;
-  --gold-accent-muted: rgba(229, 200, 144, 0.12);
-  --note-yellow-tint: rgba(251, 191, 36, 0.08);
-  --note-green-tint: rgba(52, 211, 153, 0.08);
-  --note-blue-tint: rgba(96, 165, 250, 0.08);
-  --note-pink-tint: rgba(244, 114, 182, 0.08);
-  --note-purple-tint: rgba(167, 139, 250, 0.08);
 }
 
 /* ── Theme: Brown (Sepia) ── */
@@ -294,50 +279,6 @@ input::placeholder {
   /* Notes UI — brown theme naturally matches parchment */
   --note-editor-bg: #faf3e3;
   --note-card-bg: #faf3e3;
-  --gold-accent: #b8860b;
-  --gold-accent-hover: #996f09;
-  --gold-accent-muted: rgba(184, 134, 11, 0.12);
-  --note-yellow-tint: rgba(217, 119, 6, 0.08);
-  --note-green-tint: rgba(5, 150, 105, 0.08);
-  --note-blue-tint: rgba(37, 99, 235, 0.08);
-  --note-pink-tint: rgba(219, 39, 119, 0.08);
-  --note-purple-tint: rgba(124, 58, 237, 0.08);
-}
-
-/* ── Theme: Pink ── */
-[data-theme="pink"] {
-  --bg-primary: #fff0f5;
-  --bg-secondary: #fce4ec;
-  --bg-surface: #fff5f8;
-  --bg-hover: #f8d7e3;
-  --bg-active: #f1c6d6;
-  --border: #f0b8cc;
-  --border-subtle: #f8d7e3;
-  --text-primary: #2d1a24;
-  --text-secondary: #6b4a5a;
-  --text-muted: #a07a8e;
-  --accent: #d63384;
-  --accent-hover: #b52871;
-  --accent-muted: rgba(214, 51, 132, 0.12);
-  --accent-secondary: #c2185b;
-  --btn-text: #a07a8e;
-  --btn-bg: #fce4ec;
-  --btn-border: #f0b8cc;
-  --btn-bg-hover: #f8d7e3;
-  --btn-border-hover: #e8a0b8;
-  --success: #2e7d32;
-  --warning: #f57c00;
-  --error: #d32f2f;
-
-  /* Graph visualization */
-  --graph-center: #d63384;
-  --graph-teacher: #2e7d32;
-  --graph-student: #c2185b;
-  --graph-edge: rgba(160, 122, 142, 0.35);
-  --graph-edge-hover: #d63384;
-  --graph-shadow-center: rgba(214, 51, 132, 0.3);
-  --graph-shadow-teacher: rgba(46, 125, 50, 0.3);
-  --graph-shadow-student: rgba(194, 24, 91, 0.3);
 }
 
 /* ── Mobile Responsive ── */

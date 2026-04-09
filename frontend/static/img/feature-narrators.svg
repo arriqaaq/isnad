@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 400">
+  <defs>
+    <filter id="shadow" x="-4%" y="-4%" width="108%" height="112%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#000" flood-opacity="0.06"/>
+    </filter>
+  </defs>
+
+  <!-- Card -->
+  <rect x="20" y="20" width="660" height="360" rx="12" fill="#ffffff" stroke="#e5e7eb" stroke-width="1" filter="url(#shadow)"/>
+
+  <!-- Header -->
+  <text x="350" y="50" text-anchor="middle" font-family="system-ui, sans-serif" font-size="16" fill="#1a1a2e" direction="rtl">&#x639;&#x628;&#x62F; &#x627;&#x644;&#x644;&#x647; &#x628;&#x646; &#x64A;&#x648;&#x633;&#x641;</text>
+
+  <!-- Tabs -->
+  <text x="200" y="74" font-family="system-ui, sans-serif" font-size="11" font-weight="600" fill="#c8a96a">Network</text>
+  <line x1="192" y1="78" x2="238" y2="78" stroke="#c8a96a" stroke-width="2"/>
+  <text x="280" y="74" font-family="system-ui, sans-serif" font-size="11" fill="#9ca3af">Hadiths (365)</text>
+  <text x="380" y="74" font-family="system-ui, sans-serif" font-size="11" fill="#9ca3af">Connections</text>
+  <text x="480" y="74" font-family="system-ui, sans-serif" font-size="11" fill="#9ca3af">Details</text>
+
+  <!-- Separator -->
+  <line x1="40" y1="86" x2="660" y2="86" stroke="#f0f1f3" stroke-width="1"/>
+
+  <!-- Teacher row (top) -->
+  <circle cx="80" cy="130" r="16" fill="#16a34a"/>
+  <circle cx="150" cy="130" r="16" fill="#16a34a"/>
+  <circle cx="220" cy="130" r="16" fill="#16a34a"/>
+  <circle cx="290" cy="130" r="16" fill="#16a34a"/>
+  <circle cx="360" cy="130" r="16" fill="#16a34a"/>
+  <circle cx="430" cy="130" r="16" fill="#16a34a"/>
+  <circle cx="500" cy="130" r="16" fill="#16a34a"/>
+  <circle cx="570" cy="130" r="16" fill="#16a34a"/>
+  <circle cx="640" cy="130" r="16" fill="#16a34a"/>
+
+  <!-- Teacher labels -->
+  <text x="80" y="164" text-anchor="middle" font-family="system-ui, sans-serif" font-size="7" fill="#9ca3af">Malik</text>
+  <text x="150" y="164" text-anchor="middle" font-family="system-ui, sans-serif" font-size="7" fill="#9ca3af">Nafi'</text>
+  <text x="220" y="164" text-anchor="middle" font-family="system-ui, sans-serif" font-size="7" fill="#9ca3af">al-A'mash</text>
+  <text x="290" y="164" text-anchor="middle" font-family="system-ui, sans-serif" font-size="7" fill="#9ca3af">Shu'bah</text>
+  <text x="360" y="164" text-anchor="middle" font-family="system-ui, sans-serif" font-size="7" fill="#9ca3af">Sufyan</text>
+  <text x="430" y="164" text-anchor="middle" font-family="system-ui, sans-serif" font-size="7" fill="#9ca3af">Hammad</text>
+  <text x="500" y="164" text-anchor="middle" font-family="system-ui, sans-serif" font-size="7" fill="#9ca3af">Ibn Jurayj</text>
+  <text x="570" y="164" text-anchor="middle" font-family="system-ui, sans-serif" font-size="7" fill="#9ca3af">Abu Mu'adh</text>
+  <text x="640" y="164" text-anchor="middle" font-family="system-ui, sans-serif" font-size="7" fill="#9ca3af">al-Awza'i</text>
+
+  <!-- Lines from teachers to center -->
+  <line x1="80" y1="146" x2="350" y2="220" stroke="#9ca3af" stroke-width="1" opacity="0.3"/>
+  <line x1="150" y1="146" x2="350" y2="220" stroke="#9ca3af" stroke-width="1" opacity="0.3"/>
+  <line x1="220" y1="146" x2="350" y2="220" stroke="#9ca3af" stroke-width="1" opacity="0.3"/>
+  <line x1="290" y1="146" x2="350" y2="220" stroke="#9ca3af" stroke-width="1" opacity="0.3"/>
+  <line x1="360" y1="146" x2="350" y2="220" stroke="#9ca3af" stroke-width="1" opacity="0.3"/>
+  <line x1="430" y1="146" x2="350" y2="220" stroke="#9ca3af" stroke-width="1" opacity="0.3"/>
+  <line x1="500" y1="146" x2="350" y2="220" stroke="#9ca3af" stroke-width="1" opacity="0.3"/>
+  <line x1="570" y1="146" x2="350" y2="220" stroke="#9ca3af" stroke-width="1" opacity="0.3"/>
+  <line x1="640" y1="146" x2="350" y2="220" stroke="#9ca3af" stroke-width="1" opacity="0.3"/>
+
+  <!-- Center node -->
+  <circle cx="350" cy="230" r="22" fill="#c8a96a" opacity="0.9"/>
+  <text x="350" y="258" text-anchor="middle" font-family="system-ui, sans-serif" font-size="8" fill="#1a1a2e" direction="rtl">&#x639;&#x628;&#x62F; &#x627;&#x644;&#x644;&#x647; &#x628;&#x646; &#x64A;&#x648;&#x633;&#x641;</text>
+
+  <!-- Lines from center to students -->
+  <line x1="350" y1="252" x2="80" y2="310" stroke="#9ca3af" stroke-width="1" opacity="0.3"/>
+  <line x1="350" y1="252" x2="180" y2="310" stroke="#9ca3af" stroke-width="1" opacity="0.3"/>
+  <line x1="350" y1="252" x2="280" y2="310" stroke="#9ca3af" stroke-width="1" opacity="0.3"/>
+  <line x1="350" y1="252" x2="380" y2="310" stroke="#9ca3af" stroke-width="1" opacity="0.3"/>
+  <line x1="350" y1="252" x2="480" y2="310" stroke="#9ca3af" stroke-width="1" opacity="0.3"/>
+  <line x1="350" y1="252" x2="580" y2="310" stroke="#9ca3af" stroke-width="1" opacity="0.3"/>
+
+  <!-- Student row (bottom) -->
+  <circle cx="80" cy="320" r="14" fill="#b8860b"/>
+  <circle cx="180" cy="320" r="14" fill="#b8860b"/>
+  <circle cx="280" cy="320" r="14" fill="#b8860b"/>
+  <circle cx="380" cy="320" r="14" fill="#b8860b"/>
+  <circle cx="480" cy="320" r="14" fill="#b8860b"/>
+  <circle cx="580" cy="320" r="14" fill="#b8860b"/>
+
+  <!-- Student labels -->
+  <text x="80" y="350" text-anchor="middle" font-family="system-ui, sans-serif" font-size="7" fill="#9ca3af">al-Bukhari</text>
+  <text x="180" y="350" text-anchor="middle" font-family="system-ui, sans-serif" font-size="7" fill="#9ca3af">Muslim</text>
+  <text x="280" y="350" text-anchor="middle" font-family="system-ui, sans-serif" font-size="7" fill="#9ca3af">Abu Dawud</text>
+  <text x="380" y="350" text-anchor="middle" font-family="system-ui, sans-serif" font-size="7" fill="#9ca3af">al-Tirmidhi</text>
+  <text x="480" y="350" text-anchor="middle" font-family="system-ui, sans-serif" font-size="7" fill="#9ca3af">al-Nasa'i</text>
+  <text x="580" y="350" text-anchor="middle" font-family="system-ui, sans-serif" font-size="7" fill="#9ca3af">Ibn Majah</text>
+
+  <!-- Legend -->
+  <circle cx="200" cy="374" r="5" fill="#c8a96a"/>
+  <text x="212" y="378" font-family="system-ui, sans-serif" font-size="9" fill="#9ca3af">This narrator</text>
+  <circle cx="300" cy="374" r="5" fill="#16a34a"/>
+  <text x="312" y="378" font-family="system-ui, sans-serif" font-size="9" fill="#9ca3af">Teachers</text>
+  <circle cx="380" cy="374" r="5" fill="#b8860b"/>
+  <text x="392" y="378" font-family="system-ui, sans-serif" font-size="9" fill="#9ca3af">Students</text>
+</svg>
