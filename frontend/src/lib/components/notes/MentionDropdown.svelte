@@ -168,29 +168,31 @@
   .mention-dropdown {
     position: fixed;
     background: var(--bg-surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-xl);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.15);
     z-index: 9999;
-    max-height: 280px;
-    min-width: 260px;
-    max-width: 400px;
+    max-height: 300px;
+    min-width: 280px;
+    max-width: 420px;
     overflow-y: auto;
   }
   .mention-hint {
-    padding: 10px 14px;
-    font-size: 0.75rem;
+    padding: 12px 16px;
+    font-size: 0.78rem;
     color: var(--text-muted);
     display: flex;
     flex-direction: column;
-    gap: 3px;
+    gap: 4px;
   }
   .mention-hint code {
-    color: var(--accent);
+    color: var(--gold-accent);
     font-family: var(--font-mono);
   }
   .mention-match {
-    padding: 10px 14px;
+    padding: 12px 16px;
   }
   .match-header {
     font-size: 0.75rem;
@@ -199,11 +201,12 @@
     letter-spacing: 0.5px;
     margin-bottom: 6px;
   }
-  .match-header.ayah { color: var(--accent); }
+  .match-header.ayah { color: var(--gold-accent); }
   .match-header.hadith { color: var(--success); }
   .match-preview {
-    font-size: 0.78rem;
-    line-height: 1.5;
+    font-family: var(--font-serif);
+    font-size: 0.85rem;
+    line-height: 1.6;
     color: var(--text-secondary);
     display: -webkit-box;
     -webkit-line-clamp: 3;
@@ -216,10 +219,10 @@
     color: var(--text-muted);
   }
   .match-action kbd {
-    padding: 1px 5px;
+    padding: 2px 6px;
     background: var(--bg-hover);
     border: 1px solid var(--border);
-    border-radius: 3px;
+    border-radius: 4px;
     font-family: var(--font-mono);
     font-size: 0.6rem;
   }
@@ -229,15 +232,22 @@
     gap: 8px;
     width: 100%;
     text-align: left;
-    padding: 8px 14px;
+    padding: 10px 16px;
     border: none;
     background: none;
     cursor: pointer;
     font-size: 0.8rem;
     color: var(--text-primary);
+    transition: background var(--transition);
   }
   .narrator-item:hover, .narrator-item.selected {
     background: var(--bg-hover);
+  }
+  .narrator-item:first-child {
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  }
+  .narrator-item:last-child {
+    border-radius: 0 0 var(--radius-xl) var(--radius-xl);
   }
   .narrator-name { font-weight: 600; flex: 1; }
   .narrator-meta {

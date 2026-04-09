@@ -120,36 +120,41 @@
 <style>
   .embedded-ref {
     margin: 8px 0;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-xl);
     overflow: hidden;
     background: var(--bg-surface);
+    box-shadow: var(--shadow-card);
+    transition: box-shadow var(--transition);
+  }
+  .embedded-ref:hover {
+    box-shadow: var(--shadow-card-hover);
   }
   .ref-header {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 6px 12px;
+    padding: 8px 16px;
     background: var(--bg-hover);
     text-decoration: none;
     color: inherit;
-    border-bottom: 1px solid var(--border);
+    border-bottom: 1px solid var(--border-subtle);
     transition: background var(--transition);
   }
   .ref-header:hover {
-    background: var(--accent-muted);
+    background: var(--gold-accent-muted);
   }
   .ref-badge {
     font-size: 0.6rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    padding: 2px 8px;
+    padding: 2px 10px;
     border-radius: 10px;
   }
   .ref-badge.ayah {
-    background: var(--accent-muted);
-    color: var(--accent);
+    background: var(--gold-accent-muted);
+    color: var(--gold-accent);
   }
   .ref-badge.hadith {
     background: var(--bg-active);
@@ -169,10 +174,15 @@
     margin-left: auto;
     color: var(--text-muted);
     font-size: 0.75rem;
+    transition: transform var(--transition);
+  }
+  .ref-header:hover .ref-arrow {
+    transform: translateX(2px);
   }
   .ref-body {
-    padding: 10px 14px;
-    font-size: 0.85rem;
+    padding: 12px 16px;
+    font-family: var(--font-serif);
+    font-size: 0.9rem;
     line-height: 1.7;
     color: var(--text-secondary);
   }
@@ -186,6 +196,7 @@
   .loading-body {
     font-size: 0.75rem;
     color: var(--text-muted);
+    font-style: italic;
   }
   .muted {
     font-size: 0.75rem;

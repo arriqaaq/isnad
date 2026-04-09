@@ -137,18 +137,22 @@
 
 <style>
   .note-detail {
-    padding: 24px;
+    padding: 32px;
     max-width: 800px;
   }
   .title-area {
-    margin-bottom: 16px;
+    margin-bottom: 20px;
   }
   .title {
-    font-size: 1.5rem;
+    font-family: var(--font-serif);
+    font-size: 2rem;
+    font-weight: 600;
     cursor: pointer;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
+    letter-spacing: -0.01em;
+    line-height: 1.3;
   }
   .edit-hint {
     font-size: 0.8rem;
@@ -158,21 +162,23 @@
   }
   .title:hover .edit-hint { opacity: 1; }
   .title-input {
-    font-size: 1.5rem;
-    font-weight: 700;
+    font-family: var(--font-serif);
+    font-size: 2rem;
+    font-weight: 600;
     border: none;
-    border-bottom: 2px solid var(--accent);
+    border-bottom: 2px solid var(--gold-accent);
     background: transparent;
     color: var(--text-primary);
     width: 100%;
     outline: none;
     padding: 4px 0;
+    letter-spacing: -0.01em;
   }
   .title-meta {
     display: flex;
     align-items: center;
     gap: 8px;
-    margin-top: 6px;
+    margin-top: 8px;
   }
   .ref-count {
     font-size: 0.75rem;
@@ -180,35 +186,58 @@
     font-family: var(--font-mono);
   }
   .tags-area {
-    margin-bottom: 20px;
+    margin-bottom: 24px;
   }
   .section {
-    margin-bottom: 28px;
+    margin-bottom: 32px;
   }
   .section-label {
     font-size: 0.7rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    color: var(--accent);
-    margin-bottom: 12px;
+    color: var(--gold-accent);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-label::before {
+    content: '';
+    display: inline-block;
+    width: 3px;
+    height: 14px;
+    background: var(--gold-accent);
+    border-radius: 2px;
   }
   .refs-list {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 14px;
   }
   .loading, .not-found {
     text-align: center;
-    padding: 40px;
+    padding: 60px;
     color: var(--text-muted);
+    font-family: var(--font-serif);
+    font-style: italic;
   }
   .back-link {
-    display: inline-block;
-    margin-top: 20px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 24px;
+    padding: 6px 14px;
     font-size: 0.85rem;
-    color: var(--accent);
+    font-family: var(--font-serif);
+    color: var(--gold-accent);
     text-decoration: none;
+    border: 1px solid var(--gold-accent-muted);
+    border-radius: var(--radius);
+    transition: all var(--transition);
   }
-  .back-link:hover { text-decoration: underline; }
+  .back-link:hover {
+    background: var(--gold-accent-muted);
+    color: var(--gold-accent-hover);
+  }
 </style>

@@ -86,37 +86,40 @@
   .tags-row {
     display: flex;
     flex-wrap: wrap;
-    gap: 4px;
+    gap: 6px;
     align-items: center;
-    padding: 4px 8px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
+    padding: 6px 12px;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius);
     background: var(--bg-surface);
-    min-height: 32px;
+    min-height: 36px;
+    transition: border-color var(--transition), box-shadow var(--transition);
   }
   .tags-row:focus-within {
-    border-color: var(--accent);
+    border-color: var(--gold-accent-muted);
+    box-shadow: 0 0 0 3px var(--gold-accent-muted);
   }
   .tag-pill {
     display: inline-flex;
     align-items: center;
-    gap: 2px;
-    padding: 2px 8px;
-    background: var(--accent-muted);
-    color: var(--accent);
-    border-radius: 10px;
-    font-size: 0.7rem;
+    gap: 3px;
+    padding: 3px 10px;
+    background: var(--gold-accent-muted);
+    color: var(--gold-accent);
+    border-radius: 12px;
+    font-size: 0.72rem;
     font-weight: 600;
   }
   .tag-remove {
     background: none;
     border: none;
-    color: var(--accent);
+    color: var(--gold-accent);
     cursor: pointer;
     font-size: 0.85rem;
     padding: 0 2px;
     line-height: 1;
     opacity: 0.6;
+    transition: opacity var(--transition);
   }
   .tag-remove:hover { opacity: 1; }
   .tag-text-input {
@@ -135,22 +138,24 @@
     left: 0;
     right: 0;
     background: var(--bg-surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
     z-index: 100;
-    margin-top: 2px;
+    margin-top: 4px;
+    overflow: hidden;
   }
   .suggestion-item {
     display: block;
     width: 100%;
     text-align: left;
-    padding: 6px 12px;
+    padding: 8px 14px;
     border: none;
     background: none;
     color: var(--text-primary);
     font-size: 0.8rem;
     cursor: pointer;
+    transition: background var(--transition);
   }
   .suggestion-item:hover {
     background: var(--bg-hover);

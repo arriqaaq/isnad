@@ -105,18 +105,23 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
-    padding: 8px 12px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
+    gap: 16px;
+    padding: 14px 20px;
+    background: var(--note-editor-bg);
+    border: 1px solid transparent;
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-card);
     cursor: text;
-    transition: border-color var(--transition);
+    transition: all var(--transition);
   }
   .editor-collapsed:hover {
-    border-color: var(--accent);
+    border-color: var(--gold-accent-muted);
+    box-shadow: var(--shadow-card), 0 0 0 3px var(--gold-accent-muted);
   }
   .placeholder-text {
-    font-size: 0.85rem;
+    font-family: var(--font-serif);
+    font-size: 0.95rem;
+    font-style: italic;
     color: var(--text-muted);
   }
   .color-row {
@@ -137,50 +142,57 @@
     transform: scale(1.2);
   }
   .color-circle.selected {
-    border-color: var(--text-primary);
-    transform: scale(1.15);
+    border-color: var(--gold-accent);
+    box-shadow: 0 0 0 2px var(--gold-accent-muted);
   }
   .editor-expanded {
-    border: 1px solid var(--accent);
-    border-radius: var(--radius);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-editor);
+    overflow: hidden;
   }
   .editor-toolbar {
-    padding: 8px 12px;
+    padding: 10px 16px;
     background: var(--bg-primary);
-    border-top: 1px solid var(--border);
+    border-top: 1px solid var(--border-subtle);
     display: flex;
-    flex-direction: column;
-    gap: 8px;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
   }
   .tag-row {
-    width: 100%;
+    flex: 1;
+    min-width: 120px;
   }
   .button-row {
     display: flex;
     gap: 8px;
-    justify-content: flex-end;
+    align-items: center;
+    margin-left: auto;
   }
   .btn-save {
-    padding: 4px 16px;
+    padding: 5px 20px;
     font-size: 0.8rem;
     font-weight: 600;
     color: #fff;
-    background: var(--accent);
+    background: var(--gold-accent);
     border: none;
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius);
     cursor: pointer;
-    transition: opacity var(--transition);
+    transition: background var(--transition);
   }
-  .btn-save:hover { opacity: 0.85; }
+  .btn-save:hover {
+    background: var(--gold-accent-hover);
+  }
   .btn-cancel {
-    padding: 4px 12px;
+    padding: 5px 14px;
     font-size: 0.8rem;
     color: var(--text-muted);
     background: none;
     border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius);
     cursor: pointer;
     transition: all var(--transition);
   }
-  .btn-cancel:hover { color: var(--text-primary); border-color: var(--text-muted); }
+  .btn-cancel:hover { color: var(--gold-accent); border-color: var(--gold-accent-muted); }
 </style>

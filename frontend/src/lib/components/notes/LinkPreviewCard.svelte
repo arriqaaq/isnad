@@ -48,23 +48,25 @@
   .preview-card {
     display: flex;
     gap: 12px;
-    padding: 10px 12px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
+    padding: 12px 16px;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-xl);
     background: var(--bg-surface);
     text-decoration: none;
     color: inherit;
-    transition: border-color var(--transition);
-    margin: 6px 0;
+    box-shadow: var(--shadow-card);
+    transition: box-shadow var(--transition), border-color var(--transition);
+    margin: 8px 0;
   }
   .preview-card:hover {
-    border-color: var(--accent);
+    border-color: var(--border);
+    box-shadow: var(--shadow-card-hover);
   }
   .preview-image {
-    width: 60px;
-    height: 60px;
+    width: 64px;
+    height: 64px;
     object-fit: cover;
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius);
     flex-shrink: 0;
   }
   .preview-body {

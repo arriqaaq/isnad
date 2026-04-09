@@ -47,7 +47,7 @@
   let contentParts = $derived(parseContent(note.content));
 </script>
 
-<div class="note-card" style="border-left-color: var(--note-{note.color})">
+<div class="note-card" style="background: var(--note-{note.color}-tint); --card-accent: var(--note-{note.color})">
   <div class="note-header">
     <div class="note-meta">
       {#if note.title}
@@ -78,6 +78,8 @@
       {#each contentParts as part}
         {#if part.type === 'text'}
           <span class="text-segment">{part.value}</span>
+        {:else if part.type === 'html'}
+          {@html part.value}
         {:else if part.type === 'narrator'}
           <MentionChip refType="narrator" refId={part.refId} />
         {:else if part.type === 'ayah'}
@@ -102,15 +104,32 @@
 
 <style>
   .note-card {
-    padding: 12px 16px;
-    background: var(--bg-surface);
-    border: 1px solid var(--border);
-    border-radius: 0 var(--radius) var(--radius) 0;
-    border-left: 4px solid var(--note-yellow);
-    transition: border-color var(--transition);
+    position: relative;
+    padding: 20px 24px;
+    background: var(--note-card-bg);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-card);
+    transition: transform var(--transition), box-shadow var(--transition), border-color var(--transition);
+  }
+  .note-card::before {
+    content: '';
+    position: absolute;
+    top: 16px;
+    left: 0;
+    width: 4px;
+    height: 32px;
+    border-radius: 0 4px 4px 0;
+    background: var(--card-accent, var(--note-yellow));
+    transition: height var(--transition);
   }
   .note-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-card-hover);
     border-color: var(--border);
+  }
+  .note-card:hover::before {
+    height: 48px;
   }
   .note-card:hover .action-btn {
     opacity: 1;
@@ -120,27 +139,29 @@
     justify-content: space-between;
     align-items: flex-start;
     gap: 8px;
-    margin-bottom: 6px;
+    margin-bottom: 8px;
   }
   .note-meta {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
     flex-wrap: wrap;
   }
   .note-title {
+    font-family: var(--font-serif);
     font-weight: 600;
-    font-size: 0.9rem;
+    font-size: 1.1rem;
     color: var(--text-primary);
+    line-height: 1.3;
   }
   .note-ref {
     font-size: 0.75rem;
     font-family: var(--font-mono);
-    color: var(--accent);
+    color: var(--gold-accent);
     text-decoration: none;
     font-weight: 600;
   }
-  .note-ref:hover { text-decoration: underline; }
+  .note-ref:hover { text-decoration: underline; color: var(--gold-accent-hover); }
   .ref-count {
     font-size: 0.7rem;
     color: var(--text-muted);
@@ -162,17 +183,23 @@
     color: var(--text-muted);
     cursor: pointer;
     font-size: 0.9rem;
-    padding: 2px 4px;
+    padding: 4px 6px;
+    border-radius: var(--radius-sm);
     opacity: 0;
-    transition: opacity var(--transition), color var(--transition);
+    transition: opacity var(--transition), color var(--transition), background var(--transition);
   }
-  .action-btn:hover { color: var(--text-primary); }
-  .delete-btn:hover { color: var(--error); }
+  .action-btn:hover { color: var(--text-primary); background: var(--bg-hover); }
+  .delete-btn:hover { color: var(--error); background: rgba(220, 38, 38, 0.08); }
   .note-content {
-    font-size: 0.85rem;
-    line-height: 1.6;
+    font-family: var(--font-serif);
+    font-size: 0.95rem;
+    line-height: 1.7;
     color: var(--text-secondary);
     word-break: break-word;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
   .text-segment {
     white-space: pre-wrap;
@@ -180,7 +207,7 @@
   .note-tags {
     display: flex;
     flex-wrap: wrap;
-    gap: 4px;
-    margin-top: 8px;
+    gap: 6px;
+    margin-top: 12px;
   }
 </style>

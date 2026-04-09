@@ -31,9 +31,9 @@
   .mention-chip {
     display: inline-flex;
     align-items: center;
-    gap: 3px;
-    padding: 1px 8px;
-    border-radius: 10px;
+    gap: 4px;
+    padding: 2px 10px;
+    border-radius: 12px;
     font-size: 0.75rem;
     font-family: var(--font-mono);
     text-decoration: none;
@@ -41,20 +41,21 @@
     vertical-align: baseline;
   }
   .mention-ayah {
-    background: var(--accent-muted);
-    color: var(--accent);
+    background: var(--gold-accent-muted);
+    color: var(--gold-accent);
   }
   .mention-hadith {
     background: var(--bg-hover);
     color: var(--text-primary);
-    border: 1px solid var(--border);
+    border: 1px solid var(--border-subtle);
   }
   .mention-narrator {
     background: var(--accent-muted);
     color: var(--accent);
   }
   .mention-chip:hover {
-    opacity: 0.8;
+    opacity: 0.85;
+    transform: translateY(-1px);
   }
   .mention-icon {
     font-size: 0.65rem;

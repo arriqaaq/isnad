@@ -60,6 +60,24 @@
   --note-blue-bg: #dbeafe;   --note-blue: #3b82f6;
   --note-pink-bg: #fce7f3;   --note-pink: #ec4899;
   --note-purple-bg: #ede9fe; --note-purple: #8b5cf6;
+
+  /* Notes UI — warm scholarly tokens */
+  --font-serif: 'EB Garamond', Georgia, serif;
+  --radius-xl: 16px;
+  --radius-2xl: 20px;
+  --shadow-card: 0 2px 12px rgba(0, 0, 0, 0.06);
+  --shadow-card-hover: 0 8px 28px rgba(0, 0, 0, 0.1);
+  --shadow-editor: 0 4px 24px rgba(0, 0, 0, 0.08);
+  --note-editor-bg: #faf8f5;
+  --note-card-bg: #fffdfb;
+  --gold-accent: #c8a96a;
+  --gold-accent-hover: #b09050;
+  --gold-accent-muted: rgba(200, 169, 106, 0.12);
+  --note-yellow-tint: rgba(245, 158, 11, 0.06);
+  --note-green-tint: rgba(16, 185, 129, 0.06);
+  --note-blue-tint: rgba(59, 130, 246, 0.06);
+  --note-pink-tint: rgba(236, 72, 153, 0.06);
+  --note-purple-tint: rgba(139, 92, 246, 0.06);
 }
 
 *, *::before, *::after {
@@ -217,6 +235,18 @@ input::placeholder {
   --note-blue-bg: rgba(59,130,246,0.2);   --note-blue: #60a5fa;
   --note-pink-bg: rgba(236,72,153,0.2);   --note-pink: #f472b6;
   --note-purple-bg: rgba(139,92,246,0.2); --note-purple: #a78bfa;
+
+  /* Notes UI — warm dark overrides */
+  --note-editor-bg: #1a1e2a;
+  --note-card-bg: #1c2030;
+  --gold-accent: #e5c890;
+  --gold-accent-hover: #d4b57f;
+  --gold-accent-muted: rgba(229, 200, 144, 0.12);
+  --note-yellow-tint: rgba(251, 191, 36, 0.08);
+  --note-green-tint: rgba(52, 211, 153, 0.08);
+  --note-blue-tint: rgba(96, 165, 250, 0.08);
+  --note-pink-tint: rgba(244, 114, 182, 0.08);
+  --note-purple-tint: rgba(167, 139, 250, 0.08);
 }
 
 /* ── Theme: Brown (Sepia) ── */
@@ -260,6 +290,18 @@ input::placeholder {
   --note-blue-bg: rgba(59,130,246,0.15);  --note-blue: #2563eb;
   --note-pink-bg: rgba(236,72,153,0.15);  --note-pink: #db2777;
   --note-purple-bg: rgba(139,92,246,0.15);--note-purple: #7c3aed;
+
+  /* Notes UI — brown theme naturally matches parchment */
+  --note-editor-bg: #faf3e3;
+  --note-card-bg: #faf3e3;
+  --gold-accent: #b8860b;
+  --gold-accent-hover: #996f09;
+  --gold-accent-muted: rgba(184, 134, 11, 0.12);
+  --note-yellow-tint: rgba(217, 119, 6, 0.08);
+  --note-green-tint: rgba(5, 150, 105, 0.08);
+  --note-blue-tint: rgba(37, 99, 235, 0.08);
+  --note-pink-tint: rgba(219, 39, 119, 0.08);
+  --note-purple-tint: rgba(124, 58, 237, 0.08);
 }
 
 /* ── Theme: Pink ── */

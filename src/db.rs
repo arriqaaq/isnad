@@ -50,7 +50,7 @@ DEFINE FIELD IF NOT EXISTS death_year     ON narrator TYPE option<int>;
 DEFINE FIELD IF NOT EXISTS death_calendar ON narrator TYPE option<string>;
 DEFINE FIELD IF NOT EXISTS locations      ON narrator TYPE option<array<string>>;
 DEFINE FIELD IF NOT EXISTS tags           ON narrator TYPE option<array<string>>;
--- Reliability fields (source data from ingestion; evidence table is canonical for scholar assessments)
+-- Reliability fields (source data from ingestion - evidence table is canonical for scholar assessments)
 DEFINE FIELD IF NOT EXISTS reliability_rating ON narrator TYPE option<string>;
 DEFINE FIELD IF NOT EXISTS reliability_source ON narrator TYPE option<string>;
 DEFINE FIELD IF NOT EXISTS ibn_hajar_rank     ON narrator TYPE option<string>;

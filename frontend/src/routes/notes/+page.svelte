@@ -173,120 +173,151 @@
 
 <style>
   .notes-page {
-    padding: 24px;
-    max-width: 800px;
+    padding: 32px;
+    max-width: 960px;
   }
   .page-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
+    margin-bottom: 28px;
+  }
+  .page-header h1 {
+    font-family: var(--font-serif);
+    font-size: 2rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
   }
   .header-actions {
     display: flex;
-    gap: 8px;
+    gap: 10px;
   }
   .btn-new {
-    padding: 6px 16px;
+    padding: 8px 20px;
     font-size: 0.85rem;
     font-weight: 600;
     color: #fff;
-    background: var(--accent);
+    background: var(--gold-accent);
     border: none;
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius);
     cursor: pointer;
+    transition: background var(--transition), box-shadow var(--transition);
+    box-shadow: 0 2px 8px var(--gold-accent-muted);
+  }
+  .btn-new:hover {
+    background: var(--gold-accent-hover);
+    box-shadow: 0 4px 16px var(--gold-accent-muted);
   }
   .btn-export {
-    padding: 6px 12px;
+    padding: 8px 16px;
     font-size: 0.8rem;
     color: var(--text-secondary);
     background: var(--btn-bg);
     border: 1px solid var(--btn-border);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius);
     cursor: pointer;
+    transition: all var(--transition);
   }
-
+  .btn-export:hover {
+    border-color: var(--btn-border-hover);
+    background: var(--btn-bg-hover);
+  }
 
   /* Search */
-  .search-bar { margin-bottom: 16px; }
+  .search-bar { margin-bottom: 20px; }
   .search-bar input {
     width: 100%;
-    padding: 8px 14px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    background: var(--bg-surface);
+    padding: 12px 20px;
+    border: 1px solid transparent;
+    border-radius: var(--radius-xl);
+    background: var(--note-editor-bg);
     color: var(--text-primary);
-    font-size: 0.9rem;
+    font-size: 0.95rem;
+    font-family: var(--font-serif);
     outline: none;
     box-sizing: border-box;
+    box-shadow: var(--shadow-card);
+    transition: border-color var(--transition), box-shadow var(--transition);
   }
-  .search-bar input:focus { border-color: var(--accent); }
+  .search-bar input::placeholder {
+    color: var(--text-muted);
+    font-style: italic;
+  }
+  .search-bar input:focus {
+    border-color: var(--gold-accent-muted);
+    box-shadow: var(--shadow-card), 0 0 0 3px var(--gold-accent-muted);
+  }
 
   /* Filters */
   .filters {
     display: flex;
     flex-wrap: wrap;
-    gap: 10px;
+    gap: 12px;
     align-items: center;
-    margin-bottom: 20px;
+    margin-bottom: 24px;
   }
   .tag-filters {
     display: flex;
     flex-wrap: wrap;
-    gap: 4px;
+    gap: 6px;
   }
   .tag-chip {
-    padding: 4px 12px;
+    padding: 5px 14px;
     font-size: 0.75rem;
     font-weight: 500;
     border: 1px solid var(--border);
-    border-radius: 12px;
+    border-radius: 14px;
     background: none;
     color: var(--text-secondary);
     cursor: pointer;
     transition: all var(--transition);
   }
   .tag-chip:hover {
-    border-color: var(--accent);
-    color: var(--accent);
+    border-color: var(--gold-accent);
+    color: var(--gold-accent);
   }
   .tag-chip.active {
-    background: var(--accent);
+    background: var(--gold-accent);
     color: #fff;
-    border-color: var(--accent);
+    border-color: var(--gold-accent);
   }
   .color-filters {
     display: flex;
-    gap: 6px;
+    gap: 8px;
   }
   .color-dot {
-    width: 20px;
-    height: 20px;
+    width: 26px;
+    height: 26px;
     border-radius: 50%;
-    border: 2px solid transparent;
+    border: 2.5px solid transparent;
     cursor: pointer;
     transition: all var(--transition);
     padding: 0;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
   }
-  .color-dot.active {
-    border-color: var(--text-primary);
+  .color-dot:hover {
     transform: scale(1.15);
   }
+  .color-dot.active {
+    border-color: var(--gold-accent);
+    transform: scale(1.2);
+    box-shadow: 0 0 0 3px var(--gold-accent-muted);
+  }
   .clear-filters {
-    font-size: 0.7rem;
+    font-size: 0.75rem;
     color: var(--text-muted);
     background: none;
     border: none;
     cursor: pointer;
-    text-decoration: underline;
+    transition: color var(--transition);
   }
-  .clear-filters:hover { color: var(--accent); }
+  .clear-filters:hover { color: var(--gold-accent); }
 
-  /* Notes list */
+  /* Notes grid */
   .notes-list {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 16px;
   }
   .note-link {
     text-decoration: none;
@@ -295,26 +326,54 @@
   }
   .loading {
     text-align: center;
-    padding: 40px;
+    padding: 60px;
     color: var(--text-muted);
+    font-family: var(--font-serif);
+    font-style: italic;
   }
   .empty {
     text-align: center;
-    padding: 60px 20px;
+    padding: 80px 24px;
     color: var(--text-muted);
+    background: var(--note-editor-bg);
+    border-radius: var(--radius-2xl);
+    box-shadow: var(--shadow-card);
   }
-  .empty-icon { font-size: 2rem; margin-bottom: 8px; }
-  .empty-text { font-size: 1rem; font-weight: 600; margin-bottom: 4px; }
-  .empty-hint { font-size: 0.85rem; }
+  .empty-icon { font-size: 2.5rem; margin-bottom: 12px; opacity: 0.5; }
+  .empty-text {
+    font-family: var(--font-serif);
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 6px;
+  }
+  .empty-hint {
+    font-family: var(--font-serif);
+    font-size: 0.9rem;
+    font-style: italic;
+    line-height: 1.6;
+  }
   .load-more {
     display: block;
-    margin: 16px auto;
-    padding: 8px 24px;
+    margin: 24px auto;
+    padding: 10px 32px;
     font-size: 0.85rem;
-    color: var(--accent);
+    font-family: var(--font-serif);
+    color: var(--gold-accent);
     background: none;
-    border: 1px solid var(--accent);
-    border-radius: var(--radius);
+    border: 1px solid var(--gold-accent);
+    border-radius: var(--radius-xl);
     cursor: pointer;
+    transition: all var(--transition);
+  }
+  .load-more:hover {
+    background: var(--gold-accent-muted);
+  }
+
+  @media (max-width: 768px) {
+    .notes-page { padding: 20px; }
+    .notes-list {
+      grid-template-columns: 1fr;
+    }
   }
 </style>

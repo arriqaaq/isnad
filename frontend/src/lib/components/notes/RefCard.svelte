@@ -67,37 +67,43 @@
   .ref-card-wrapper:hover .remove-btn { opacity: 1; }
   .remove-btn:hover { color: var(--error); border-color: var(--error); }
   .annotation-area {
-    padding: 0 12px 8px;
+    padding: 0 16px 10px;
     background: var(--bg-surface);
-    border: 1px solid var(--border);
+    border: 1px solid var(--border-subtle);
     border-top: none;
-    border-radius: 0 0 var(--radius) var(--radius);
+    border-radius: 0 0 var(--radius-xl) var(--radius-xl);
     margin-top: -1px;
   }
   .add-annotation-btn {
     background: none;
     border: none;
     color: var(--text-muted);
-    font-size: 0.75rem;
+    font-family: var(--font-serif);
+    font-size: 0.8rem;
     cursor: pointer;
-    padding: 6px 0;
+    padding: 8px 0;
     font-style: italic;
+    transition: color var(--transition);
   }
-  .add-annotation-btn:hover { color: var(--accent); }
+  .add-annotation-btn:hover { color: var(--gold-accent); }
   .annotation-input {
     width: 100%;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    padding: 6px 8px;
-    font-size: 0.8rem;
-    line-height: 1.5;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius);
+    padding: 10px 12px;
+    font-family: var(--font-serif);
+    font-size: 0.85rem;
+    line-height: 1.6;
     color: var(--text-primary);
-    background: var(--bg-primary);
+    background: var(--note-editor-bg);
     resize: vertical;
     outline: none;
-    font-family: inherit;
     box-sizing: border-box;
     margin-top: 6px;
+    transition: border-color var(--transition), box-shadow var(--transition);
   }
-  .annotation-input:focus { border-color: var(--accent); }
+  .annotation-input:focus {
+    border-color: var(--gold-accent-muted);
+    box-shadow: 0 0 0 3px var(--gold-accent-muted);
+  }
 </style>
