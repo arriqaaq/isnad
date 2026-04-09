@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ilm — Search the Quran & Sunnah</title>
+  <meta name="description" content="A semantic search platform for Islamic scholarship — Quran with tafsir, 34K+ hadiths with narrator chains, and interactive isnad graphs.">
+  <meta property="og:title" content="Ilm — Search the Quran & Sunnah">
+  <meta property="og:description" content="A semantic search platform for Islamic scholarship — Quran with tafsir, 34K+ hadiths with narrator chains, and interactive isnad graphs.">
+  <meta property="og:type" content="website">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --accent: #c8a96a;
+      --accent-muted: rgba(200, 169, 106, 0.1);
+      --accent-border: rgba(200, 169, 106, 0.15);
+      --text-primary: #1a1a2e;
+      --text-secondary: #4a4a68;
+      --text-muted: #9ca3af;
+      --bg: #ffffff;
+      --bg-surface: #f9fafb;
+      --bg-warm: #faf8f5;
+      --radius: 16px;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      color: var(--text-primary);
+      background: var(--bg);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { color: inherit; text-decoration: none; }
+
+    .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+
+    /* ════════ HERO ════════ */
+    .hero {
+      position: relative;
+      text-align: center;
+      padding: 100px 24px 80px;
+      overflow: hidden;
+      background: linear-gradient(180deg, var(--bg-warm) 0%, var(--bg) 100%);
+    }
+
+    .hero-glow {
+      position: absolute;
+      top: -80px; left: 50%;
+      transform: translateX(-50%);
+      width: 600px; height: 400px;
+      background: radial-gradient(ellipse, rgba(200,169,106,0.08) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .hero-title {
+      font-size: 4rem;
+      font-weight: 800;
+      color: var(--accent);
+      letter-spacing: -2px;
+      line-height: 1.1;
+      position: relative;
+    }
+
+    .title-ar {
+      font-family: 'Traditional Arabic', 'Scheherazade New', 'Noto Naskh Arabic', serif;
+      font-size: 2.4rem;
+      font-weight: 400;
+      color: var(--text-muted);
+      letter-spacing: 0;
+      margin-left: 12px;
+    }
+
+    .hero-tagline {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-top: 8px;
+    }
+
+    .hero-desc {
+      max-width: 640px;
+      margin: 20px auto 0;
+      font-size: 1.05rem;
+      color: var(--text-secondary);
+      line-height: 1.7;
+    }
+
+    .hero-pills {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 24px;
+    }
+
+    .pill {
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      background: var(--accent-muted);
+      border: 1px solid var(--accent-border);
+    }
+
+    .hero-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 36px;
+      padding: 14px 32px;
+      font-size: 1rem;
+      font-weight: 600;
+      color: #fff;
+      background: var(--accent);
+      border-radius: 12px;
+      transition: transform 0.15s, box-shadow 0.15s;
+      box-shadow: 0 2px 12px rgba(200,169,106,0.3);
+    }
+
+    .hero-cta:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 20px rgba(200,169,106,0.4);
+    }
+
+    .hero-cta svg {
+      width: 20px; height: 20px;
+      fill: currentColor;
+    }
+
+    .hero-stats {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 24px;
+      margin-top: 40px;
+      flex-wrap: wrap;
+    }
+
+    .hero-stat-num {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: var(--accent);
+    }
+
+    .hero-stat-label {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-left: 6px;
+    }
+
+    .hero-stat-dot {
+      width: 4px; height: 4px;
+      border-radius: 50%;
+      background: var(--text-muted);
+      opacity: 0.4;
+    }
+
+    /* ════════ SECTIONS ════════ */
+    section { padding: 80px 0; }
+
+    .section-label {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent);
+      margin-bottom: 8px;
+    }
+
+    .section-header { text-align: center; margin-bottom: 56px; }
+    .section-header h2 { font-size: 2rem; font-weight: 800; letter-spacing: -0.5px; }
+    .section-header p { color: var(--text-secondary); margin-top: 8px; max-width: 520px; margin-inline: auto; }
+
+    /* ════════ FEATURES ════════ */
+    .feat {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 48px;
+      align-items: center;
+      margin-bottom: 72px;
+    }
+
+    .feat-reverse { direction: rtl; }
+    .feat-reverse > * { direction: ltr; }
+
+    .app-frame {
+      background: var(--bg-surface);
+      border: 1px solid #e5e7eb;
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .frame-dots {
+      display: flex;
+      gap: 6px;
+      padding: 10px 14px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    .frame-dots span {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: #e5e7eb;
+    }
+
+    .app-frame img {
+      width: 100%;
+      display: block;
+    }
+
+    .feat-text h3 {
+      font-size: 1.4rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .feat-text p {
+      color: var(--text-secondary);
+      line-height: 1.7;
+    }
+
+    .feat-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 12px;
+    }
+
+    .feat-pill {
+      padding: 4px 12px;
+      border-radius: 16px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      background: var(--accent-muted);
+      border: 1px solid var(--accent-border);
+    }
+
+    .manuscript-img {
+      height: 340px;
+      object-fit: cover;
+    }
+
+    /* ════════ DATA SOURCES ════════ */
+    .sources-section {
+      background: var(--bg-warm);
+      padding: 80px 0;
+    }
+
+    .source-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+
+    .source-card {
+      background: var(--bg);
+      border: 1px solid #e5e7eb;
+      border-radius: var(--radius);
+      padding: 28px 24px;
+      text-align: center;
+    }
+
+    .source-num {
+      font-size: 2rem;
+      font-weight: 800;
+      color: var(--accent);
+      margin-bottom: 4px;
+    }
+
+    .source-card h4 {
+      font-size: 0.95rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .source-card p {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* ════════ GETTING STARTED ════════ */
+    .start-section { padding: 80px 0; }
+
+    .start-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 48px;
+      align-items: start;
+    }
+
+    .prereq-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .prereq-list li {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.95rem;
+      color: var(--text-secondary);
+    }
+
+    .prereq-list .check {
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      background: var(--accent-muted);
+      border: 1px solid var(--accent-border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      color: var(--accent);
+      font-size: 0.7rem;
+      font-weight: 700;
+    }
+
+    .code-block {
+      background: #1a1a2e;
+      color: #e2e8f0;
+      border-radius: var(--radius);
+      padding: 24px;
+      font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      line-height: 1.8;
+      overflow-x: auto;
+    }
+
+    .code-block .comment { color: #6b7280; }
+    .code-block .cmd { color: #c8a96a; }
+
+    .start-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 24px;
+      padding: 12px 28px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--accent);
+      border: 2px solid var(--accent);
+      border-radius: 12px;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .start-cta:hover {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    /* ════════ TECH STACK ════════ */
+    .stack-section {
+      background: var(--bg-surface);
+      padding: 80px 0;
+    }
+
+    .stack-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+
+    .stack-card {
+      background: var(--bg);
+      border: 1px solid #e5e7eb;
+      border-radius: var(--radius);
+      padding: 24px;
+      text-align: center;
+    }
+
+    .stack-card strong {
+      display: block;
+      font-size: 1.05rem;
+      margin-bottom: 4px;
+    }
+
+    .stack-card span {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+    }
+
+    .stack-label {
+      display: inline-block;
+      font-size: 0.65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--accent);
+      margin-bottom: 8px;
+    }
+
+    /* ════════ FOOTER ════════ */
+    footer {
+      border-top: 1px solid #e5e7eb;
+      padding: 48px 0 32px;
+      text-align: center;
+    }
+
+    .footer-logo {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: var(--accent);
+    }
+
+    .footer-tagline {
+      display: block;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      margin-top: 4px;
+    }
+
+    .footer-author {
+      display: block;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      margin-top: 16px;
+    }
+
+    .footer-author a {
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .footer-motto {
+      margin-top: 24px;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      font-style: italic;
+    }
+
+    /* ════════ ANIMATIONS ════════ */
+    @keyframes fade-up {
+      from { opacity: 0; transform: translateY(24px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .animate {
+      animation: fade-up 0.6s ease both;
+    }
+
+    .delay-1 { animation-delay: 0.1s; }
+    .delay-2 { animation-delay: 0.2s; }
+    .delay-3 { animation-delay: 0.3s; }
+
+    /* ════════ RESPONSIVE ════════ */
+    @media (max-width: 768px) {
+      .hero { padding: 64px 20px 56px; }
+      .hero-title { font-size: 2.6rem; }
+      .title-ar { font-size: 1.6rem; display: block; margin: 4px 0 0; }
+      .feat { grid-template-columns: 1fr; gap: 24px; }
+      .feat-reverse { direction: ltr; }
+      .source-grid { grid-template-columns: 1fr 1fr; }
+      .start-grid { grid-template-columns: 1fr; }
+      .stack-grid { grid-template-columns: 1fr 1fr; }
+    }
+
+    @media (max-width: 480px) {
+      .source-grid { grid-template-columns: 1fr; }
+      .stack-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ════════ HERO ════════ -->
+  <section class="hero">
+    <div class="hero-glow"></div>
+    <div class="container">
+      <h1 class="hero-title animate">
+        <span>Ilm</span>
+        <span class="title-ar" dir="rtl">عِلْم</span>
+      </h1>
+      <p class="hero-tagline animate delay-1">Search the Quran & Sunnah. <em>Deeply.</em></p>
+
+      <p class="hero-desc animate delay-2">
+        A semantic search platform for Islamic scholarship — explore the Quran with tafsir,
+        34K+ hadiths with narrator chains, and interactive isnad graphs.
+        Powered by meaning, not just keywords.
+      </p>
+
+      <div class="hero-pills animate delay-2">
+        <span class="pill">Free & Open Source</span>
+        <span class="pill">Semantic Search</span>
+        <span class="pill">Bilingual</span>
+        <span class="pill">Open Data</span>
+        <span class="pill">AI-Powered</span>
+      </div>
+
+      <a href="https://github.com/arriqaaq/isnad" target="_blank" rel="noopener noreferrer" class="hero-cta animate delay-3">
+        <svg viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.64 7.64 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+        View on GitHub
+      </a>
+
+      <div class="hero-stats animate delay-3">
+        <div>
+          <span class="hero-stat-num">114</span>
+          <span class="hero-stat-label">Surahs</span>
+        </div>
+        <span class="hero-stat-dot"></span>
+        <div>
+          <span class="hero-stat-num">6,236</span>
+          <span class="hero-stat-label">Ayahs</span>
+        </div>
+        <span class="hero-stat-dot"></span>
+        <div>
+          <span class="hero-stat-num">34K+</span>
+          <span class="hero-stat-label">Hadiths</span>
+        </div>
+        <span class="hero-stat-dot"></span>
+        <div>
+          <span class="hero-stat-num">18K+</span>
+          <span class="hero-stat-label">Narrators</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ FEATURES ════════ -->
+  <section>
+    <div class="container">
+      <div class="section-header">
+        <span class="section-label">Features</span>
+        <h2>Everything you need to study</h2>
+      </div>
+
+      <!-- Intelligent Search -->
+      <div class="feat">
+        <div class="feat-visual">
+          <div class="app-frame">
+            <div class="frame-dots"><span></span><span></span><span></span></div>
+            <img src="img/feature-search.svg" alt="Unified search across Quran and Hadith" loading="lazy">
+          </div>
+        </div>
+        <div class="feat-text">
+          <h3>Intelligent Search</h3>
+          <p>Find verses and hadiths by what they mean, not just keywords. Hybrid search fuses BM25 full-text with 1024-dimension semantic vectors across the entire corpus.</p>
+        </div>
+      </div>
+
+      <!-- Quran Reader -->
+      <div class="feat feat-reverse">
+        <div class="feat-visual">
+          <div class="app-frame">
+            <div class="frame-dots"><span></span><span></span><span></span></div>
+            <img src="img/feature-quran.svg" alt="Quran reader with tajweed and tafsir" loading="lazy">
+          </div>
+        </div>
+        <div class="feat-text">
+          <h3>Quran Reader</h3>
+          <p>114 Surahs with Tajweed-colored Arabic, Sahih International translation, and expandable Tafsir Ibn Kathir commentary — per ayah.</p>
+        </div>
+      </div>
+
+      <!-- Hadith Explorer -->
+      <div class="feat">
+        <div class="feat-visual">
+          <div class="app-frame">
+            <div class="frame-dots"><span></span><span></span><span></span></div>
+            <img src="img/feature-hadith.svg" alt="Hadith browsing with narrator chains" loading="lazy">
+          </div>
+        </div>
+        <div class="feat-text">
+          <h3>Hadith Explorer</h3>
+          <p>Browse 34K+ hadiths from 926 books across 6 canonical collections, each with full narrator chains and source attribution.</p>
+        </div>
+      </div>
+
+      <!-- Narrator Networks -->
+      <div class="feat feat-reverse">
+        <div class="feat-visual">
+          <div class="app-frame">
+            <div class="frame-dots"><span></span><span></span><span></span></div>
+            <img src="img/feature-narrators.svg" alt="Interactive narrator graph visualization" loading="lazy">
+          </div>
+        </div>
+        <div class="feat-text">
+          <h3>Narrator Networks</h3>
+          <p>Interactive graph visualization of 18K+ narrators. Trace isnad chains, explore teacher-student relationships, and check Ibn Hajar reliability grades.</p>
+        </div>
+      </div>
+
+      <!-- Early Manuscripts -->
+      <div class="feat">
+        <div class="feat-visual">
+          <div class="app-frame">
+            <div class="frame-dots"><span></span><span></span><span></span></div>
+            <img src="img/manuscript-sample.jpg" alt="Early Quranic manuscript — Berlin, Wetzstein II 1913" class="manuscript-img" loading="lazy">
+          </div>
+        </div>
+        <div class="feat-text">
+          <h3>Early Manuscripts</h3>
+          <p>View high-resolution images of early Quranic manuscripts per ayah from the Corpus Coranicum archive — Berlin-Brandenburg Academy of Sciences.</p>
+        </div>
+      </div>
+
+      <!-- Personal Study Notes -->
+      <div class="feat feat-reverse">
+        <div class="feat-visual">
+          <div class="app-frame">
+            <div class="frame-dots"><span></span><span></span><span></span></div>
+            <img src="img/feature-notes.svg" alt="Personal Study Notes" loading="lazy" style="background: #f9fafb; padding: 8px;">
+          </div>
+        </div>
+        <div class="feat-text">
+          <h3>Personal Study Notes</h3>
+          <p>Capture your thoughts while studying. Annotate any ayah or hadith, collect evidence by topic, and embed Quran verses and hadiths inline with @mentions.</p>
+          <div class="feat-pills">
+            <span class="feat-pill">@Mentions</span>
+            <span class="feat-pill">Topic Collections</span>
+            <span class="feat-pill">Tags</span>
+            <span class="feat-pill">Color Highlights</span>
+            <span class="feat-pill">Rich Embeds</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ DATA SOURCES ════════ -->
+  <section class="sources-section">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-label">Provenance</span>
+        <h2>Data Sources</h2>
+        <p>Built on open scholarly datasets. Every hadith, ayah, and narrator is traceable to its source.</p>
+      </div>
+      <div class="source-grid">
+        <div class="source-card">
+          <div class="source-num">34K</div>
+          <h4>SemanticHadith KG</h4>
+          <p>Hadiths with narrator chains and knowledge graph from 6 canonical collections</p>
+        </div>
+        <div class="source-card">
+          <div class="source-num">6,236</div>
+          <h4>QUL (Tarteel)</h4>
+          <p>QPC Hafs Arabic + Sahih International English from Quranic Universal Library</p>
+        </div>
+        <div class="source-card">
+          <div class="source-num">6,236</div>
+          <h4>Tafsir Ibn Kathir</h4>
+          <p>Classical exegesis per ayah via QUL</p>
+        </div>
+        <div class="source-card">
+          <div class="source-num">33K</div>
+          <h4>Sunnah.com</h4>
+          <p>Human-verified English translations across 6 canonical collections</p>
+        </div>
+        <div class="source-card">
+          <div class="source-num">18K</div>
+          <h4>AR-Sanad</h4>
+          <p>Narrators with Ibn Hajar's reliability classifications</p>
+        </div>
+        <div class="source-card">
+          <div class="source-num">&#x2726;</div>
+          <h4>Corpus Coranicum</h4>
+          <p>Early manuscript images per ayah from Berlin-Brandenburg Academy</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ GETTING STARTED ════════ -->
+  <section class="start-section">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-label">Get Started</span>
+        <h2>Run it locally</h2>
+        <p>Ilm runs entirely on your machine — no cloud, no accounts, full privacy.</p>
+      </div>
+
+      <div class="start-grid">
+        <div>
+          <h3 style="font-size:1.1rem; margin-bottom:16px;">Prerequisites</h3>
+          <ul class="prereq-list">
+            <li><span class="check">&#10003;</span> Rust (latest stable)</li>
+            <li><span class="check">&#10003;</span> Node.js v20+</li>
+            <li><span class="check">&#10003;</span> SurrealDB</li>
+            <li><span class="check">&#10003;</span> Ollama (for Ask AI)</li>
+          </ul>
+          <a href="https://github.com/arriqaaq/isnad" target="_blank" rel="noopener noreferrer" class="start-cta">
+            <svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.64 7.64 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+            Get the Code
+          </a>
+        </div>
+        <div>
+          <div class="code-block">
+            <span class="comment"># Clone and build</span><br>
+            <span class="cmd">git clone</span> https://github.com/arriqaaq/isnad.git<br>
+            <span class="cmd">cd</span> isnad<br><br>
+            <span class="comment"># Download data & ingest</span><br>
+            <span class="cmd">make</span> download<br>
+            <span class="cmd">make</span> ingest<br><br>
+            <span class="comment"># Build frontend & run</span><br>
+            <span class="cmd">make</span> frontend<br>
+            <span class="cmd">make</span> run
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ TECH STACK ════════ -->
+  <section class="stack-section">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-label">Open Architecture</span>
+        <h2>Under the Hood</h2>
+        <p>A modern stack built for Islamic scholarship.</p>
+      </div>
+      <div class="stack-grid">
+        <div class="stack-card">
+          <span class="stack-label">Frontend</span>
+          <strong>SvelteKit</strong>
+          <span>Quran, Hadith, Search, Narrators, Graphs</span>
+        </div>
+        <div class="stack-card">
+          <span class="stack-label">Backend</span>
+          <strong>Rust / Axum</strong>
+          <span>Search, Ingest, RAG pipeline</span>
+        </div>
+        <div class="stack-card">
+          <span class="stack-label">Database</span>
+          <strong>SurrealDB</strong>
+          <span>Graph + HNSW vectors + BM25</span>
+        </div>
+        <div class="stack-card">
+          <span class="stack-label">Embeddings</span>
+          <strong>FastEmbed</strong>
+          <span>bge-m3 &middot; 1024-dim</span>
+        </div>
+        <div class="stack-card">
+          <span class="stack-label">Visualization</span>
+          <strong>Cytoscape.js</strong>
+          <span>Interactive narrator network graphs</span>
+        </div>
+        <div class="stack-card">
+          <span class="stack-label">LLM</span>
+          <strong>Ollama</strong>
+          <span>Local inference, GraphRAG Q&A</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ FOOTER ════════ -->
+  <footer>
+    <div class="container">
+      <span class="footer-logo">Ilm</span>
+      <span class="footer-tagline">Islamic Knowledge Platform</span>
+      <span class="footer-author">Built by <a href="https://github.com/arriqaaq" target="_blank" rel="noopener noreferrer">@arriqaaq</a></span>
+      <p class="footer-motto">Built with care for the Muslim community.</p>
+    </div>
+  </footer>
+
+</body>
+</html>

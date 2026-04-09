@@ -42,7 +42,7 @@
 
     <p class="hero-desc">
       A complete semantic search platform for Islamic scholarship — explore the Quran with tafsir,
-      hundreds of thousands of hadiths with narrator chains, and interactive isnad graphs.
+      34K+ hadiths with narrator chains, and interactive isnad graphs.
       Powered by meaning, not just keywords.
     </p>
 

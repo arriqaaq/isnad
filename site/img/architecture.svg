@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 500">
+  <defs>
+    <filter id="shadow" x="-4%" y="-4%" width="108%" height="112%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#000" flood-opacity="0.06"/>
+    </filter>
+    <filter id="shadow-sm" x="-4%" y="-4%" width="108%" height="112%">
+      <feDropShadow dx="0" dy="1" stdDeviation="2" flood-color="#000" flood-opacity="0.04"/>
+    </filter>
+  </defs>
+
+  <!-- Frontend Card -->
+  <rect x="20" y="20" width="660" height="80" rx="12" fill="#ffffff" stroke="#e5e7eb" stroke-width="1" filter="url(#shadow)"/>
+  <text x="350" y="42" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="9" font-weight="700" letter-spacing="1.5" fill="#c8a96a" text-transform="uppercase">FRONTEND</text>
+  <text x="350" y="62" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="16" font-weight="700" fill="#1a1a2e">SvelteKit</text>
+  <text x="350" y="82" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="11" fill="#9ca3af">Quran · Hadith · Search · Narrators · Graphs</text>
+
+  <!-- Connector 1 -->
+  <line x1="350" y1="100" x2="350" y2="135" stroke="#c8a96a" stroke-width="2" opacity="0.5"/>
+  <circle cx="350" cy="100" r="3" fill="#c8a96a"/>
+  <circle cx="350" cy="135" r="3" fill="#c8a96a"/>
+  <text x="365" y="121" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="9" fill="#9ca3af">JSON API</text>
+
+  <!-- Backend Card -->
+  <rect x="20" y="135" width="660" height="110" rx="12" fill="#ffffff" stroke="#e5e7eb" stroke-width="1" filter="url(#shadow)"/>
+  <text x="350" y="157" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="9" font-weight="700" letter-spacing="1.5" fill="#c8a96a">BACKEND</text>
+  <text x="350" y="177" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="16" font-weight="700" fill="#1a1a2e">Rust / Axum</text>
+
+  <!-- Sub-chips row -->
+  <rect x="115" y="192" width="120" height="36" rx="8" fill="rgba(200,169,106,0.08)" stroke="rgba(200,169,106,0.15)" stroke-width="1"/>
+  <text x="175" y="214" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="11" font-weight="600" fill="#4a4a68">Hybrid Search</text>
+
+  <rect x="250" y="192" width="90" height="36" rx="8" fill="rgba(200,169,106,0.08)" stroke="rgba(200,169,106,0.15)" stroke-width="1"/>
+  <text x="295" y="214" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="11" font-weight="600" fill="#4a4a68">Ingest</text>
+
+  <rect x="355" y="192" width="110" height="36" rx="8" fill="rgba(200,169,106,0.08)" stroke="rgba(200,169,106,0.15)" stroke-width="1"/>
+  <text x="410" y="214" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="11" font-weight="600" fill="#4a4a68">GraphRAG</text>
+
+  <rect x="480" y="192" width="100" height="36" rx="8" fill="rgba(200,169,106,0.08)" stroke="rgba(200,169,106,0.15)" stroke-width="1"/>
+  <text x="530" y="214" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="11" font-weight="600" fill="#4a4a68">Analysis</text>
+
+  <!-- Connector 2 -->
+  <line x1="350" y1="245" x2="350" y2="280" stroke="#c8a96a" stroke-width="2" opacity="0.5"/>
+  <circle cx="350" cy="245" r="3" fill="#c8a96a"/>
+  <circle cx="350" cy="280" r="3" fill="#c8a96a"/>
+  <text x="365" y="266" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="9" fill="#9ca3af">SurrealQL</text>
+
+  <!-- Database Card -->
+  <rect x="20" y="280" width="660" height="80" rx="12" fill="#ffffff" stroke="#e5e7eb" stroke-width="1" filter="url(#shadow)"/>
+  <text x="350" y="302" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="9" font-weight="700" letter-spacing="1.5" fill="#c8a96a">DATABASE</text>
+  <text x="350" y="322" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="16" font-weight="700" fill="#1a1a2e">SurrealDB</text>
+  <text x="350" y="345" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="11" fill="#9ca3af">Graph Edges · HNSW Vector Index · BM25 Full-Text · SurrealKV</text>
+
+  <!-- Connector 3 (splits to two) -->
+  <line x1="350" y1="360" x2="350" y2="385" stroke="#c8a96a" stroke-width="2" opacity="0.5"/>
+  <circle cx="350" cy="360" r="3" fill="#c8a96a"/>
+  <line x1="350" y1="385" x2="200" y2="405" stroke="#c8a96a" stroke-width="2" opacity="0.5"/>
+  <line x1="350" y1="385" x2="500" y2="405" stroke="#c8a96a" stroke-width="2" opacity="0.5"/>
+  <circle cx="200" cy="405" r="3" fill="#c8a96a"/>
+  <circle cx="500" cy="405" r="3" fill="#c8a96a"/>
+
+  <!-- FastEmbed Card -->
+  <rect x="20" y="405" width="350" height="75" rx="12" fill="#ffffff" stroke="#e5e7eb" stroke-width="1" filter="url(#shadow)"/>
+  <text x="195" y="427" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="9" font-weight="700" letter-spacing="1.5" fill="#c8a96a">EMBEDDINGS</text>
+  <text x="195" y="447" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="16" font-weight="700" fill="#1a1a2e">FastEmbed</text>
+  <text x="195" y="467" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="11" fill="#9ca3af">bge-m3 · 1024-dim</text>
+
+  <!-- Ollama Card -->
+  <rect x="390" y="405" width="290" height="75" rx="12" fill="#ffffff" stroke="#e5e7eb" stroke-width="1" filter="url(#shadow)"/>
+  <text x="535" y="427" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="9" font-weight="700" letter-spacing="1.5" fill="#c8a96a">LLM</text>
+  <text x="535" y="447" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="16" font-weight="700" fill="#1a1a2e">Ollama</text>
+  <text x="535" y="467" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="11" fill="#9ca3af">Local inference · Translation · RAG</text>
+</svg>
