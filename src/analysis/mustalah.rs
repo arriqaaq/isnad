@@ -1,12 +1,13 @@
-//! Mustalah al-Hadith analysis engine.
+//! Mustalah al-Hadith structural analysis engine.
 //!
-//! Implements traditional Islamic hadith science methodology for analyzing
-//! transmission chains.
+//! Analyzes transmission chain structure (continuity, breadth, corroboration)
+//! without computing algorithmic grades. Narrator assessments come from
+//! scholarly sources stored in the `evidence` table.
 //!
-//! References: Dr. 'Imaad Jum'ah, *Mustalah al-Hadeeth Made Easy*;
-//! at-Tahhaan, *Tayseer Mustalah al-Hadeeth*; as-Suyootee, *Tadreeb ar-Raawee*.
+//! References: at-Tahhaan, *Tayseer Mustalah al-Hadeeth*; as-Suyootee,
+//! *Tadreeb ar-Raawee*.
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 use anyhow::Result;
 use serde::Serialize;
@@ -34,22 +35,6 @@ pub enum ChainContinuity {
     Mudal,
 }
 
-/// Individual chain grade (ref: pp.13, 17-18, 22, 29).
-#[derive(Debug, Clone, Hash, Serialize, PartialEq, Eq, PartialOrd, Ord)]
-#[serde(rename_all = "snake_case")]
-pub enum ChainGrade {
-    /// Connected + all narrators 'adl and taamm ad-dabt + no defects
-    Sahih,
-    /// Connected + all narrators 'adl, lesser dabt (saduq) + no defects
-    Hasan,
-    /// Fails one or more conditions of hasan (poor memory, break, jahaalah)
-    Daif,
-    /// Narrator is matrook/munkar — gross errors, negligence, fisq
-    DaifJiddan,
-    /// Chain contains a known fabricator
-    Mawdu,
-}
-
 /// Transmission breadth classification (ref: pp.9-12).
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -64,54 +49,22 @@ pub enum BreadthClass {
     Gharib,
 }
 
-/// Composite family grade with li-ghayrihi strengthening (ref: p.18).
-#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
-#[serde(rename_all = "snake_case")]
-pub enum CompositeGrade {
-    Sahih,
-    SahihLiGhayrihi,
-    Hasan,
-    HasanLiGhayrihi,
-    Daif,
-    DaifJiddan,
-    Mawdu,
-}
+// ── Constants ──
 
-/// Corroboration strength.
-#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
-#[serde(rename_all = "snake_case")]
-pub enum CorroborationStrength {
-    Strong,
-    Moderate,
-    Weak,
-    None,
-}
-
-/// Type of weakness — determines elevation eligibility.
-#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
-#[serde(rename_all = "snake_case")]
-pub enum WeaknessType {
-    /// Poor memory, chain break, unknown narrator — CAN be elevated
-    Light,
-    /// Fisq, kathib — CANNOT be elevated
-    Severe,
-}
+/// Mutawatir minimum narrators at every tabaqah.
+const MUTAWATIR_MIN: usize = 10;
 
 // ── Result structs ──
 
-/// Assessment of a single transmission chain (variant).
+/// Assessment of a single transmission chain (variant) — structural facts only.
 #[derive(Debug, Clone, Serialize)]
 pub struct ChainAssessment {
     pub variant_id: String,
     pub continuity: ChainContinuity,
-    pub chain_grade: ChainGrade,
-    pub weakest_narrator_id: Option<String>,
-    pub weakest_narrator_rating: Option<String>,
-    pub weakest_narrator_prior: Option<f64>,
     pub narrator_count: usize,
     pub has_chronology_conflict: bool,
-    pub has_majhul_narrator: bool,
-    pub weakness_type: Option<WeaknessType>,
+    /// Narrator IDs in chain order (student → teacher → ... → source).
+    pub narrator_ids: Vec<String>,
 }
 
 /// Transmission breadth analysis.
@@ -133,32 +86,26 @@ pub struct PivotNarrator {
     pub bundle_coverage: f64,
     pub fan_out: usize,
     pub collector_diversity: usize,
-    pub reliability_rating: Option<String>,
-    pub reliability_prior: Option<f64>,
     pub bypass_count: usize,
     pub is_bottleneck: bool,
 }
 
-/// Corroboration analysis (mutaba'at & shawahid).
+/// Corroboration analysis (mutaba'at & shawahid) — counts only.
 #[derive(Debug, Clone, Serialize)]
 pub struct CorroborationAnalysis {
     pub sahabi_count: usize,
     pub mutabaat_count: usize,
     pub shawahid_count: usize,
-    pub reliable_mutabaat_count: usize,
-    pub strength: CorroborationStrength,
 }
 
 /// Detected defect flags.
 #[derive(Debug, Clone, Serialize)]
 pub struct DefectFlags {
     pub has_chronology_conflict: bool,
-    pub has_potential_idtirab: bool,
-    pub matn_coherence: f64,
     pub flags: Vec<String>,
 }
 
-/// Complete mustalah analysis result for one hadith family.
+/// Complete mustalah structural analysis result for one hadith family.
 #[derive(Debug, Clone, Serialize)]
 pub struct FamilyMustalahResult {
     pub family_id: String,
@@ -167,28 +114,13 @@ pub struct FamilyMustalahResult {
     pub pivots: Vec<PivotNarrator>,
     pub corroboration: CorroborationAnalysis,
     pub defects: DefectFlags,
-    pub best_chain_grade: ChainGrade,
-    pub composite_grade: CompositeGrade,
 }
 
-// ── Constants ──
-
-/// Minimum reliability prior for thiqah (fully retentive + upright).
-const THIQAH_THRESHOLD: f64 = 0.75;
-/// Minimum reliability prior for saduq (lesser dabt).
-const SADUQ_THRESHOLD: f64 = 0.65;
-/// Minimum reliability prior for "reliable" in corroboration assessment.
-const RELIABLE_THRESHOLD: f64 = 0.65;
-/// Below this = matruk/accused fabrication territory.
-const SEVERE_WEAKNESS_THRESHOLD: f64 = 0.35;
-/// Mutawatir minimum narrators at every tabaqah.
-const MUTAWATIR_MIN: usize = 10;
-
 // ══════════════════════════════════════════════════════════
-// 1. Per-Chain Isnad Assessment
+// 1. Per-Chain Structural Assessment
 // ══════════════════════════════════════════════════════════
 
-/// Assess a single chain (variant) for continuity and narrator quality.
+/// Assess a single chain (variant) for continuity and structure.
 fn assess_chain(graph: &FamilyGraph, variant_id: &str) -> ChainAssessment {
     let chain = graph.chain_for_variant(variant_id);
     let narrator_count = chain.len();
@@ -257,68 +189,12 @@ fn assess_chain(graph: &FamilyGraph, variant_id: &str) -> ChainAssessment {
         ChainContinuity::Muttasil
     };
 
-    // Find weakest narrator
-    let mut weakest_id: Option<String> = None;
-    let mut weakest_prior: Option<f64> = None;
-    let mut weakest_rating: Option<String> = None;
-    let mut has_majhul = false;
-    let mut weakness_type: Option<WeaknessType> = None;
-
-    for nid in &chain {
-        if let Some(node) = graph.nodes.get(nid) {
-            let prior = node.reliability_prior.unwrap_or(0.50); // majhul default
-            if node.reliability_rating.is_none() && node.reliability_prior.is_none() {
-                has_majhul = true;
-            }
-            if weakest_prior.is_none() || prior < weakest_prior.unwrap() {
-                weakest_prior = Some(prior);
-                weakest_id = Some(nid.clone());
-                weakest_rating = node.reliability_rating.clone();
-            }
-        }
-    }
-
-    // Determine chain grade based on continuity + weakest narrator
-    let wp = weakest_prior.unwrap_or(0.50);
-    let chain_grade = if wp <= 0.20 {
-        // matruk / accused fabrication
-        weakness_type = Some(WeaknessType::Severe);
-        if weakest_rating.as_deref() == Some("accused_fabrication") {
-            ChainGrade::Mawdu
-        } else {
-            ChainGrade::DaifJiddan
-        }
-    } else if wp < SEVERE_WEAKNESS_THRESHOLD {
-        // munkar territory — fisq, gross errors
-        weakness_type = Some(WeaknessType::Severe);
-        ChainGrade::DaifJiddan
-    } else if continuity != ChainContinuity::Muttasil {
-        // Not connected = da'eef (but light weakness, can be elevated)
-        weakness_type = Some(WeaknessType::Light);
-        ChainGrade::Daif
-    } else if wp < SADUQ_THRESHOLD || has_majhul {
-        // Connected but narrator below saduq or unknown
-        weakness_type = Some(WeaknessType::Light);
-        ChainGrade::Daif
-    } else if wp < THIQAH_THRESHOLD {
-        // Connected, saduq level = hasan
-        ChainGrade::Hasan
-    } else {
-        // Connected, all thiqah = sahih
-        ChainGrade::Sahih
-    };
-
     ChainAssessment {
         variant_id: variant_id.to_string(),
         continuity,
-        chain_grade,
-        weakest_narrator_id: weakest_id,
-        weakest_narrator_rating: weakest_rating,
-        weakest_narrator_prior: weakest_prior,
         narrator_count,
         has_chronology_conflict,
-        has_majhul_narrator: has_majhul,
-        weakness_type,
+        narrator_ids: chain,
     }
 }
 
@@ -430,8 +306,6 @@ fn identify_pivots(graph: &mut FamilyGraph) -> Vec<PivotNarrator> {
                 bundle_coverage,
                 fan_out,
                 collector_diversity,
-                reliability_rating: node.reliability_rating.clone(),
-                reliability_prior: node.reliability_prior,
                 bypass_count,
                 is_bottleneck,
             });
@@ -451,20 +325,17 @@ fn identify_pivots(graph: &mut FamilyGraph) -> Vec<PivotNarrator> {
 }
 
 // ══════════════════════════════════════════════════════════
-// 4. Corroboration (I'tibaar / Mutaabi' / Shaahid)
+// 4. Corroboration Counts (I'tibaar / Mutaabi' / Shaahid)
 // ══════════════════════════════════════════════════════════
 
 fn detect_corroboration(graph: &FamilyGraph) -> CorroborationAnalysis {
-    // Group chains by their root narrator (Sahabi / source)
-    let _roots = graph.root_narrators();
     let variant_ids: Vec<String> = graph.variant_ids.iter().cloned().collect();
 
-    // Map each variant to its root narrator(s)
+    // Map each variant to its root narrator (Sahabi / source)
     let mut sahabi_variants: HashMap<String, Vec<String>> = HashMap::new();
 
     for vid in &variant_ids {
         let chain = graph.chain_for_variant(vid);
-        // Root = last in chain (closest to source)
         if let Some(root) = chain.last() {
             sahabi_variants
                 .entry(root.clone())
@@ -475,30 +346,11 @@ fn detect_corroboration(graph: &FamilyGraph) -> CorroborationAnalysis {
 
     let sahabi_count = sahabi_variants.len();
 
-    // Mutaba'at: within same Sahabi, count divergent paths (>1 variant = has mutaba'at)
+    // Mutaba'at: within same Sahabi, count divergent paths
     let mut mutabaat_count = 0usize;
-    let mut reliable_mutabaat_count = 0usize;
-
     for (_sahabi, variants) in &sahabi_variants {
         if variants.len() > 1 {
-            // Each additional variant beyond the first is a mutaba'ah
             mutabaat_count += variants.len() - 1;
-
-            // Check if corroborating chains are reliable
-            for vid in variants.iter().skip(1) {
-                let chain = graph.chain_for_variant(vid);
-                let all_reliable = chain.iter().all(|nid| {
-                    graph
-                        .nodes
-                        .get(nid)
-                        .and_then(|n| n.reliability_prior)
-                        .unwrap_or(0.50)
-                        >= RELIABLE_THRESHOLD
-                });
-                if all_reliable {
-                    reliable_mutabaat_count += 1;
-                }
-            }
         }
     }
 
@@ -509,79 +361,15 @@ fn detect_corroboration(graph: &FamilyGraph) -> CorroborationAnalysis {
         0
     };
 
-    let strength = if reliable_mutabaat_count >= 3 || (shawahid_count >= 2 && mutabaat_count >= 1) {
-        CorroborationStrength::Strong
-    } else if mutabaat_count >= 1 || shawahid_count >= 1 {
-        CorroborationStrength::Moderate
-    } else if mutabaat_count > 0 {
-        CorroborationStrength::Weak
-    } else {
-        CorroborationStrength::None
-    };
-
     CorroborationAnalysis {
         sahabi_count,
         mutabaat_count,
         shawahid_count,
-        reliable_mutabaat_count,
-        strength,
     }
 }
 
 // ══════════════════════════════════════════════════════════
-// 5. Composite Grade
-// ══════════════════════════════════════════════════════════
-
-fn compute_composite_grade(
-    chains: &[ChainAssessment],
-    corroboration: &CorroborationAnalysis,
-) -> (ChainGrade, CompositeGrade) {
-    if chains.is_empty() {
-        return (ChainGrade::Daif, CompositeGrade::Daif);
-    }
-
-    // Find best chain grade
-    let best = chains
-        .iter()
-        .map(|c| &c.chain_grade)
-        .min() // Ord: Sahih < Hasan < Daif < DaifJiddan < Mawdu
-        .cloned()
-        .unwrap_or(ChainGrade::Daif);
-
-    let has_strong_corroboration = corroboration.strength == CorroborationStrength::Strong
-        || corroboration.strength == CorroborationStrength::Moderate;
-
-    // Check if any chain's weakness is light (eligible for elevation)
-    let has_elevatable_daif = chains.iter().any(|c| {
-        c.chain_grade == ChainGrade::Daif && c.weakness_type.as_ref() == Some(&WeaknessType::Light)
-    });
-
-    let composite = match &best {
-        ChainGrade::Sahih => CompositeGrade::Sahih,
-        ChainGrade::Hasan => {
-            if has_strong_corroboration {
-                CompositeGrade::SahihLiGhayrihi
-            } else {
-                CompositeGrade::Hasan
-            }
-        }
-        ChainGrade::Daif => {
-            if has_elevatable_daif && has_strong_corroboration {
-                // Da'eef with light weakness + corroboration = hasan li-ghayrihi (p.18)
-                CompositeGrade::HasanLiGhayrihi
-            } else {
-                CompositeGrade::Daif
-            }
-        }
-        ChainGrade::DaifJiddan => CompositeGrade::DaifJiddan,
-        ChainGrade::Mawdu => CompositeGrade::Mawdu,
-    };
-
-    (best, composite)
-}
-
-// ══════════════════════════════════════════════════════════
-// 6. Defect Detection
+// 5. Defect Detection
 // ══════════════════════════════════════════════════════════
 
 fn detect_defects(_graph: &FamilyGraph, chains: &[ChainAssessment]) -> DefectFlags {
@@ -592,33 +380,8 @@ fn detect_defects(_graph: &FamilyGraph, chains: &[ChainAssessment]) -> DefectFla
         flags.push("Chronology conflict detected: student's generation predates teacher's".into());
     }
 
-    // Check for potential idtirab: multiple chains of equal strength with conflicting matn
-    // (simplified: if all chains are same grade but family has many variants, flag for review)
-    let grades: HashSet<_> = chains.iter().map(|c| &c.chain_grade).collect();
-    let has_potential_idtirab =
-        grades.len() == 1 && chains.len() >= 3 && chains[0].chain_grade == ChainGrade::Hasan;
-
-    if has_potential_idtirab {
-        flags.push(
-            "Potential idtirab: multiple equal-strength chains — verify matn consistency".into(),
-        );
-    }
-
-    // Majhul narrators
-    let majhul_count = chains.iter().filter(|c| c.has_majhul_narrator).count();
-    if majhul_count > 0 {
-        flags.push(format!(
-            "{majhul_count} chain(s) contain unknown (majhul) narrator(s)"
-        ));
-    }
-
-    // TODO: integrate matn_diff for actual coherence scoring
-    let matn_coherence = 0.50; // placeholder until matn_diff integration
-
     DefectFlags {
         has_chronology_conflict,
-        has_potential_idtirab,
-        matn_coherence,
         flags,
     }
 }
@@ -627,7 +390,7 @@ fn detect_defects(_graph: &FamilyGraph, chains: &[ChainAssessment]) -> DefectFla
 // Main orchestrator
 // ══════════════════════════════════════════════════════════
 
-/// Analyze a single hadith family using mustalah al-hadith methodology.
+/// Analyze a single hadith family — structural analysis only, no computed grades.
 pub async fn analyze_family_mustalah(
     db: &Surreal<Db>,
     family_id: &str,
@@ -640,7 +403,7 @@ pub async fn analyze_family_mustalah(
     // Ensure variant-narrator map is built
     graph.ensure_variant_narrator_map();
 
-    // 1. Assess each chain
+    // 1. Assess each chain (structural: continuity + narrator list)
     let variant_ids: Vec<String> = graph.variant_ids.iter().cloned().collect();
     let chains: Vec<ChainAssessment> = variant_ids
         .iter()
@@ -653,13 +416,10 @@ pub async fn analyze_family_mustalah(
     // 3. Pivot narrators
     let pivots = identify_pivots(&mut graph);
 
-    // 4. Corroboration
+    // 4. Corroboration counts
     let corroboration = detect_corroboration(&graph);
 
-    // 5. Composite grade
-    let (best_chain_grade, composite_grade) = compute_composite_grade(&chains, &corroboration);
-
-    // 6. Defect detection
+    // 5. Defect detection
     let defects = detect_defects(&graph, &chains);
 
     Ok(Some(FamilyMustalahResult {
@@ -669,8 +429,6 @@ pub async fn analyze_family_mustalah(
         pivots,
         corroboration,
         defects,
-        best_chain_grade,
-        composite_grade,
     }))
 }
 
@@ -679,38 +437,22 @@ pub async fn store_mustalah_results(db: &Surreal<Db>, result: &FamilyMustalahRes
     let family_rid = RecordId::new("hadith_family", result.family_id.as_str());
     let slug = format!("isnad_{}", result.family_id);
 
-    // Store family-level result
+    // Store family-level structural result
     db.query(
         "CREATE $rid CONTENT { \
             family: $family, \
-            composite_grade: $composite_grade, \
-            best_chain_grade: $best_chain_grade, \
             breadth_class: $breadth_class, \
             min_breadth: $min_breadth, \
             bottleneck_tabaqah: $bottleneck_tabaqah, \
             sahabi_count: $sahabi_count, \
             mutabaat_count: $mutabaat_count, \
             shawahid_count: $shawahid_count, \
-            reliable_mutabaat_count: $reliable_mutabaat, \
-            corroboration_strength: $corr_strength, \
-            matn_coherence: $matn_coherence, \
             chain_count: $chain_count, \
-            sahih_chain_count: $sahih_chains, \
-            hasan_chain_count: $hasan_chains, \
-            daif_chain_count: $daif_chains, \
             ilal_flags: $ilal_flags \
         }",
     )
     .bind(("rid", RecordId::new("isnad_analysis", slug.as_str())))
     .bind(("family", family_rid.clone()))
-    .bind((
-        "composite_grade",
-        format!("{:?}", result.composite_grade).to_lowercase(),
-    ))
-    .bind((
-        "best_chain_grade",
-        format!("{:?}", result.best_chain_grade).to_lowercase(),
-    ))
     .bind((
         "breadth_class",
         format!("{:?}", result.breadth.classification).to_lowercase(),
@@ -720,49 +462,11 @@ pub async fn store_mustalah_results(db: &Surreal<Db>, result: &FamilyMustalahRes
     .bind(("sahabi_count", result.corroboration.sahabi_count as i64))
     .bind(("mutabaat_count", result.corroboration.mutabaat_count as i64))
     .bind(("shawahid_count", result.corroboration.shawahid_count as i64))
-    .bind((
-        "reliable_mutabaat",
-        result.corroboration.reliable_mutabaat_count as i64,
-    ))
-    .bind((
-        "corr_strength",
-        format!("{:?}", result.corroboration.strength).to_lowercase(),
-    ))
-    .bind(("matn_coherence", result.defects.matn_coherence))
     .bind(("chain_count", result.chains.len() as i64))
-    .bind((
-        "sahih_chains",
-        result
-            .chains
-            .iter()
-            .filter(|c| c.chain_grade == ChainGrade::Sahih)
-            .count() as i64,
-    ))
-    .bind((
-        "hasan_chains",
-        result
-            .chains
-            .iter()
-            .filter(|c| c.chain_grade == ChainGrade::Hasan)
-            .count() as i64,
-    ))
-    .bind((
-        "daif_chains",
-        result
-            .chains
-            .iter()
-            .filter(|c| {
-                matches!(
-                    c.chain_grade,
-                    ChainGrade::Daif | ChainGrade::DaifJiddan | ChainGrade::Mawdu
-                )
-            })
-            .count() as i64,
-    ))
     .bind(("ilal_flags", result.defects.flags.clone()))
     .await?;
 
-    // Store per-chain assessments
+    // Store per-chain structural assessments
     for (i, chain) in result.chains.iter().enumerate() {
         let chain_slug = format!("chain_{}_{}", result.family_id, i);
         db.query(
@@ -770,13 +474,9 @@ pub async fn store_mustalah_results(db: &Surreal<Db>, result: &FamilyMustalahRes
                 family: $family, \
                 variant: $variant, \
                 continuity: $continuity, \
-                chain_grade: $chain_grade, \
-                weakest_narrator: $weakest, \
-                weakest_rating: $weakest_rating, \
-                weakest_prior: $weakest_prior, \
                 narrator_count: $narrator_count, \
                 has_chronology_conflict: $chrono, \
-                has_majhul: $majhul \
+                narrator_ids: $narrator_ids \
             }",
         )
         .bind((
@@ -792,22 +492,9 @@ pub async fn store_mustalah_results(db: &Surreal<Db>, result: &FamilyMustalahRes
             "continuity",
             format!("{:?}", chain.continuity).to_lowercase(),
         ))
-        .bind((
-            "chain_grade",
-            format!("{:?}", chain.chain_grade).to_lowercase(),
-        ))
-        .bind((
-            "weakest",
-            chain
-                .weakest_narrator_id
-                .as_ref()
-                .map(|id| RecordId::new("narrator", id.as_str())),
-        ))
-        .bind(("weakest_rating", chain.weakest_narrator_rating.clone()))
-        .bind(("weakest_prior", chain.weakest_narrator_prior))
         .bind(("narrator_count", chain.narrator_count as i64))
         .bind(("chrono", chain.has_chronology_conflict))
-        .bind(("majhul", chain.has_majhul_narrator))
+        .bind(("narrator_ids", chain.narrator_ids.clone()))
         .await?;
     }
 

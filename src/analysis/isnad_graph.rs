@@ -31,8 +31,6 @@ struct NarratorBio {
     id: Option<RecordId>,
     bio: Option<String>,
     generation: Option<String>,
-    reliability_prior: Option<f64>,
-    reliability_rating: Option<String>,
 }
 
 // ── Graph structures ──
@@ -43,8 +41,6 @@ pub struct NarratorNode {
     pub direct_teachers: HashSet<String>, // narrators this one heard from
     pub has_bio: bool,
     pub generation: Option<i64>, // parsed tabaqah number (1=sahabi, 2=tabi'i, ...)
-    pub reliability_prior: Option<f64>,
-    pub reliability_rating: Option<String>, // e.g. "thiqah", "saduq", "daif"
 }
 
 pub struct Edge {
@@ -526,7 +522,7 @@ pub async fn build_family_graph(db: &Surreal<Db>, family_id: &str) -> Result<Opt
     for chunk in narrator_rids.chunks(200) {
         let mut res = db
             .query(
-                "SELECT id, bio, generation, reliability_prior, reliability_rating \
+                "SELECT id, bio, generation \
                  FROM narrator WHERE id IN $ids",
             )
             .bind(("ids", chunk.to_vec()))
@@ -567,8 +563,6 @@ pub async fn build_family_graph(db: &Surreal<Db>, family_id: &str) -> Result<Opt
                 generation: bio
                     .and_then(|b| b.generation.as_deref())
                     .and_then(parse_generation),
-                reliability_prior: bio.and_then(|b| b.reliability_prior),
-                reliability_rating: bio.and_then(|b| b.reliability_rating.clone()),
             }
         });
         node.variants.insert(hkey);

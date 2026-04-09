@@ -110,54 +110,6 @@ pub fn validate_rag_output(
     RagValidationResult { valid, violations }
 }
 
-/// Validate evidence data before import.
-pub fn validate_evidence_import(
-    evidence_id: &str,
-    narrator_id: &str,
-    source_type: Option<&str>,
-    source_collection: Option<&str>,
-    source_locator: Option<&str>,
-) -> Vec<Violation> {
-    let mut violations = Vec::new();
-
-    if is_synthetic(evidence_id) {
-        violations.push(Violation {
-            level: ViolationLevel::Blocking,
-            code: "SYNTHETIC_EVIDENCE".to_string(),
-            message: format!("Evidence ID '{evidence_id}' matches synthetic pattern"),
-        });
-    }
-
-    if is_synthetic(narrator_id) {
-        violations.push(Violation {
-            level: ViolationLevel::Blocking,
-            code: "UNKNOWN_NARRATOR_ID".to_string(),
-            message: format!("Narrator ID '{narrator_id}' matches synthetic pattern"),
-        });
-    }
-
-    // Check provenance completeness
-    if source_collection.is_none() || source_type.is_none() || source_locator.is_none() {
-        violations.push(Violation {
-            level: ViolationLevel::Warning,
-            code: "MISSING_PROVENANCE".to_string(),
-            message: "Evidence missing source provenance fields".to_string(),
-        });
-    }
-
-    if let Some(st) = source_type
-        && !is_verifiable_source(st)
-    {
-        violations.push(Violation {
-            level: ViolationLevel::Warning,
-            code: "UNVERIFIABLE_SOURCE".to_string(),
-            message: format!("Source type '{st}' is not in verifiable set"),
-        });
-    }
-
-    violations
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -173,29 +125,5 @@ mod tests {
         assert!(is_synthetic("This is fabricated"));
         assert!(!is_synthetic("ev-hisham-001"));
         assert!(!is_synthetic("thiqah"));
-    }
-
-    #[test]
-    fn test_evidence_validation() {
-        let v = validate_evidence_import(
-            "synthetic_001",
-            "narrator_1",
-            Some("print"),
-            Some("Taqrib"),
-            Some("Vol 2"),
-        );
-        assert!(v.iter().any(|v| v.code == "SYNTHETIC_EVIDENCE"));
-    }
-
-    #[test]
-    fn test_clean_evidence() {
-        let v = validate_evidence_import(
-            "ev-hisham-001",
-            "hisham_ibn_urwah",
-            Some("print"),
-            Some("Taqrib al-Tahdhib"),
-            Some("Vol. 2, p. 159"),
-        );
-        assert!(v.is_empty());
     }
 }

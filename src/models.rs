@@ -35,9 +35,8 @@ pub struct Narrator {
     pub death_calendar: Option<String>,
     pub locations: Option<Vec<String>>,
     pub tags: Option<Vec<String>>,
-    // Reliability fields
+    // Reliability fields (source data; evidence table is canonical)
     pub reliability_rating: Option<String>,
-    pub reliability_prior: Option<f64>,
     pub reliability_source: Option<String>,
     pub ibn_hajar_rank: Option<String>,
 }
@@ -186,7 +185,6 @@ pub struct ApiNarrator {
     pub locations: Option<Vec<String>>,
     pub tags: Option<Vec<String>>,
     pub reliability_rating: Option<String>,
-    pub reliability_prior: Option<f64>,
     pub reliability_source: Option<String>,
     pub ibn_hajar_rank: Option<String>,
 }
@@ -209,7 +207,6 @@ impl From<Narrator> for ApiNarrator {
             locations: n.locations,
             tags: n.tags,
             reliability_rating: n.reliability_rating,
-            reliability_prior: n.reliability_prior,
             reliability_source: n.reliability_source,
             ibn_hajar_rank: n.ibn_hajar_rank,
         }

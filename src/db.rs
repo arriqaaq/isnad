@@ -50,9 +50,8 @@ DEFINE FIELD IF NOT EXISTS death_year     ON narrator TYPE option<int>;
 DEFINE FIELD IF NOT EXISTS death_calendar ON narrator TYPE option<string>;
 DEFINE FIELD IF NOT EXISTS locations      ON narrator TYPE option<array<string>>;
 DEFINE FIELD IF NOT EXISTS tags           ON narrator TYPE option<array<string>>;
--- Reliability fields
+-- Reliability fields (source data from ingestion; evidence table is canonical for scholar assessments)
 DEFINE FIELD IF NOT EXISTS reliability_rating ON narrator TYPE option<string>;
-DEFINE FIELD IF NOT EXISTS reliability_prior  ON narrator TYPE option<float>;
 DEFINE FIELD IF NOT EXISTS reliability_source ON narrator TYPE option<string>;
 DEFINE FIELD IF NOT EXISTS ibn_hajar_rank     ON narrator TYPE option<string>;
 -- Pre-computed count of hadiths narrated (see backfill_narrator_hadith_counts)
@@ -94,42 +93,42 @@ DEFINE FIELD IF NOT EXISTS variant_count ON hadith_family TYPE option<int>;
 DEFINE FIELD IF NOT EXISTS family_id ON hadith TYPE option<record<hadith_family>>;
 DEFINE INDEX IF NOT EXISTS hadith_family_idx ON TABLE hadith FIELDS family_id;
 
+-- Scholarly source registry (extensible — add new books here)
+DEFINE TABLE IF NOT EXISTS scholarly_source SCHEMAFULL;
+DEFINE FIELD IF NOT EXISTS key            ON scholarly_source TYPE string;
+DEFINE FIELD IF NOT EXISTS title_ar       ON scholarly_source TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS title_en       ON scholarly_source TYPE string;
+DEFINE FIELD IF NOT EXISTS author_ar      ON scholarly_source TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS author_en      ON scholarly_source TYPE string;
+DEFINE FIELD IF NOT EXISTS source_type    ON scholarly_source TYPE string;
+DEFINE FIELD IF NOT EXISTS edition        ON scholarly_source TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS notes          ON scholarly_source TYPE option<string>;
+DEFINE INDEX IF NOT EXISTS source_key_idx ON TABLE scholarly_source FIELDS key UNIQUE;
+
 DEFINE TABLE IF NOT EXISTS evidence SCHEMAFULL;
 DEFINE FIELD IF NOT EXISTS narrator ON evidence TYPE record<narrator>;
 DEFINE FIELD IF NOT EXISTS evidence_id ON evidence TYPE string;
-DEFINE FIELD IF NOT EXISTS rating ON evidence TYPE string;
-DEFINE FIELD IF NOT EXISTS rating_confidence ON evidence TYPE option<float>;
+DEFINE FIELD IF NOT EXISTS rating ON evidence TYPE option<string>;
 DEFINE FIELD IF NOT EXISTS scholar ON evidence TYPE option<string>;
 DEFINE FIELD IF NOT EXISTS work ON evidence TYPE option<string>;
 DEFINE FIELD IF NOT EXISTS citation_text ON evidence TYPE option<string>;
-DEFINE FIELD IF NOT EXISTS citation_span ON evidence TYPE option<string>;
-DEFINE FIELD IF NOT EXISTS dissent_notes ON evidence TYPE option<string>;
 DEFINE FIELD IF NOT EXISTS layer ON evidence TYPE string;
-DEFINE FIELD IF NOT EXISTS source_collection ON evidence TYPE option<string>;
-DEFINE FIELD IF NOT EXISTS source_type ON evidence TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS source ON evidence TYPE option<record<scholarly_source>>;
 DEFINE FIELD IF NOT EXISTS source_locator ON evidence TYPE option<string>;
 DEFINE FIELD IF NOT EXISTS ingested_at ON evidence TYPE option<datetime>;
 DEFINE INDEX IF NOT EXISTS evidence_narrator_idx ON TABLE evidence FIELDS narrator;
 
--- === MUSTALAH ANALYSIS TABLES ===
+-- === MUSTALAH ANALYSIS TABLES (structural facts only, no computed grades) ===
 
 DEFINE TABLE IF NOT EXISTS isnad_analysis SCHEMAFULL;
 DEFINE FIELD IF NOT EXISTS family ON isnad_analysis TYPE record<hadith_family>;
-DEFINE FIELD IF NOT EXISTS composite_grade ON isnad_analysis TYPE string;
-DEFINE FIELD IF NOT EXISTS best_chain_grade ON isnad_analysis TYPE string;
 DEFINE FIELD IF NOT EXISTS breadth_class ON isnad_analysis TYPE string;
 DEFINE FIELD IF NOT EXISTS min_breadth ON isnad_analysis TYPE int;
 DEFINE FIELD IF NOT EXISTS bottleneck_tabaqah ON isnad_analysis TYPE option<int>;
 DEFINE FIELD IF NOT EXISTS sahabi_count ON isnad_analysis TYPE int;
 DEFINE FIELD IF NOT EXISTS mutabaat_count ON isnad_analysis TYPE int;
 DEFINE FIELD IF NOT EXISTS shawahid_count ON isnad_analysis TYPE int;
-DEFINE FIELD IF NOT EXISTS reliable_mutabaat_count ON isnad_analysis TYPE int;
-DEFINE FIELD IF NOT EXISTS corroboration_strength ON isnad_analysis TYPE string;
-DEFINE FIELD IF NOT EXISTS matn_coherence ON isnad_analysis TYPE float;
 DEFINE FIELD IF NOT EXISTS chain_count ON isnad_analysis TYPE int;
-DEFINE FIELD IF NOT EXISTS sahih_chain_count ON isnad_analysis TYPE int;
-DEFINE FIELD IF NOT EXISTS hasan_chain_count ON isnad_analysis TYPE int;
-DEFINE FIELD IF NOT EXISTS daif_chain_count ON isnad_analysis TYPE int;
 DEFINE FIELD IF NOT EXISTS ilal_flags ON isnad_analysis TYPE option<array<string>>;
 DEFINE INDEX IF NOT EXISTS isnad_family_idx ON TABLE isnad_analysis FIELDS family UNIQUE;
 
@@ -137,13 +136,9 @@ DEFINE TABLE IF NOT EXISTS chain_assessment SCHEMAFULL;
 DEFINE FIELD IF NOT EXISTS family ON chain_assessment TYPE record<hadith_family>;
 DEFINE FIELD IF NOT EXISTS variant ON chain_assessment TYPE record<hadith>;
 DEFINE FIELD IF NOT EXISTS continuity ON chain_assessment TYPE string;
-DEFINE FIELD IF NOT EXISTS chain_grade ON chain_assessment TYPE string;
-DEFINE FIELD IF NOT EXISTS weakest_narrator ON chain_assessment TYPE option<record<narrator>>;
-DEFINE FIELD IF NOT EXISTS weakest_rating ON chain_assessment TYPE option<string>;
-DEFINE FIELD IF NOT EXISTS weakest_prior ON chain_assessment TYPE option<float>;
 DEFINE FIELD IF NOT EXISTS narrator_count ON chain_assessment TYPE int;
 DEFINE FIELD IF NOT EXISTS has_chronology_conflict ON chain_assessment TYPE bool;
-DEFINE FIELD IF NOT EXISTS has_majhul ON chain_assessment TYPE bool;
+DEFINE FIELD IF NOT EXISTS narrator_ids ON chain_assessment TYPE option<array<string>>;
 DEFINE INDEX IF NOT EXISTS chain_family_idx ON TABLE chain_assessment FIELDS family;
 
 DEFINE TABLE IF NOT EXISTS narrator_pivot SCHEMAFULL;

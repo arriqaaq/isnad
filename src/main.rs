@@ -231,7 +231,7 @@ async fn async_main() -> Result<()> {
                         .unwrap(),
                 );
 
-                let mut grade_counts: std::collections::HashMap<String, usize> =
+                let mut breadth_counts: std::collections::HashMap<String, usize> =
                     std::collections::HashMap::new();
                 let mut analyzed = 0usize;
 
@@ -252,8 +252,9 @@ async fn async_main() -> Result<()> {
 
                     match analysis::mustalah::analyze_family_mustalah(&db, &fid).await? {
                         Some(result) => {
-                            let grade_key = format!("{:?}", result.composite_grade).to_lowercase();
-                            *grade_counts.entry(grade_key).or_default() += 1;
+                            let breadth_key =
+                                format!("{:?}", result.breadth.classification).to_lowercase();
+                            *breadth_counts.entry(breadth_key).or_default() += 1;
                             analysis::mustalah::store_mustalah_results(&db, &result).await?;
                             analyzed += 1;
                         }
@@ -263,9 +264,9 @@ async fn async_main() -> Result<()> {
                 }
                 pb.finish_and_clear();
 
-                println!("   Mustalah analysis: {analyzed} families graded");
-                for (grade, count) in &grade_counts {
-                    println!("     {grade}: {count}");
+                println!("   Mustalah analysis: {analyzed} families analyzed");
+                for (breadth, count) in &breadth_counts {
+                    println!("     {breadth}: {count}");
                 }
                 tracing::info!("Mustalah analysis complete");
                 did_something = true;

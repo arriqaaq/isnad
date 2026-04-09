@@ -685,7 +685,6 @@ pub struct UpdateNarratorRequest {
     pub locations: Option<Vec<String>>,
     pub tags: Option<Vec<String>>,
     pub reliability_rating: Option<String>,
-    pub reliability_prior: Option<f64>,
     pub reliability_source: Option<String>,
 }
 
@@ -719,7 +718,6 @@ pub async fn update_narrator(
     set_field!(locations);
     set_field!(tags);
     set_field!(reliability_rating);
-    set_field!(reliability_prior);
     set_field!(reliability_source);
 
     if update.is_empty() {
@@ -850,12 +848,24 @@ pub async fn narrator_reliability(
     let evidence = analysis::reliability::get_narrator_evidence(&state.db, &id)
         .await
         .unwrap_or_default();
-    let derived = analysis::reliability::compute_derived(&evidence);
+
+    let assessments: Vec<serde_json::Value> = evidence
+        .iter()
+        .map(|ev| {
+            serde_json::json!({
+                "scholar": ev.scholar,
+                "work": ev.work,
+                "citation_text": ev.citation_text,
+                "rating": ev.rating,
+                "source_locator": ev.source_locator,
+            })
+        })
+        .collect();
 
     Json(serde_json::json!({
         "narrator_id": id,
-        "evidence": evidence,
-        "derived": derived,
+        "assessments": assessments,
+        "sources_count": evidence.len(),
     }))
 }
 
@@ -867,31 +877,31 @@ pub async fn mustalah_stats(State(state): State<AppState>) -> impl IntoResponse 
         .query(
             "SELECT count() AS c FROM hadith_family GROUP ALL;\
              SELECT count() AS c FROM isnad_analysis GROUP ALL;\
-             SELECT count() AS c FROM isnad_analysis WHERE composite_grade = 'sahih' OR composite_grade = 'sahihlighayrihi' GROUP ALL;\
-             SELECT count() AS c FROM isnad_analysis WHERE composite_grade = 'hasan' OR composite_grade = 'hasanlighayrihi' GROUP ALL;\
-             SELECT count() AS c FROM isnad_analysis WHERE composite_grade = 'daif' OR composite_grade = 'daifjiddan' OR composite_grade = 'mawdu' GROUP ALL;\
              SELECT count() AS c FROM isnad_analysis WHERE breadth_class = 'mutawatir' GROUP ALL;\
-             SELECT count() AS c FROM isnad_analysis WHERE breadth_class = 'mashhur' GROUP ALL",
+             SELECT count() AS c FROM isnad_analysis WHERE breadth_class = 'mashhur' GROUP ALL;\
+             SELECT count() AS c FROM isnad_analysis WHERE breadth_class = 'aziz' GROUP ALL;\
+             SELECT count() AS c FROM isnad_analysis WHERE breadth_class = 'gharib' GROUP ALL;\
+             SELECT count() AS c FROM evidence GROUP ALL",
         )
         .await
         .unwrap();
 
     let families: Option<CountResult> = res.take(0).unwrap_or(None);
     let analyzed: Option<CountResult> = res.take(1).unwrap_or(None);
-    let sahih: Option<CountResult> = res.take(2).unwrap_or(None);
-    let hasan: Option<CountResult> = res.take(3).unwrap_or(None);
-    let daif: Option<CountResult> = res.take(4).unwrap_or(None);
-    let mutawatir: Option<CountResult> = res.take(5).unwrap_or(None);
-    let mashhur: Option<CountResult> = res.take(6).unwrap_or(None);
+    let mutawatir: Option<CountResult> = res.take(2).unwrap_or(None);
+    let mashhur: Option<CountResult> = res.take(3).unwrap_or(None);
+    let aziz: Option<CountResult> = res.take(4).unwrap_or(None);
+    let gharib: Option<CountResult> = res.take(5).unwrap_or(None);
+    let evidence_count: Option<CountResult> = res.take(6).unwrap_or(None);
 
     Json(serde_json::json!({
         "family_count": families.map(|c| c.c).unwrap_or(0),
         "analyzed_count": analyzed.map(|c| c.c).unwrap_or(0),
-        "sahih_count": sahih.map(|c| c.c).unwrap_or(0),
-        "hasan_count": hasan.map(|c| c.c).unwrap_or(0),
-        "daif_count": daif.map(|c| c.c).unwrap_or(0),
         "mutawatir_count": mutawatir.map(|c| c.c).unwrap_or(0),
         "mashhur_count": mashhur.map(|c| c.c).unwrap_or(0),
+        "aziz_count": aziz.map(|c| c.c).unwrap_or(0),
+        "gharib_count": gharib.map(|c| c.c).unwrap_or(0),
+        "evidence_count": evidence_count.map(|c| c.c).unwrap_or(0),
     }))
 }
 
@@ -903,21 +913,13 @@ pub async fn mustalah_family_analysis(
 
     #[derive(Debug, SurrealValue, serde::Serialize)]
     struct IsnadRow {
-        composite_grade: Option<String>,
-        best_chain_grade: Option<String>,
         breadth_class: Option<String>,
         min_breadth: Option<i64>,
         bottleneck_tabaqah: Option<i64>,
         sahabi_count: Option<i64>,
         mutabaat_count: Option<i64>,
         shawahid_count: Option<i64>,
-        reliable_mutabaat_count: Option<i64>,
-        corroboration_strength: Option<String>,
-        matn_coherence: Option<f64>,
         chain_count: Option<i64>,
-        sahih_chain_count: Option<i64>,
-        hasan_chain_count: Option<i64>,
-        daif_chain_count: Option<i64>,
         ilal_flags: Option<Vec<String>>,
     }
 
@@ -925,13 +927,9 @@ pub async fn mustalah_family_analysis(
     struct ChainRow {
         variant: Option<RecordId>,
         continuity: Option<String>,
-        chain_grade: Option<String>,
-        weakest_narrator: Option<RecordId>,
-        weakest_rating: Option<String>,
-        weakest_prior: Option<f64>,
         narrator_count: Option<i64>,
         has_chronology_conflict: Option<bool>,
-        has_majhul: Option<bool>,
+        narrator_ids: Option<Vec<String>>,
     }
 
     #[derive(Debug, SurrealValue, serde::Serialize)]
@@ -965,13 +963,9 @@ pub async fn mustalah_family_analysis(
             serde_json::json!({
                 "variant_id": c.variant.as_ref().map(record_id_key_string).unwrap_or_default(),
                 "continuity": c.continuity,
-                "chain_grade": c.chain_grade,
-                "weakest_narrator_id": c.weakest_narrator.as_ref().map(record_id_key_string),
-                "weakest_rating": c.weakest_rating,
-                "weakest_prior": c.weakest_prior,
                 "narrator_count": c.narrator_count,
                 "has_chronology_conflict": c.has_chronology_conflict,
-                "has_majhul_narrator": c.has_majhul,
+                "narrator_ids": c.narrator_ids,
             })
         })
         .collect();

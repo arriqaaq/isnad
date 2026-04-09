@@ -368,6 +368,73 @@ pub async fn ingest(
     }
     nar_pb.finish_with_message("done");
 
+    // ── Seed scholarly sources + create evidence records ──────────────────
+
+    // Seed the two initial scholarly sources
+    db.query(
+        "CREATE scholarly_source:taqrib CONTENT { \
+            key: 'taqrib', \
+            title_ar: 'تقريب التهذيب', \
+            title_en: 'Taqrib al-Tahdhib', \
+            author_ar: 'ابن حجر العسقلاني', \
+            author_en: 'Ibn Hajar al-Asqalani', \
+            source_type: 'jarh_wa_tadil', \
+            edition: NONE, \
+            notes: NONE \
+        }",
+    )
+    .await
+    .ok();
+
+    db.query(
+        "CREATE scholarly_source:mizan CONTENT { \
+            key: 'mizan', \
+            title_ar: 'ميزان الاعتدال', \
+            title_en: 'Mizan al-Itidal', \
+            author_ar: 'الذهبي', \
+            author_en: 'al-Dhahabi', \
+            source_type: 'jarh_wa_tadil', \
+            edition: NONE, \
+            notes: NONE \
+        }",
+    )
+    .await
+    .ok();
+
+    // Create evidence records from Ibn Hajar ranks
+    let mut evidence_count = 0usize;
+    for (hn_id, nar) in &data.narrators {
+        if let Some(ref rank) = nar.ibn_hajar_rank {
+            if rank.is_empty() || rank == "-" {
+                continue;
+            }
+            let nslug = narrator_slug(hn_id);
+            let ev_slug = format!("ev_{}_ibn_hajar", nslug);
+            db.query(
+                "CREATE $rid CONTENT { \
+                    narrator: $nid, evidence_id: $eid, \
+                    rating: $rating, \
+                    scholar: 'Ibn Hajar al-Asqalani', \
+                    work: 'Taqrib al-Tahdhib', \
+                    citation_text: $citation, \
+                    layer: 'reported', \
+                    source: scholarly_source:taqrib, \
+                    source_locator: NONE, \
+                    ingested_at: time::now() \
+                }",
+            )
+            .bind(("rid", rid("evidence", &ev_slug)))
+            .bind(("nid", rid("narrator", &nslug)))
+            .bind(("eid", format!("ibn_hajar_{nslug}")))
+            .bind(("rating", nar.reliability_grade.clone()))
+            .bind(("citation", rank.clone()))
+            .await
+            .ok();
+            evidence_count += 1;
+        }
+    }
+    println!("📖 Created {evidence_count} evidence records from Ibn Hajar's Taqrib al-Tahdhib");
+
     // ── Create hadiths + edges ─────────────────────────────────────────────
 
     println!("📜 Ingesting {total_expected} hadiths...");

@@ -31,7 +31,6 @@ export interface ApiNarrator {
   locations: string[] | null;
   tags: string[] | null;
   reliability_rating: string | null;
-  reliability_prior: number | null;
   reliability_source: string | null;
   ibn_hajar_rank: string | null;
 }
@@ -156,36 +155,24 @@ export interface GlossaryTerm {
   related_terms: string[] | null;
 }
 
-// ── Mustalah analysis types ──
+// ── Mustalah analysis types (structural, no computed grades) ──
 
 export interface ChainAssessment {
   variant_id: string;
   continuity: string;
-  chain_grade: string;
-  weakest_narrator_id: string | null;
-  weakest_rating: string | null;
-  weakest_prior: number | null;
   narrator_count: number;
   has_chronology_conflict: boolean;
-  has_majhul_narrator: boolean;
+  narrator_ids: string[] | null;
 }
 
 export interface IsnadAnalysis {
-  composite_grade: string | null;
-  best_chain_grade: string | null;
   breadth_class: string | null;
   min_breadth: number | null;
   bottleneck_tabaqah: number | null;
   sahabi_count: number | null;
   mutabaat_count: number | null;
   shawahid_count: number | null;
-  reliable_mutabaat_count: number | null;
-  corroboration_strength: string | null;
-  matn_coherence: number | null;
   chain_count: number | null;
-  sahih_chain_count: number | null;
-  hasan_chain_count: number | null;
-  daif_chain_count: number | null;
   ilal_flags: string[] | null;
 }
 
@@ -198,6 +185,14 @@ export interface PivotNarrator {
   is_bottleneck: boolean | null;
 }
 
+export interface NarratorAssessment {
+  scholar: string;
+  work: string;
+  citation_text: string;
+  rating: string | null;
+  source_locator: string | null;
+}
+
 export interface MustalahFamilyResponse {
   analysis: IsnadAnalysis | null;
   chains: ChainAssessment[];
@@ -207,11 +202,11 @@ export interface MustalahFamilyResponse {
 export interface MustalahStatsResponse {
   family_count: number;
   analyzed_count: number;
-  sahih_count: number;
-  hasan_count: number;
-  daif_count: number;
   mutawatir_count: number;
   mashhur_count: number;
+  aziz_count: number;
+  gharib_count: number;
+  evidence_count: number;
 }
 
 export interface NarratorIsnadRole {

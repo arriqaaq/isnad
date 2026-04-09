@@ -99,12 +99,6 @@
     if (editReliabilityRating) payload.reliability_rating = editReliabilityRating;
     if (editReliabilitySource) payload.reliability_source = editReliabilitySource;
 
-    // Map rating to prior
-    const priorMap: Record<string, number> = { thiqah: 0.75, saduq: 0.65, majhul: 0.50, daif: 0.35, matruk: 0.20, accused_fabrication: 0.20 };
-    if (editReliabilityRating && priorMap[editReliabilityRating] !== undefined) {
-      payload.reliability_prior = priorMap[editReliabilityRating];
-    }
-
     try {
       await updateNarrator(data.narrator.id, payload);
       saveMsg = 'Saved';

@@ -17,7 +17,7 @@
 
 <div class="analysis-page">
   <h1>Isnad Analysis</h1>
-  <p class="subtitle">Mustalah al-hadith analysis of transmission chains</p>
+  <p class="subtitle">Structural analysis of transmission chains with scholarly narrator assessments</p>
 
   {#if loading}
     <LoadingSpinner />
@@ -31,21 +31,14 @@
         <div class="stat-value">{stats.analyzed_count}</div>
         <div class="stat-label">Analyzed</div>
       </div>
-      <div class="stat-card success">
-        <div class="stat-value">{stats.sahih_count}</div>
-        <div class="stat-label">Sahih</div>
-      </div>
-      <div class="stat-card accent">
-        <div class="stat-value">{stats.hasan_count}</div>
-        <div class="stat-label">Hasan</div>
-      </div>
-      <div class="stat-card warning">
-        <div class="stat-value">{stats.daif_count}</div>
-        <div class="stat-label">Da'eef</div>
+      <div class="stat-card">
+        <div class="stat-value">{stats.evidence_count}</div>
+        <div class="stat-label">Scholar Assessments</div>
       </div>
     </div>
 
-    <div class="stats-grid stats-grid-2">
+    <h3>Transmission Breadth</h3>
+    <div class="stats-grid stats-grid-4">
       <div class="stat-card">
         <div class="stat-value">{stats.mutawatir_count}</div>
         <div class="stat-label">Mutawatir</div>
@@ -53,6 +46,14 @@
       <div class="stat-card">
         <div class="stat-value">{stats.mashhur_count}</div>
         <div class="stat-label">Mashhur</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">{stats.aziz_count}</div>
+        <div class="stat-label">'Aziz</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">{stats.gharib_count}</div>
+        <div class="stat-label">Gharib</div>
       </div>
     </div>
 
@@ -62,7 +63,7 @@
         <ol>
           <li>Ingest hadith data: <code>make hadith-ingest</code></li>
           <li>Compute families: <code>hadith analyze --families</code></li>
-          <li>Run mustalah analysis: <code>hadith analyze --mustalah</code></li>
+          <li>Run structural analysis: <code>hadith analyze --mustalah</code></li>
           <li>View results on the <a href="/families">Families</a> page</li>
         </ol>
       </div>
@@ -72,7 +73,7 @@
           <span class="link-icon">&#x2B22;</span>
           <div>
             <div class="link-title">Browse Families</div>
-            <div class="link-desc">View hadith families and their isnad analysis</div>
+            <div class="link-desc">View hadith families and their chain analysis</div>
           </div>
         </a>
       </div>
@@ -80,12 +81,12 @@
 
     <div class="methodology">
       <h3>Methodology</h3>
-      <p>This tool uses proper mustalah al-hadith (hadith terminology) to assess transmission chains. Each chain is evaluated for continuity (muttasil/munqati'/mursal), narrator quality ('adaalah and dabt), and graded according to traditional criteria (sahih/hasan/da'eef).</p>
-      <p>Families are classified by transmission breadth (mutawatir/mashhur/'aziz/gharib) and assessed for corroboration (mutaba'at and shawahid). Composite grades follow the textbook definitions from at-Tahhaan's <em>Tayseer Mustalah al-Hadeeth</em>.</p>
+      <p>This tool displays <strong>structural analysis</strong> of transmission chains and <strong>scholarly assessments</strong> of narrators from classical rijal works. No algorithmic grades are computed &mdash; only observable facts about the chain and what scholars actually said.</p>
+      <p>Each chain is analyzed for continuity (muttasil/munqati'/mursal). Families are classified by transmission breadth (mutawatir/mashhur/'aziz/gharib). Corroboration counts (mutaba'at and shawahid) show how many independent paths exist.</p>
+      <p>Narrator assessments are sourced from:</p>
       <div class="outcome-legend">
-        <div class="outcome-item"><Badge text="Sahih" variant="success" /> Connected chain, all narrators thiqah, no defects</div>
-        <div class="outcome-item"><Badge text="Hasan" variant="accent" /> Connected chain, narrators at saduq level</div>
-        <div class="outcome-item"><Badge text="Da'eef" variant="warning" /> Broken chain or weak narrator</div>
+        <div class="outcome-item"><Badge text="Taqrib" variant="accent" /> Ibn Hajar al-Asqalani, <em>Taqrib al-Tahdhib</em></div>
+        <div class="outcome-item"><Badge text="Mizan" variant="default" /> al-Dhahabi, <em>Mizan al-I'tidal</em></div>
       </div>
     </div>
   {/if}
@@ -94,16 +95,11 @@
 <style>
   .analysis-page { padding: 24px; max-width: 900px; }
   .subtitle { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px; }
-  .stats-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 16px; }
-  .stats-grid-2 { grid-template-columns: repeat(2, 1fr); margin-bottom: 32px; }
+  h3 { margin-bottom: 12px; }
+  .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px; }
+  .stats-grid-4 { grid-template-columns: repeat(4, 1fr); margin-bottom: 32px; }
   .stat-card { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; text-align: center; }
-  .stat-card.accent { border-color: var(--accent); }
-  .stat-card.success { border-color: #22c55e; }
-  .stat-card.warning { border-color: var(--warning); }
   .stat-value { font-size: 2rem; font-weight: 700; color: var(--text-primary); }
-  .stat-card.accent .stat-value { color: var(--accent); }
-  .stat-card.success .stat-value { color: #22c55e; }
-  .stat-card.warning .stat-value { color: var(--warning); }
   .stat-label { font-size: 0.8rem; color: var(--text-secondary); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
   .instructions { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; margin-bottom: 24px; }
   .instructions h3 { margin-bottom: 12px; }
@@ -119,8 +115,9 @@
   .methodology { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; }
   .methodology h3 { margin-bottom: 12px; }
   .methodology p { color: var(--text-secondary); font-size: 0.9rem; line-height: 1.6; margin-bottom: 12px; }
+  .methodology strong { color: var(--text-primary); }
   .methodology a { color: var(--accent); }
   .outcome-legend { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 16px; }
   .outcome-item { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: var(--text-secondary); }
-  @media (max-width: 768px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 768px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } .stats-grid-4 { grid-template-columns: repeat(2, 1fr); } }
 </style>
