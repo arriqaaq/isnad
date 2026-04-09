@@ -438,7 +438,7 @@ The vision: as more hadith books and tafsir sources are added, generate higher-q
 
 ## Contributing
 
-Ilm is open source. The [repository](https://github.com/arriqaaq/isnad) contains everything needed to build, ingest, and run the platform from scratch.
+Ilm is open source. The [repository](https://github.com/arriqaaq/ilm) contains everything needed to build, ingest, and run the platform from scratch.
 
 Currently covering the six canonical collections. The expansion path includes:
 
