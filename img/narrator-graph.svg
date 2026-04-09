@@ -1,0 +1,157 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 500">
+  <defs>
+    <filter id="shadow" x="-4%" y="-4%" width="108%" height="112%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#000" flood-opacity="0.06"/>
+    </filter>
+    <marker id="ag" viewBox="0 0 10 7" refX="10" refY="3.5" markerWidth="7" markerHeight="5" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 3.5 L 0 7 z" fill="#16a34a" opacity="0.6"/>
+    </marker>
+    <marker id="aw" viewBox="0 0 10 7" refX="10" refY="3.5" markerWidth="7" markerHeight="5" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 3.5 L 0 7 z" fill="#c8a96a" opacity="0.6"/>
+    </marker>
+  </defs>
+
+  <!-- Title -->
+  <text x="360" y="18" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="10" font-weight="700" letter-spacing="1.5" fill="#c8a96a">THE NARRATOR GRAPH — WHY IT'S NOT A SIMPLE TREE</text>
+
+  <!-- Tabaqah labels -->
+  <text x="12" y="58" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="7.5" font-weight="700" fill="#9ca3af" letter-spacing="0.5">GEN 1</text>
+  <text x="12" y="68" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="7" fill="#b0b8c4">Sahabah</text>
+
+  <text x="12" y="138" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="7.5" font-weight="700" fill="#9ca3af" letter-spacing="0.5">GEN 2-4</text>
+  <text x="12" y="148" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="7" fill="#b0b8c4">Tabi'een</text>
+
+  <text x="12" y="248" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="7.5" font-weight="700" fill="#9ca3af" letter-spacing="0.5">GEN 7+</text>
+  <text x="12" y="258" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="7" fill="#b0b8c4">Compilers</text>
+
+  <!-- Faint generation lines -->
+  <line x1="55" y1="34" x2="710" y2="34" stroke="#e5e7eb" stroke-width="0.5" stroke-dasharray="2,4"/>
+  <line x1="55" y1="114" x2="710" y2="114" stroke="#e5e7eb" stroke-width="0.5" stroke-dasharray="2,4"/>
+  <line x1="55" y1="220" x2="710" y2="220" stroke="#e5e7eb" stroke-width="0.5" stroke-dasharray="2,4"/>
+
+  <!-- === GEN 1: SAHABAH === -->
+  <rect x="80" y="42" width="150" height="36" rx="18" fill="rgba(22,163,74,0.08)" stroke="#16a34a" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="155" y="58" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="10" font-weight="700" fill="#16a34a">Abu Hurayrah</text>
+  <text x="155" y="70" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="7" fill="#16a34a" opacity="0.6">4,708 hadiths</text>
+
+  <rect x="290" y="42" width="120" height="36" rx="18" fill="rgba(22,163,74,0.08)" stroke="#16a34a" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="350" y="58" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="10" font-weight="700" fill="#16a34a">Ibn 'Umar</text>
+  <text x="350" y="70" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="7" fill="#16a34a" opacity="0.6">3,109 hadiths</text>
+
+  <rect x="470" y="42" width="130" height="36" rx="18" fill="rgba(22,163,74,0.08)" stroke="#16a34a" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="535" y="58" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="10" font-weight="700" fill="#16a34a">Anas ibn Malik</text>
+  <text x="535" y="70" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="7" fill="#16a34a" opacity="0.6">2,750 hadiths</text>
+
+  <!-- === GEN 2-4: TABI'EEN === -->
+  <!-- Sa'eed ibn al-Musayyab (gen 2) — key intermediary between Sahabah and az-Zuhri -->
+  <rect x="70" y="122" width="155" height="36" rx="18" fill="rgba(22,163,74,0.08)" stroke="#16a34a" stroke-width="1.2" filter="url(#shadow)"/>
+  <text x="147" y="138" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="9.5" font-weight="600" fill="#16a34a">Sa'eed ibn al-Musayyab</text>
+  <text x="147" y="150" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="7" fill="#16a34a" opacity="0.5">gen 2</text>
+
+  <rect x="290" y="122" width="80" height="36" rx="18" fill="rgba(22,163,74,0.08)" stroke="#16a34a" stroke-width="1.2" filter="url(#shadow)"/>
+  <text x="330" y="144" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="9.5" font-weight="600" fill="#16a34a">Naafi'</text>
+
+  <!-- az-Zuhri (gen 4) and Qataadah (gen 4) — slightly lower to suggest later generation -->
+  <rect x="80" y="180" width="100" height="36" rx="18" fill="rgba(22,163,74,0.08)" stroke="#16a34a" stroke-width="1.2" filter="url(#shadow)"/>
+  <text x="130" y="202" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="9.5" font-weight="600" fill="#16a34a">az-Zuhri</text>
+
+  <rect x="470" y="122" width="110" height="36" rx="18" fill="rgba(22,163,74,0.08)" stroke="#16a34a" stroke-width="1.2" filter="url(#shadow)"/>
+  <text x="525" y="144" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="9.5" font-weight="600" fill="#16a34a">Qataadah</text>
+
+  <!-- gen labels next to nodes -->
+  <text x="183" y="200" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="6.5" fill="#9ca3af">gen 4</text>
+  <text x="373" y="142" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="6.5" fill="#9ca3af">gen 3</text>
+  <text x="583" y="142" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="6.5" fill="#9ca3af">gen 4</text>
+
+  <!-- === GEN 7+: COMPILERS === -->
+  <rect x="80" y="230" width="90" height="36" rx="18" fill="rgba(22,163,74,0.08)" stroke="#16a34a" stroke-width="1.2" filter="url(#shadow)"/>
+  <text x="125" y="252" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="9.5" font-weight="600" fill="#16a34a">Maalik</text>
+
+  <rect x="240" y="230" width="90" height="36" rx="18" fill="rgba(22,163,74,0.08)" stroke="#16a34a" stroke-width="1.2" filter="url(#shadow)"/>
+  <text x="285" y="252" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="9.5" font-weight="600" fill="#16a34a">Shu'bah</text>
+
+  <rect x="400" y="230" width="130" height="36" rx="18" fill="rgba(22,163,74,0.08)" stroke="#16a34a" stroke-width="1.2" filter="url(#shadow)"/>
+  <text x="465" y="252" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="9.5" font-weight="600" fill="#16a34a">Sufyaan ath-Thawri</text>
+
+  <!-- gen labels -->
+  <text x="173" y="250" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="6.5" fill="#9ca3af">gen 7</text>
+  <text x="333" y="250" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="6.5" fill="#9ca3af">gen 7</text>
+  <text x="533" y="250" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="6.5" fill="#9ca3af">gen 7</text>
+
+  <!-- === HEARD_FROM EDGES (verified relationships only) === -->
+  <!-- Sa'eed ibn al-Musayyab → Abu Hurayrah (verified) -->
+  <line x1="147" y1="122" x2="155" y2="82" stroke="#16a34a" stroke-width="1.2" marker-end="url(#ag)"/>
+
+  <!-- Naafi' → Ibn 'Umar (verified: 1,509 hadiths) -->
+  <line x1="340" y1="122" x2="350" y2="82" stroke="#16a34a" stroke-width="1.2" marker-end="url(#ag)"/>
+
+  <!-- Qataadah → Anas (verified) -->
+  <line x1="525" y1="122" x2="535" y2="82" stroke="#16a34a" stroke-width="1.2" marker-end="url(#ag)"/>
+
+  <!-- az-Zuhri → Sa'eed ibn al-Musayyab (verified — NOT directly to Abu Hurayrah) -->
+  <line x1="130" y1="180" x2="140" y2="162" stroke="#16a34a" stroke-width="1.2" marker-end="url(#ag)"/>
+
+  <!-- Maalik → az-Zuhri (verified: 389 hadiths) -->
+  <line x1="125" y1="230" x2="128" y2="220" stroke="#16a34a" stroke-width="1.2" marker-end="url(#ag)"/>
+
+  <!-- Maalik also → Naafi' (verified — Maalik heard from both) -->
+  <line x1="155" y1="230" x2="320" y2="162" stroke="#16a34a" stroke-width="1" stroke-dasharray="4,3" opacity="0.5" marker-end="url(#ag)"/>
+
+  <!-- Shu'bah → Qataadah (verified) -->
+  <line x1="305" y1="230" x2="505" y2="162" stroke="#16a34a" stroke-width="1.2" marker-end="url(#ag)"/>
+
+  <!-- Sufyaan ath-Thawri → az-Zuhri (verified) -->
+  <line x1="430" y1="235" x2="165" y2="200" stroke="#16a34a" stroke-width="1" stroke-dasharray="4,3" opacity="0.5" marker-end="url(#ag)"/>
+
+  <!-- === HADITH NODES === -->
+  <rect x="60" y="315" width="130" height="38" rx="10" fill="rgba(200,169,106,0.08)" stroke="#c8a96a" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="125" y="330" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="7" font-weight="600" fill="#c8a96a" letter-spacing="0.5">HADITH</text>
+  <text x="125" y="343" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="9" font-weight="700" fill="#c8a96a">Bukhari #1</text>
+
+  <rect x="250" y="315" width="130" height="38" rx="10" fill="rgba(200,169,106,0.08)" stroke="#c8a96a" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="315" y="330" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="7" font-weight="600" fill="#c8a96a" letter-spacing="0.5">HADITH</text>
+  <text x="315" y="343" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="9" font-weight="700" fill="#c8a96a">Muslim #42</text>
+
+  <rect x="440" y="315" width="130" height="38" rx="10" fill="rgba(200,169,106,0.08)" stroke="#c8a96a" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="505" y="330" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="7" font-weight="600" fill="#c8a96a" letter-spacing="0.5">HADITH</text>
+  <text x="505" y="343" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="9" font-weight="700" fill="#c8a96a">Tirmidhi #7</text>
+
+  <!-- narrates edges -->
+  <line x1="120" y1="266" x2="120" y2="311" stroke="#c8a96a" stroke-width="1.2" marker-end="url(#aw)"/>
+  <line x1="285" y1="266" x2="300" y2="311" stroke="#c8a96a" stroke-width="1.2" marker-end="url(#aw)"/>
+  <line x1="285" y1="266" x2="135" y2="311" stroke="#c8a96a" stroke-width="1" opacity="0.5" marker-end="url(#aw)"/>
+  <line x1="465" y1="266" x2="495" y2="311" stroke="#c8a96a" stroke-width="1.2" marker-end="url(#aw)"/>
+  <line x1="465" y1="266" x2="325" y2="311" stroke="#c8a96a" stroke-width="1" opacity="0.5" marker-end="url(#aw)"/>
+
+  <!-- Similar_to dashed between hadiths -->
+  <line x1="190" y1="334" x2="246" y2="334" stroke="#c8a96a" stroke-width="1" stroke-dasharray="3,3" opacity="0.4"/>
+  <text x="218" y="328" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="6.5" fill="#c8a96a" opacity="0.5">similar</text>
+
+  <!-- === CALLOUTS === -->
+  <rect x="60" y="380" width="290" height="108" rx="8" fill="#fafafa" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="72" y="398" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="8" font-weight="700" fill="#4a4a68" letter-spacing="0.5">KEY COMPLEXITIES</text>
+
+  <circle cx="78" cy="414" r="3" fill="#16a34a" opacity="0.4"/>
+  <text x="88" y="417" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="8" fill="#4a4a68">One narrator → thousands of hadiths</text>
+
+  <circle cx="78" cy="430" r="3" fill="#16a34a" opacity="0.4"/>
+  <text x="88" y="433" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="8" fill="#4a4a68">One hadith → multiple parallel chains (variants)</text>
+
+  <circle cx="78" cy="446" r="3" fill="#16a34a" opacity="0.4"/>
+  <text x="88" y="449" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="8" fill="#4a4a68">Narrators shared across chains (dashed lines)</text>
+
+  <circle cx="78" cy="462" r="3" fill="#c8a96a" opacity="0.4"/>
+  <text x="88" y="465" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="8" fill="#4a4a68">Each edge carries: hadith_ref + chain_position</text>
+
+  <circle cx="78" cy="478" r="3" fill="#16a34a" opacity="0.4"/>
+  <text x="88" y="481" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="8" fill="#4a4a68">Chains span multiple generations (gen 1 → gen 7+)</text>
+
+  <!-- Stats callout -->
+  <rect x="380" y="380" width="190" height="108" rx="8" fill="#fafafa" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="392" y="398" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="8" font-weight="700" fill="#4a4a68" letter-spacing="0.5">SCALE</text>
+  <text x="392" y="417" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="8.5" fill="#4a4a68"><tspan font-weight="700" fill="#16a34a">18,000+</tspan> narrator nodes</text>
+  <text x="392" y="433" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="8.5" fill="#4a4a68"><tspan font-weight="700" fill="#c8a96a">34,457</tspan> hadith nodes</text>
+  <text x="392" y="449" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="8.5" fill="#4a4a68"><tspan font-weight="700" fill="#16a34a">~300K</tspan> heard_from edges</text>
+  <text x="392" y="465" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="8.5" fill="#4a4a68"><tspan font-weight="700" fill="#c8a96a">~150K</tspan> narrates edges</text>
+  <text x="392" y="481" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="7.5" fill="#9ca3af">Data: SemanticHadith KG V2</text>
+</svg>

@@ -27,7 +27,7 @@ Rust backend serving a SvelteKit SPA, with SurrealDB as a unified graph + vector
 - **Hadith Explorer** — 34K+ hadiths from 926 books across the 6 canonical collections
 - **Narrator Networks** — 18K+ narrators with interactive Cytoscape.js graph visualization, Ibn Hajar reliability grades
 - **Hybrid Search** — BM25 full-text + 1024-dim semantic vectors fused with Reciprocal Rank Fusion
-- **Ask AI (GraphRAG)** — Natural language Q&A grounded in Quran/Hadith via local Ollama, with isnad-aware context
+- **Ask AI (GraphRAG)** — Natural language Q&A grounded in Quran and Hadith via local Ollama, with isnad-aware context and narrator chain citations
 - **Early Manuscripts** — Per-ayah high-resolution manuscript images from Corpus Coranicum (Berlin-Brandenburg Academy), viewable with zoom
 - **Isnad Analysis** — Hadith family clustering, mustalah-based chain grading (sahih/hasan/da'eef), transmission breadth (mutawatir/mashhur/aziz/gharib), corroboration detection (mutaba'at/shawahid), word-level matn diffing
 - **Personal Study Notes** — Annotate any ayah or hadith, collect evidence by topic with @mentions that embed Quran verses and hadiths inline, tag-based organization, color-coded highlights, and full-text search across your notes
@@ -86,7 +86,7 @@ Three modes: **Hybrid** (default — BM25 + vector via Reciprocal Rank Fusion), 
   <img src="img/graphrag-flow.svg" alt="GraphRAG flow" width="700">
 </p>
 
-Ask questions in natural language. The system retrieves the 6 most relevant hadiths via vector search, traverses the narrator graph to reconstruct each isnad (chain of narration), then streams an answer from a local LLM grounded in the retrieved context. Responses include narrator chain citations.
+Ask questions in natural language. The system classifies the question, retrieves relevant Quran ayahs and hadiths via vector search, traverses the narrator graph to reconstruct each isnad (chain of narration), and passes this as context to a local LLM that streams a grounded answer with citations.
 
 ## Graph Model
 
@@ -94,7 +94,7 @@ Ask questions in natural language. The system retrieves the 6 most relevant hadi
   <img src="img/graph-model.svg" alt="Database graph model" width="700">
 </p>
 
-SurrealDB stores narrators, hadiths, and books as documents connected by `heard_from`, `narrates`, and `belongs_to` graph edges — enabling isnad reconstruction and network analysis.
+SurrealDB stores narrators, hadiths, books, and ayahs as documents connected by `heard_from`, `narrates`, `belongs_to`, and `references_hadith` graph edges — enabling isnad reconstruction, Quran-Hadith cross-referencing, and network analysis.
 
 ## Early Manuscripts
 
@@ -136,7 +136,7 @@ Fine-tune a domain-specific LLM on hadith and Quran data, then deploy it through
 | Embeddings | FastEmbed (bge-m3) | 1024-dim semantic vectors |
 | Frontend | SvelteKit 2, Svelte 5 | SPA served as static files |
 | Graph Viz | Cytoscape.js | Narrator network visualization |
-| LLM | Ollama (local) | Translation fallback + RAG Q&A |
+| LLM | Ollama (local) | Translation fallback + GraphRAG Q&A |
 
 ## Contributing
 

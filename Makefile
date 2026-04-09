@@ -1,4 +1,4 @@
-.PHONY: build frontend backend server dev stop semantic-download semantic-extract semantic-verify semantic-setup ingest ingest-test ingest-full hadith-full hadith-ingest sanadset-download quran-prepare quran-prepare-deps quran-ingest quran-hadith-refs quran-morphology quran-similar quran quran-full quran-check analyze analyze-families analyze-transmission pipeline-check pipeline-test pipeline-full clean
+.PHONY: build frontend backend server dev stop download-data semantic-download semantic-extract semantic-verify semantic-setup ingest ingest-test ingest-full hadith-full hadith-ingest sanadset-download quran-prepare quran-prepare-deps quran-ingest quran-hadith-refs quran-morphology quran-similar quran quran-full quran-check analyze analyze-families analyze-transmission pipeline-check pipeline-test pipeline-full clean
 
 # SurrealDB HNSW index traversal needs extra stack space
 export RUST_MIN_STACK=8388608
@@ -28,6 +28,20 @@ dev: build
 # Stop background server
 stop:
 	@pkill -f "target/debug/hadith serve" 2>/dev/null && echo "Server stopped" || echo "No server running"
+
+# === Download pre-built data (skip ingestion) ===
+
+# Download pre-built data and database from Google Drive (uses bge-m3 embeddings)
+download-data:
+	@echo "Downloading pre-built data from Google Drive..."
+	pip3 install -q gdown
+	gdown "1X0oYLzCWytm0qTyjmZKAi_d-a0bvSv_d" -O /tmp/data.zip
+	gdown "16KOkdE5g7fGfH3zPwRmyGfzGUnHl444F" -O /tmp/db_data.zip
+	@echo "Extracting data..."
+	unzip -o /tmp/data.zip -d .
+	unzip -o /tmp/db_data.zip -d .
+	@rm -f /tmp/data.zip /tmp/db_data.zip
+	@echo "✓ Data ready. Run: make dev"
 
 # === SemanticHadith KG data preparation (one-time) ===
 

@@ -1,0 +1,121 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 440">
+  <defs>
+    <filter id="shadow" x="-4%" y="-4%" width="108%" height="112%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#000" flood-opacity="0.06"/>
+    </filter>
+    <marker id="ae" viewBox="0 0 10 7" refX="10" refY="3.5" markerWidth="7" markerHeight="5" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 3.5 L 0 7 z" fill="#c8a96a" opacity="0.6"/>
+    </marker>
+  </defs>
+
+  <!-- Title -->
+  <text x="360" y="18" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="10" font-weight="700" letter-spacing="1.5" fill="#c8a96a">EMBEDDINGS CO-LOCATED WITH DATA — WHY IT MATTERS FOR RAG</text>
+
+  <!-- === THREE EMBEDDING TYPES === -->
+
+  <!-- Hadith embeddings -->
+  <rect x="20" y="36" width="210" height="130" rx="10" fill="rgba(200,169,106,0.04)" stroke="#c8a96a" stroke-width="1.2" filter="url(#shadow)"/>
+  <text x="125" y="54" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="8" font-weight="700" fill="#c8a96a" letter-spacing="0.5">HADITH TABLE</text>
+
+  <rect x="30" y="62" width="190" height="18" rx="4" fill="rgba(200,169,106,0.08)"/>
+  <text x="40" y="75" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="7.5" fill="#4a4a68">text_ar: Arabic hadith text</text>
+
+  <rect x="30" y="84" width="190" height="18" rx="4" fill="rgba(200,169,106,0.08)"/>
+  <text x="40" y="97" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="7.5" fill="#4a4a68">text_en: English translation</text>
+
+  <rect x="30" y="106" width="190" height="18" rx="4" fill="rgba(200,169,106,0.15)"/>
+  <text x="40" y="119" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="7.5" font-weight="600" fill="#c8a96a">embedding: [1024-dim float]</text>
+
+  <rect x="30" y="128" width="190" height="18" rx="4" fill="rgba(200,169,106,0.08)"/>
+  <text x="40" y="141" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="7.5" fill="#4a4a68">narrator_text, grade, topics...</text>
+
+  <text x="125" y="158" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="7" fill="#9ca3af">34,457 records · HNSW index</text>
+
+  <!-- Ayah embeddings -->
+  <rect x="255" y="36" width="210" height="130" rx="10" fill="rgba(74,130,200,0.04)" stroke="#4a82c8" stroke-width="1.2" filter="url(#shadow)"/>
+  <text x="360" y="54" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="8" font-weight="700" fill="#4a82c8" letter-spacing="0.5">AYAH TABLE</text>
+
+  <rect x="265" y="62" width="190" height="18" rx="4" fill="rgba(74,130,200,0.08)"/>
+  <text x="275" y="75" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="7.5" fill="#4a4a68">text_ar: Uthmani Hafs Arabic</text>
+
+  <rect x="265" y="84" width="190" height="18" rx="4" fill="rgba(74,130,200,0.08)"/>
+  <text x="275" y="97" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="7.5" fill="#4a4a68">text_en: Sahih International</text>
+
+  <rect x="265" y="106" width="190" height="18" rx="4" fill="rgba(74,130,200,0.15)"/>
+  <text x="275" y="119" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="7.5" font-weight="600" fill="#4a82c8">embedding: [1024-dim float]</text>
+
+  <rect x="265" y="128" width="190" height="18" rx="4" fill="rgba(74,130,200,0.08)"/>
+  <text x="275" y="141" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="7.5" fill="#4a4a68">tafsir_en, surah, ayah_number...</text>
+
+  <text x="360" y="158" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="7" fill="#9ca3af">6,236 records · HNSW index</text>
+
+  <!-- Tafsir chunk embeddings -->
+  <rect x="490" y="36" width="210" height="130" rx="10" fill="rgba(124,92,191,0.04)" stroke="#7c5cbf" stroke-width="1.2" filter="url(#shadow)"/>
+  <text x="595" y="54" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="8" font-weight="700" fill="#7c5cbf" letter-spacing="0.5">TAFSIR_CHUNK TABLE</text>
+
+  <rect x="500" y="62" width="190" height="18" rx="4" fill="rgba(124,92,191,0.08)"/>
+  <text x="510" y="75" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="7.5" fill="#4a4a68">ayah_id: link to parent ayah</text>
+
+  <rect x="500" y="84" width="190" height="18" rx="4" fill="rgba(124,92,191,0.08)"/>
+  <text x="510" y="97" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="7.5" fill="#4a4a68">chunk_text: ≤1500 chars</text>
+
+  <rect x="500" y="106" width="190" height="18" rx="4" fill="rgba(124,92,191,0.15)"/>
+  <text x="510" y="119" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="7.5" font-weight="600" fill="#7c5cbf">embedding: [1024-dim float]</text>
+
+  <rect x="500" y="128" width="190" height="18" rx="4" fill="rgba(124,92,191,0.08)"/>
+  <text x="510" y="141" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="7.5" fill="#4a4a68">chunk_index, overlap: 200 chars</text>
+
+  <text x="595" y="158" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="7" fill="#9ca3af">~20K chunks · HNSW index</text>
+
+  <!-- === RAG RETRIEVAL FLOW === -->
+  <text x="360" y="195" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="9" font-weight="700" fill="#4a4a68" letter-spacing="0.5">RAG RETRIEVAL: ONE QUERY RETURNS DATA + EMBEDDING MATCH</text>
+
+  <!-- Query box -->
+  <rect x="40" y="210" width="200" height="36" rx="8" fill="rgba(200,169,106,0.06)" stroke="#c8a96a" stroke-width="1.2"/>
+  <text x="140" y="225" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="8" font-weight="600" fill="#c8a96a">User question → embed</text>
+  <text x="140" y="238" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="7" fill="#9ca3af">BGE-M3 multilingual, 1024-dim</text>
+
+  <!-- Arrow to HNSW -->
+  <line x1="240" y1="228" x2="280" y2="228" stroke="#c8a96a" stroke-width="1.5" marker-end="url(#ae)"/>
+
+  <!-- HNSW search box -->
+  <rect x="285" y="210" width="180" height="36" rx="8" fill="rgba(200,169,106,0.06)" stroke="#c8a96a" stroke-width="1.2"/>
+  <text x="375" y="225" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="8" font-weight="600" fill="#c8a96a">HNSW KNN search</text>
+  <text x="375" y="238" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="7" fill="#9ca3af">embedding &lt;|4,80|&gt; $query_vec</text>
+
+  <!-- Arrow to result -->
+  <line x1="465" y1="228" x2="500" y2="228" stroke="#c8a96a" stroke-width="1.5" marker-end="url(#ae)"/>
+
+  <!-- Result box -->
+  <rect x="505" y="206" width="195" height="44" rx="8" fill="rgba(22,163,74,0.06)" stroke="#16a34a" stroke-width="1.2"/>
+  <text x="602" y="222" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="8" font-weight="600" fill="#16a34a">Returns in ONE query:</text>
+  <text x="602" y="236" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="7.5" fill="#4a4a68">text + score + metadata</text>
+  <text x="602" y="246" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="7" fill="#9ca3af">(embedding excluded from result set)</text>
+
+  <!-- === WHY CO-LOCATION === -->
+  <rect x="20" y="270" width="680" height="160" rx="10" fill="#fafafa" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="360" y="290" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="9" font-weight="700" fill="#4a4a68" letter-spacing="0.5">WHY EMBEDDINGS MUST LIVE WITH THE DATA</text>
+
+  <!-- Two columns -->
+  <!-- Left: Without co-location -->
+  <rect x="35" y="302" width="310" height="115" rx="8" fill="rgba(220,38,38,0.03)" stroke="#dc2626" stroke-width="0.8"/>
+  <text x="190" y="318" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="8" font-weight="700" fill="#dc2626">SEPARATE VECTOR DB (Pinecone/Weaviate)</text>
+
+  <text x="48" y="336" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="7.5" fill="#4a4a68">1. Query Pinecone: KNN → get hadith IDs</text>
+  <text x="48" y="350" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="7.5" fill="#4a4a68">2. Query Postgres: fetch text for those IDs</text>
+  <text x="48" y="364" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="7.5" fill="#4a4a68">3. Query Neo4j: fetch narrator chains for those IDs</text>
+  <text x="48" y="378" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="7.5" fill="#4a4a68">4. Query Elasticsearch: bilingual BM25 fusion</text>
+  <text x="48" y="396" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="7.5" fill="#4a4a68">5. Merge results in application code</text>
+  <text x="48" y="410" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="8" font-weight="700" fill="#dc2626">= 4 round-trips, 4 connections, custom glue</text>
+
+  <!-- Right: With co-location -->
+  <rect x="365" y="302" width="320" height="115" rx="8" fill="rgba(22,163,74,0.03)" stroke="#16a34a" stroke-width="0.8"/>
+  <text x="525" y="318" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="8" font-weight="700" fill="#16a34a">SURREALDB (EMBEDDINGS WITH DATA)</text>
+
+  <text x="378" y="340" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="7.5" fill="#4a4a68">One query does everything:</text>
+  <text x="378" y="356" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="7.5" fill="#4a4a68">  • HNSW KNN → finds similar hadiths</text>
+  <text x="378" y="370" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="7.5" fill="#4a4a68">  • Returns text + metadata immediately</text>
+  <text x="378" y="384" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="7.5" fill="#4a4a68">  • Graph traversal for narrator chains</text>
+  <text x="378" y="398" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="7.5" fill="#4a4a68">  • BM25 bilingual search + RRF fusion</text>
+  <text x="378" y="414" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="8" font-weight="700" fill="#16a34a">= 1 round-trip, 1 connection, zero glue</text>
+</svg>

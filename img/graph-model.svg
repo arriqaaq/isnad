@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 220">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 290">
   <defs>
     <filter id="shadow" x="-4%" y="-4%" width="108%" height="112%">
       <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#000" flood-opacity="0.06"/>
@@ -53,4 +53,12 @@
   <!-- belongs_to edge (H→B) -->
   <line x1="360" y1="165" x2="555" y2="165" stroke="#b8860b" stroke-width="1.5" marker-end="url(#arrow-gold)"/>
   <text x="457" y="158" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="9" font-style="italic" fill="#b8860b">belongs_to</text>
+
+  <!-- Ayah node -->
+  <rect x="40" y="220" width="120" height="50" rx="12" fill="rgba(99,102,241,0.08)" stroke="#6366f1" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="100" y="250" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="12" font-weight="700" fill="#6366f1">Ayah</text>
+
+  <!-- references_hadith edge (Ayah→Hadith) -->
+  <line x1="160" y1="245" x2="240" y2="185" stroke="#6366f1" stroke-width="1.5" opacity="0.6" marker-end="url(#arrow-green)"/>
+  <text x="215" y="230" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="9" font-style="italic" fill="#6366f1">references_hadith</text>
 </svg>

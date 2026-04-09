@@ -52,25 +52,25 @@
   <line x1="187" y1="100" x2="322" y2="100" stroke="#c8a96a" stroke-width="1.5" marker-end="url(#arrow)"/>
   <circle cx="170" cy="100" r="10" fill="#c8a96a"/>
   <text x="170" y="104" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="9" font-weight="700" fill="#ffffff">2</text>
-  <text x="255" y="94" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="9" fill="#4a4a68">POST /api/ask</text>
+  <text x="255" y="94" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="9" fill="#4a4a68">POST /api/unified/ask</text>
 
   <!-- Step 3: Backend → FastEmbed -->
   <line x1="327" y1="130" x2="462" y2="130" stroke="#c8a96a" stroke-width="1.5" marker-end="url(#arrow)"/>
   <circle cx="310" cy="130" r="10" fill="#c8a96a"/>
   <text x="310" y="134" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="9" font-weight="700" fill="#ffffff">3</text>
-  <text x="395" y="124" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="9" fill="#4a4a68">Embed query → 1024-dim</text>
+  <text x="395" y="124" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="9" fill="#4a4a68">Classify + embed query (1024-dim)</text>
 
   <!-- Step 4: Backend → SurrealDB -->
   <line x1="327" y1="165" x2="597" y2="165" stroke="#c8a96a" stroke-width="1.5" marker-end="url(#arrow)"/>
   <circle cx="310" cy="165" r="10" fill="#c8a96a"/>
   <text x="310" y="169" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="9" font-weight="700" fill="#ffffff">4</text>
-  <text x="462" y="159" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="9" fill="#4a4a68">Vector search + graph traversal (isnad)</text>
+  <text x="462" y="159" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="9" fill="#4a4a68">Vector search (ayahs + hadiths) + graph traversal (isnad)</text>
 
   <!-- Step 5: Backend → Ollama -->
   <line x1="327" y1="200" x2="732" y2="200" stroke="#c8a96a" stroke-width="1.5" marker-end="url(#arrow)"/>
   <circle cx="310" cy="200" r="10" fill="#c8a96a"/>
   <text x="310" y="204" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="9" font-weight="700" fill="#ffffff">5</text>
-  <text x="530" y="194" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="9" fill="#4a4a68">Context (6 hadiths + isnad chains) + question</text>
+  <text x="530" y="194" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="9" fill="#4a4a68">Context (ayahs + hadiths + narrator chains) + question → LLM</text>
 
   <!-- Step 6: Ollama → Frontend (SSE streaming, green return arrow) -->
   <line x1="737" y1="235" x2="192" y2="235" stroke="#16a34a" stroke-width="1.5" stroke-dasharray="6,3" marker-end="url(#arrow-back)"/>

@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 430">
+  <defs>
+    <filter id="shadow" x="-4%" y="-4%" width="108%" height="112%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#000" flood-opacity="0.06"/>
+    </filter>
+    <marker id="ar" viewBox="0 0 10 7" refX="10" refY="3.5" markerWidth="7" markerHeight="5" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 3.5 L 0 7 z" fill="#c8a96a" opacity="0.6"/>
+    </marker>
+    <marker id="arg" viewBox="0 0 10 7" refX="10" refY="3.5" markerWidth="7" markerHeight="5" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 3.5 L 0 7 z" fill="#16a34a" opacity="0.6"/>
+    </marker>
+  </defs>
+
+  <!-- Title -->
+  <text x="360" y="18" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="10" font-weight="700" letter-spacing="1.5" fill="#c8a96a">RAG PIPELINE — GRAPH-ENHANCED RETRIEVAL IN ONE DATABASE</text>
+
+  <!-- Step 1: User question -->
+  <rect x="20" y="34" width="170" height="40" rx="10" fill="#fff" stroke="#c8a96a" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="105" y="50" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="7" font-weight="600" fill="#c8a96a" letter-spacing="0.5">STEP 1</text>
+  <text x="105" y="64" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="9" font-weight="700" fill="#1a1a2e">User question</text>
+
+  <line x1="190" y1="54" x2="220" y2="54" stroke="#c8a96a" stroke-width="1.5" marker-end="url(#ar)"/>
+
+  <!-- Step 2: Embed -->
+  <rect x="225" y="34" width="150" height="40" rx="10" fill="#fff" stroke="#c8a96a" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="300" y="50" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="7" font-weight="600" fill="#c8a96a" letter-spacing="0.5">STEP 2</text>
+  <text x="300" y="64" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="9" font-weight="700" fill="#1a1a2e">Embed (BGE-M3)</text>
+
+  <line x1="375" y1="54" x2="405" y2="54" stroke="#c8a96a" stroke-width="1.5" marker-end="url(#ar)"/>
+
+  <!-- Step 3: Intent classification (agentic) -->
+  <rect x="410" y="34" width="150" height="40" rx="10" fill="#fff" stroke="#c8a96a" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="485" y="50" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="7" font-weight="600" fill="#c8a96a" letter-spacing="0.5">STEP 3 (AGENTIC)</text>
+  <text x="485" y="64" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="9" font-weight="700" fill="#1a1a2e">Classify intent</text>
+
+  <!-- Branch: structured vs semantic -->
+  <line x1="485" y1="74" x2="485" y2="92" stroke="#c8a96a" stroke-width="1.2"/>
+
+  <!-- Structured path (left branch) -->
+  <line x1="485" y1="92" x2="360" y2="108" stroke="#16a34a" stroke-width="1.2" marker-end="url(#arg)"/>
+  <rect x="260" y="108" width="200" height="36" rx="8" fill="rgba(22,163,74,0.06)" stroke="#16a34a" stroke-width="1.2" filter="url(#shadow)"/>
+  <text x="360" y="122" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="7" font-weight="600" fill="#16a34a">NARRATOR INTENTS</text>
+  <text x="360" y="136" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="8" fill="#4a4a68">Graph queries: teachers, students, count</text>
+
+  <!-- Semantic path (right branch) -->
+  <line x1="485" y1="92" x2="600" y2="108" stroke="#c8a96a" stroke-width="1.2" marker-end="url(#ar)"/>
+  <rect x="510" y="108" width="190" height="36" rx="8" fill="rgba(200,169,106,0.06)" stroke="#c8a96a" stroke-width="1.2" filter="url(#shadow)"/>
+  <text x="605" y="122" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="7" font-weight="600" fill="#c8a96a">CONTENT QUESTIONS</text>
+  <text x="605" y="136" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="8" fill="#4a4a68">Semantic retrieval (below)</text>
+
+  <!-- === PARALLEL SEARCH (Step 4) === -->
+  <text x="360" y="172" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="9" font-weight="700" fill="#4a4a68" letter-spacing="0.5">STEP 4: PARALLEL SEMANTIC SEARCH (ALL IN ONE DATABASE)</text>
+
+  <!-- Ayah search -->
+  <rect x="20" y="184" width="215" height="60" rx="8" fill="rgba(74,130,200,0.06)" stroke="#4a82c8" stroke-width="1.2" filter="url(#shadow)"/>
+  <text x="127" y="200" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="8" font-weight="700" fill="#4a82c8">HNSW on ayah.embedding</text>
+  <text x="127" y="216" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="8" fill="#4a4a68">→ 4 most relevant ayahs</text>
+  <text x="127" y="232" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="7" fill="#9ca3af">+ tafsir (truncated to 1000 chars)</text>
+
+  <!-- Hadith search -->
+  <rect x="255" y="184" width="215" height="60" rx="8" fill="rgba(200,169,106,0.06)" stroke="#c8a96a" stroke-width="1.2" filter="url(#shadow)"/>
+  <text x="362" y="200" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="8" font-weight="700" fill="#c8a96a">HNSW on hadith.embedding</text>
+  <text x="362" y="216" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="8" fill="#4a4a68">→ 4 most relevant hadiths</text>
+  <text x="362" y="232" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="7" fill="#9ca3af">+ BM25 bilingual fusion (RRF)</text>
+
+  <!-- Chain traversal -->
+  <rect x="490" y="184" width="215" height="60" rx="8" fill="rgba(22,163,74,0.06)" stroke="#16a34a" stroke-width="1.2" filter="url(#shadow)"/>
+  <text x="597" y="200" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="8" font-weight="700" fill="#16a34a">Graph: narrates edges</text>
+  <text x="597" y="216" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="8" fill="#4a4a68">→ narrator chains per hadith</text>
+  <text x="597" y="232" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="7" fill="#9ca3af">Batch: SELECT narrates WHERE out IN $hids</text>
+
+  <!-- === CONTEXT BUILD (Step 5) === -->
+  <line x1="127" y1="244" x2="360" y2="270" stroke="#c8a96a" stroke-width="1" opacity="0.4"/>
+  <line x1="362" y1="244" x2="360" y2="270" stroke="#c8a96a" stroke-width="1" opacity="0.4"/>
+  <line x1="597" y1="244" x2="360" y2="270" stroke="#c8a96a" stroke-width="1" opacity="0.4"/>
+
+  <rect x="170" y="270" width="380" height="50" rx="10" fill="#fff" stroke="#c8a96a" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="360" y="287" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="8" font-weight="700" fill="#c8a96a" letter-spacing="0.5">STEP 5: BUILD LLM CONTEXT</text>
+  <text x="360" y="303" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="8" fill="#4a4a68">Ayah refs (surah:ayah + text + tafsir) + Hadith refs (# + chain + text)</text>
+  <text x="360" y="315" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="7" fill="#9ca3af">"Answer using ONLY the Quranic verses and hadiths provided below"</text>
+
+  <!-- === LLM STREAM (Step 6) === -->
+  <line x1="360" y1="320" x2="360" y2="342" stroke="#c8a96a" stroke-width="1.5" marker-end="url(#ar)"/>
+
+  <rect x="170" y="345" width="380" height="40" rx="10" fill="rgba(200,169,106,0.06)" stroke="#c8a96a" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="360" y="362" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="8" font-weight="700" fill="#c8a96a" letter-spacing="0.5">STEP 6: STREAM VIA OLLAMA (LOCAL)</text>
+  <text x="360" y="378" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="8" fill="#4a4a68">SSE → frontend renders sources + streamed answer with citations</text>
+
+  <!-- Key insight callout -->
+  <rect x="20" y="398" width="680" height="24" rx="6" fill="#fafafa" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="360" y="414" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="8" fill="#4a4a68">Steps 4-5 happen in <tspan font-weight="700">one database connection</tspan>: vector search, graph traversal, and text retrieval — no orchestration between services. Everything runs <tspan font-weight="700">locally</tspan>.</text>
+</svg>

@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 360">
+  <defs>
+    <filter id="shadow" x="-4%" y="-4%" width="108%" height="112%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#000" flood-opacity="0.06"/>
+    </filter>
+  </defs>
+
+  <!-- Title -->
+  <text x="350" y="18" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="10" font-weight="700" letter-spacing="1.5" fill="#c8a96a">THE MULTI-DATABASE PROBLEM</text>
+
+  <!-- === LEFT SIDE: TRADITIONAL === -->
+  <rect x="15" y="32" width="325" height="315" rx="12" fill="rgba(220,38,38,0.02)" stroke="#dc2626" stroke-width="1" stroke-dasharray="4,3"/>
+  <text x="177" y="52" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="9" font-weight="700" fill="#dc2626" letter-spacing="0.5">TRADITIONAL APPROACH</text>
+
+  <!-- Neo4j -->
+  <rect x="30" y="64" width="140" height="46" rx="8" fill="#fff" stroke="#e5e7eb" stroke-width="1" filter="url(#shadow)"/>
+  <text x="100" y="82" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="10" font-weight="700" fill="#4a4a68">Neo4j / Dgraph</text>
+  <text x="100" y="98" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="7.5" fill="#9ca3af">Graph traversal</text>
+
+  <!-- Elasticsearch -->
+  <rect x="185" y="64" width="140" height="46" rx="8" fill="#fff" stroke="#e5e7eb" stroke-width="1" filter="url(#shadow)"/>
+  <text x="255" y="82" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="10" font-weight="700" fill="#4a4a68">Elasticsearch</text>
+  <text x="255" y="98" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="7.5" fill="#9ca3af">BM25 full-text</text>
+
+  <!-- Pinecone -->
+  <rect x="30" y="124" width="140" height="46" rx="8" fill="#fff" stroke="#e5e7eb" stroke-width="1" filter="url(#shadow)"/>
+  <text x="100" y="142" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="10" font-weight="700" fill="#4a4a68">Pinecone</text>
+  <text x="100" y="158" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="7.5" fill="#9ca3af">Vector embeddings</text>
+
+  <!-- PostgreSQL -->
+  <rect x="185" y="124" width="140" height="46" rx="8" fill="#fff" stroke="#e5e7eb" stroke-width="1" filter="url(#shadow)"/>
+  <text x="255" y="142" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="10" font-weight="700" fill="#4a4a68">PostgreSQL</text>
+  <text x="255" y="158" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="7.5" fill="#9ca3af">Relational data</text>
+
+  <!-- Orchestration arrows -->
+  <line x1="140" y1="87" x2="182" y2="87" stroke="#dc2626" stroke-width="0.8" opacity="0.3"/>
+  <line x1="140" y1="147" x2="182" y2="147" stroke="#dc2626" stroke-width="0.8" opacity="0.3"/>
+  <line x1="100" y1="110" x2="100" y2="120" stroke="#dc2626" stroke-width="0.8" opacity="0.3"/>
+  <line x1="255" y1="110" x2="255" y2="120" stroke="#dc2626" stroke-width="0.8" opacity="0.3"/>
+  <line x1="140" y1="110" x2="185" y2="130" stroke="#dc2626" stroke-width="0.8" opacity="0.3"/>
+  <line x1="185" y1="110" x2="140" y2="130" stroke="#dc2626" stroke-width="0.8" opacity="0.3"/>
+
+  <!-- Glue code -->
+  <rect x="55" y="186" width="250" height="30" rx="6" fill="rgba(220,38,38,0.06)" stroke="#dc2626" stroke-width="0.8"/>
+  <text x="180" y="205" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="8" font-weight="600" fill="#dc2626">Custom orchestration + RRF glue code</text>
+
+  <!-- Costs list -->
+  <text x="40" y="236" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="8" fill="#4a4a68">• 4 services to deploy and monitor</text>
+  <text x="40" y="252" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="8" fill="#4a4a68">• 4 query languages (Cypher, ES DSL, REST, SQL)</text>
+  <text x="40" y="268" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="8" fill="#4a4a68">• 4 connection pools to manage</text>
+  <text x="40" y="284" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="8" fill="#4a4a68">• N+1 query problems across services</text>
+  <text x="40" y="300" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="8" fill="#4a4a68">• No transactional consistency</text>
+  <text x="40" y="316" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="8" fill="#4a4a68">• Embeddings separated from data</text>
+  <text x="40" y="336" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="9" font-weight="700" fill="#dc2626">This is what blocked the project for years.</text>
+
+  <!-- === RIGHT SIDE: SURREALDB === -->
+  <rect x="360" y="32" width="325" height="315" rx="12" fill="rgba(22,163,74,0.02)" stroke="#16a34a" stroke-width="1" stroke-dasharray="4,3"/>
+  <text x="522" y="52" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="9" font-weight="700" fill="#16a34a" letter-spacing="0.5">ILM APPROACH</text>
+
+  <!-- Single SurrealDB box -->
+  <rect x="385" y="64" width="275" height="145" rx="10" fill="#fff" stroke="#16a34a" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="522" y="84" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="14" font-weight="700" fill="#1a1a2e">SurrealDB</text>
+  <text x="522" y="100" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="8" fill="#9ca3af">Embedded via SurrealKV — single binary</text>
+
+  <!-- Capability chips -->
+  <rect x="395" y="112" width="120" height="22" rx="6" fill="rgba(22,163,74,0.08)" stroke="rgba(22,163,74,0.2)" stroke-width="0.8"/>
+  <text x="455" y="127" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="8" font-weight="600" fill="#16a34a">RELATION edges</text>
+
+  <rect x="525" y="112" width="125" height="22" rx="6" fill="rgba(22,163,74,0.08)" stroke="rgba(22,163,74,0.2)" stroke-width="0.8"/>
+  <text x="587" y="127" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="8" font-weight="600" fill="#16a34a">HNSW vectors</text>
+
+  <rect x="395" y="140" width="120" height="22" rx="6" fill="rgba(22,163,74,0.08)" stroke="rgba(22,163,74,0.2)" stroke-width="0.8"/>
+  <text x="455" y="155" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="8" font-weight="600" fill="#16a34a">BM25 analyzers</text>
+
+  <rect x="525" y="140" width="125" height="22" rx="6" fill="rgba(22,163,74,0.08)" stroke="rgba(22,163,74,0.2)" stroke-width="0.8"/>
+  <text x="587" y="155" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="8" font-weight="600" fill="#16a34a">search::rrf()</text>
+
+  <rect x="395" y="168" width="120" height="22" rx="6" fill="rgba(22,163,74,0.08)" stroke="rgba(22,163,74,0.2)" stroke-width="0.8"/>
+  <text x="455" y="183" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="8" font-weight="600" fill="#16a34a">SCHEMAFULL</text>
+
+  <rect x="525" y="168" width="125" height="22" rx="6" fill="rgba(22,163,74,0.08)" stroke="rgba(22,163,74,0.2)" stroke-width="0.8"/>
+  <text x="587" y="183" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="8" font-weight="600" fill="#16a34a">Typed fields</text>
+
+  <!-- Benefits list -->
+  <text x="385" y="234" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="8" fill="#4a4a68">• 1 service, 1 binary (<tspan font-family="'SF Mono', monospace" font-size="7">cargo run</tspan>)</text>
+  <text x="385" y="250" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="8" fill="#4a4a68">• 1 query language (SurrealQL)</text>
+  <text x="385" y="266" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="8" fill="#4a4a68">• Graph + vector + text in one query</text>
+  <text x="385" y="282" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="8" fill="#4a4a68">• Embeddings co-located with data</text>
+  <text x="385" y="298" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="8" fill="#4a4a68">• Built-in RRF fusion (no glue code)</text>
+  <text x="385" y="314" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="8" fill="#4a4a68">• Narrator chain + vector search = 1 transaction</text>
+  <text x="385" y="336" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="9" font-weight="700" fill="#16a34a">This is what unblocked the project.</text>
+</svg>

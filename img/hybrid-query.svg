@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 260">
+  <defs>
+    <filter id="shadow" x="-4%" y="-4%" width="108%" height="112%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#000" flood-opacity="0.06"/>
+    </filter>
+    <marker id="ar" viewBox="0 0 10 7" refX="10" refY="3.5" markerWidth="7" markerHeight="5" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 3.5 L 0 7 z" fill="#c8a96a" opacity="0.6"/>
+    </marker>
+  </defs>
+
+  <!-- Title -->
+  <text x="350" y="18" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="10" font-weight="700" letter-spacing="1.5" fill="#c8a96a">HYBRID SEARCH — THREE STRATEGIES, ONE QUERY, ONE ROUND-TRIP</text>
+
+  <!-- === INPUT: Query Vector === -->
+  <rect x="15" y="80" width="130" height="55" rx="10" fill="rgba(200,169,106,0.06)" stroke="#c8a96a" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="80" y="100" text-anchor="middle" font-family="'SF Mono', monospace" font-size="8" font-weight="700" fill="#c8a96a">$query_vec</text>
+  <text x="80" y="115" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="7" fill="#9ca3af">1024-dim BGE-M3</text>
+  <text x="80" y="127" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="7" fill="#9ca3af">multilingual</text>
+
+  <!-- === THREE BRANCHES === -->
+
+  <!-- Branch 1: Vector KNN -->
+  <line x1="145" y1="88" x2="180" y2="52" stroke="#c8a96a" stroke-width="1.2" marker-end="url(#ar)"/>
+  <rect x="185" y="30" width="240" height="44" rx="8" fill="#fff" stroke="#e5e7eb" stroke-width="1" filter="url(#shadow)"/>
+  <text x="195" y="47" font-family="'SF Mono', monospace" font-size="7.5" font-weight="600" fill="#c8a96a">$vs</text>
+  <text x="215" y="47" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="8" font-weight="700" fill="#1a1a2e">Vector HNSW KNN</text>
+  <text x="195" y="63" font-family="'SF Mono', monospace" font-size="7" fill="#4a4a68">embedding &lt;|20,80|&gt; $query_vec</text>
+  <text x="430" y="52" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="6.5" fill="#9ca3af">20 results, 80 candidates</text>
+
+  <!-- Branch 2: English BM25 -->
+  <line x1="145" y1="107" x2="180" y2="107" stroke="#c8a96a" stroke-width="1.2" marker-end="url(#ar)"/>
+  <rect x="185" y="85" width="240" height="44" rx="8" fill="#fff" stroke="#e5e7eb" stroke-width="1" filter="url(#shadow)"/>
+  <text x="195" y="102" font-family="'SF Mono', monospace" font-size="7.5" font-weight="600" fill="#c8a96a">$ft_en</text>
+  <text x="227" y="102" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="8" font-weight="700" fill="#1a1a2e">English BM25</text>
+  <text x="195" y="118" font-family="'SF Mono', monospace" font-size="7" fill="#4a4a68">text_en @1@ 'prayer at night'</text>
+  <text x="430" y="107" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="6.5" fill="#9ca3af">snowball stemming</text>
+
+  <!-- Branch 3: Arabic BM25 -->
+  <line x1="145" y1="126" x2="180" y2="162" stroke="#c8a96a" stroke-width="1.2" marker-end="url(#ar)"/>
+  <rect x="185" y="140" width="240" height="44" rx="8" fill="#fff" stroke="#e5e7eb" stroke-width="1" filter="url(#shadow)"/>
+  <text x="195" y="157" font-family="'SF Mono', monospace" font-size="7.5" font-weight="600" fill="#c8a96a">$ft_ar</text>
+  <text x="224" y="157" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="8" font-weight="700" fill="#1a1a2e">Arabic BM25</text>
+  <text x="195" y="173" font-family="'SF Mono', monospace" font-size="7" fill="#4a4a68">text_ar @2@ 'قيام الليل'</text>
+  <text x="430" y="162" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="6.5" fill="#9ca3af">tokenization only (no stemming)</text>
+
+  <!-- === CONVERGENCE: RRF === -->
+  <line x1="425" y1="52" x2="490" y2="107" stroke="#c8a96a" stroke-width="1" opacity="0.4"/>
+  <line x1="425" y1="107" x2="490" y2="107" stroke="#c8a96a" stroke-width="1" opacity="0.4"/>
+  <line x1="425" y1="162" x2="490" y2="107" stroke="#c8a96a" stroke-width="1" opacity="0.4"/>
+
+  <rect x="495" y="82" width="190" height="50" rx="10" fill="rgba(200,169,106,0.08)" stroke="#c8a96a" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="590" y="100" text-anchor="middle" font-family="'SF Mono', monospace" font-size="8" font-weight="700" fill="#c8a96a">search::rrf()</text>
+  <text x="590" y="115" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="7.5" fill="#4a4a68">[$vs, $ft_en, $ft_ar], 20, <tspan font-weight="700">k=60</tspan></text>
+  <text x="590" y="127" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="6.5" fill="#9ca3af">Reciprocal Rank Fusion</text>
+
+  <!-- === ANNOTATION BOX === -->
+  <rect x="15" y="200" width="670" height="50" rx="8" fill="#fafafa" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="30" y="218" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="8" fill="#4a4a68"><tspan font-family="'SF Mono', monospace" font-weight="600" fill="#c8a96a">@1@</tspan> / <tspan font-family="'SF Mono', monospace" font-weight="600" fill="#c8a96a">@2@</tspan> — scorer references that identify which FULLTEXT index to score against in RRF</text>
+  <text x="30" y="234" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="8" fill="#4a4a68"><tspan font-family="'SF Mono', monospace" font-weight="600" fill="#c8a96a">&lt;|20,80|&gt;</tspan> — return 20 results, searching through 80 HNSW graph nodes (controls speed vs recall trade-off)</text>
+  <text x="30" y="248" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="8" fill="#4a4a68"><tspan font-family="'SF Mono', monospace" font-weight="600" fill="#c8a96a">k=60</tspan> — smoothing factor: score = Σ 1/(k + rank). Higher k gives more weight to lower-ranked results</text>
+</svg>

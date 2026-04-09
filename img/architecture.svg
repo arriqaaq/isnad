@@ -68,5 +68,5 @@
   <rect x="390" y="405" width="290" height="75" rx="12" fill="#ffffff" stroke="#e5e7eb" stroke-width="1" filter="url(#shadow)"/>
   <text x="535" y="427" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="9" font-weight="700" letter-spacing="1.5" fill="#c8a96a">LLM</text>
   <text x="535" y="447" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="16" font-weight="700" fill="#1a1a2e">Ollama</text>
-  <text x="535" y="467" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="11" fill="#9ca3af">Local inference · Translation · RAG</text>
+  <text x="535" y="467" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="11" fill="#9ca3af">Local inference · GraphRAG</text>
 </svg>

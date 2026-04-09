@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 280">
+  <defs>
+    <filter id="shadow" x="-4%" y="-4%" width="108%" height="112%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#000" flood-opacity="0.06"/>
+    </filter>
+    <marker id="anorm" viewBox="0 0 10 7" refX="10" refY="3.5" markerWidth="7" markerHeight="5" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 3.5 L 0 7 z" fill="#c8a96a" opacity="0.6"/>
+    </marker>
+  </defs>
+
+  <!-- Title -->
+  <text x="350" y="18" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="10" font-weight="700" letter-spacing="1.5" fill="#c8a96a">ARABIC TEXT NORMALIZATION — ONE PERSON, FOUR REPRESENTATIONS</text>
+
+  <!-- === INPUT VARIANTS (left side) === -->
+  <text x="120" y="42" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="8" font-weight="700" fill="#9ca3af" letter-spacing="1">RAW TEXT FROM DIFFERENT SOURCES</text>
+
+  <!-- Variant 1: Full diacritics -->
+  <rect x="15" y="52" width="210" height="36" rx="8" fill="rgba(220,38,38,0.05)" stroke="#dc2626" stroke-width="1" filter="url(#shadow)"/>
+  <text x="120" y="67" text-anchor="middle" font-family="'Traditional Arabic', 'Scheherazade New', serif" font-size="14" fill="#dc2626" direction="rtl">عَنْ أَبِي هُرَيْرَةَ</text>
+  <text x="120" y="82" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="7" fill="#dc2626" opacity="0.6">Full diacritics (tashkeel)</text>
+
+  <!-- Variant 2: No diacritics, different alef -->
+  <rect x="15" y="96" width="210" height="36" rx="8" fill="rgba(220,38,38,0.05)" stroke="#dc2626" stroke-width="1" filter="url(#shadow)"/>
+  <text x="120" y="111" text-anchor="middle" font-family="'Traditional Arabic', 'Scheherazade New', serif" font-size="14" fill="#dc2626" direction="rtl">عن ابي هريره</text>
+  <text x="120" y="126" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="7" fill="#dc2626" opacity="0.6">Bare text + taa marbuta as haa</text>
+
+  <!-- Variant 3: Genitive kunya case -->
+  <rect x="15" y="140" width="210" height="36" rx="8" fill="rgba(220,38,38,0.05)" stroke="#dc2626" stroke-width="1" filter="url(#shadow)"/>
+  <text x="120" y="155" text-anchor="middle" font-family="'Traditional Arabic', 'Scheherazade New', serif" font-size="14" fill="#dc2626" direction="rtl">ابى هريرة</text>
+  <text x="120" y="170" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="7" fill="#dc2626" opacity="0.6">Alef maqsura ى + taa marbuta ة</text>
+
+  <!-- Variant 4: Different alef variant -->
+  <rect x="15" y="184" width="210" height="36" rx="8" fill="rgba(220,38,38,0.05)" stroke="#dc2626" stroke-width="1" filter="url(#shadow)"/>
+  <text x="120" y="199" text-anchor="middle" font-family="'Traditional Arabic', 'Scheherazade New', serif" font-size="14" fill="#dc2626" direction="rtl">أبو هريرة</text>
+  <text x="120" y="214" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="7" fill="#dc2626" opacity="0.6">Hamza alef أ + nominative case</text>
+
+  <!-- === NORMALIZATION PIPELINE (center) === -->
+  <!-- Arrows from all 4 variants converging -->
+  <line x1="225" y1="70" x2="290" y2="130" stroke="#c8a96a" stroke-width="1.2" marker-end="url(#anorm)"/>
+  <line x1="225" y1="114" x2="290" y2="130" stroke="#c8a96a" stroke-width="1.2" marker-end="url(#anorm)"/>
+  <line x1="225" y1="158" x2="290" y2="142" stroke="#c8a96a" stroke-width="1.2" marker-end="url(#anorm)"/>
+  <line x1="225" y1="202" x2="290" y2="148" stroke="#c8a96a" stroke-width="1.2" marker-end="url(#anorm)"/>
+
+  <!-- Pipeline box -->
+  <rect x="295" y="65" width="170" height="155" rx="10" fill="rgba(200,169,106,0.06)" stroke="#c8a96a" stroke-width="1.2" filter="url(#shadow)"/>
+  <text x="380" y="82" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="8" font-weight="700" fill="#c8a96a" letter-spacing="0.5">NORMALIZATION PIPELINE</text>
+
+  <!-- Pipeline steps -->
+  <rect x="305" y="92" width="150" height="20" rx="4" fill="rgba(200,169,106,0.1)"/>
+  <text x="380" y="106" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="7.5" fill="#4a4a68">1. Strip diacritics (tashkeel)</text>
+
+  <rect x="305" y="118" width="150" height="20" rx="4" fill="rgba(200,169,106,0.1)"/>
+  <text x="380" y="132" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="7.5" fill="#4a4a68">2. Unify alef: أ|إ|آ|ٱ → ا</text>
+
+  <rect x="305" y="144" width="150" height="20" rx="4" fill="rgba(200,169,106,0.1)"/>
+  <text x="380" y="158" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="7.5" fill="#4a4a68">3. Taa marbuta: ة → ه</text>
+
+  <rect x="305" y="170" width="150" height="20" rx="4" fill="rgba(200,169,106,0.1)"/>
+  <text x="380" y="184" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="7.5" fill="#4a4a68">4. Kunya case: ابي → ابو</text>
+
+  <rect x="305" y="196" width="150" height="20" rx="4" fill="rgba(200,169,106,0.1)"/>
+  <text x="380" y="210" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="7.5" fill="#4a4a68">5. Alef maqsura: ى → ي</text>
+
+  <!-- === OUTPUT (right side) === -->
+  <line x1="465" y1="140" x2="510" y2="140" stroke="#16a34a" stroke-width="2" marker-end="url(#anorm)"/>
+
+  <rect x="515" y="110" width="170" height="60" rx="10" fill="rgba(22,163,74,0.06)" stroke="#16a34a" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="600" y="130" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="8" font-weight="700" fill="#16a34a" letter-spacing="0.5">SINGLE CANONICAL FORM</text>
+  <text x="600" y="150" text-anchor="middle" font-family="'Traditional Arabic', 'Scheherazade New', serif" font-size="16" font-weight="700" fill="#16a34a" direction="rtl">ابو هريره</text>
+  <text x="600" y="164" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="7.5" fill="#16a34a" opacity="0.7">→ narrator:AH_001</text>
+
+  <!-- Bottom note -->
+  <rect x="30" y="240" width="640" height="30" rx="6" fill="#fafafa" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="350" y="259" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="8.5" fill="#4a4a68">Without normalization, Abu Hurayrah would be <tspan font-weight="700" fill="#dc2626">4 different records</tspan> in the database — breaking every isnad chain that passes through him.</text>
+</svg>

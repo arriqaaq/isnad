@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 300">
+  <defs>
+    <filter id="shadow" x="-4%" y="-4%" width="108%" height="112%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#000" flood-opacity="0.06"/>
+    </filter>
+    <marker id="ag" viewBox="0 0 10 7" refX="10" refY="3.5" markerWidth="7" markerHeight="5" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 3.5 L 0 7 z" fill="#16a34a" opacity="0.7"/>
+    </marker>
+    <marker id="aw" viewBox="0 0 10 7" refX="10" refY="3.5" markerWidth="7" markerHeight="5" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 3.5 L 0 7 z" fill="#c8a96a" opacity="0.7"/>
+    </marker>
+    <marker id="ab" viewBox="0 0 10 7" refX="10" refY="3.5" markerWidth="7" markerHeight="5" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 3.5 L 0 7 z" fill="#b8860b" opacity="0.7"/>
+    </marker>
+  </defs>
+
+  <!-- Title -->
+  <text x="350" y="18" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="10" font-weight="700" letter-spacing="1.5" fill="#c8a96a">GRAPH EDGES IN SURREALQL — RELATIONS WITH METADATA</text>
+
+  <!-- === NARRATOR NODES === -->
+  <rect x="20" y="40" width="130" height="44" rx="22" fill="rgba(22,163,74,0.08)" stroke="#16a34a" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="85" y="58" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="10" font-weight="700" fill="#16a34a">Narrator B</text>
+  <text x="85" y="74" text-anchor="middle" font-family="'SF Mono', monospace" font-size="7" fill="#16a34a" opacity="0.6">student (in)</text>
+
+  <rect x="260" y="40" width="130" height="44" rx="22" fill="rgba(22,163,74,0.08)" stroke="#16a34a" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="325" y="58" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="10" font-weight="700" fill="#16a34a">Narrator A</text>
+  <text x="325" y="74" text-anchor="middle" font-family="'SF Mono', monospace" font-size="7" fill="#16a34a" opacity="0.6">teacher (out)</text>
+
+  <!-- heard_from edge with metadata box -->
+  <line x1="150" y1="62" x2="254" y2="62" stroke="#16a34a" stroke-width="1.5" marker-end="url(#ag)"/>
+
+  <!-- Edge metadata annotation -->
+  <rect x="155" y="34" width="95" height="14" rx="3" fill="rgba(22,163,74,0.1)"/>
+  <text x="202" y="44" text-anchor="middle" font-family="'SF Mono', monospace" font-size="7" font-weight="600" fill="#16a34a">heard_from</text>
+
+  <rect x="120" y="84" width="195" height="44" rx="6" fill="#fafafa" stroke="#e5e7eb" stroke-width="0.8"/>
+  <text x="130" y="97" font-family="'SF Mono', monospace" font-size="7" fill="#4a4a68">TYPE RELATION FROM narrator TO narrator</text>
+  <text x="130" y="110" font-family="'SF Mono', monospace" font-size="7" fill="#16a34a">hadith_ref: record&lt;hadith&gt;</text>
+  <text x="130" y="122" font-family="'SF Mono', monospace" font-size="7" fill="#16a34a">chain_position: int</text>
+
+  <!-- Traversal syntax annotations -->
+  <rect x="440" y="40" width="240" height="54" rx="8" fill="rgba(22,163,74,0.04)" stroke="#16a34a" stroke-width="0.8" stroke-dasharray="4,3"/>
+  <text x="450" y="56" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="7.5" font-weight="700" fill="#16a34a">TRAVERSAL SYNTAX</text>
+  <text x="450" y="72" font-family="'SF Mono', monospace" font-size="7.5" fill="#4a4a68">->heard_from->narrator  <tspan fill="#9ca3af">teachers</tspan></text>
+  <text x="450" y="86" font-family="'SF Mono', monospace" font-size="7.5" fill="#4a4a68">&lt;-heard_from&lt;-narrator  <tspan fill="#9ca3af">students</tspan></text>
+
+  <!-- === HADITH NODE === -->
+  <rect x="130" y="150" width="130" height="44" rx="12" fill="rgba(200,169,106,0.08)" stroke="#c8a96a" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="195" y="168" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="10" font-weight="700" fill="#c8a96a">Hadith</text>
+  <text x="195" y="184" text-anchor="middle" font-family="'SF Mono', monospace" font-size="7" fill="#c8a96a" opacity="0.6">hadith:SB_1</text>
+
+  <!-- narrates edge -->
+  <line x1="85" y1="84" x2="145" y2="146" stroke="#c8a96a" stroke-width="1.5" marker-end="url(#aw)"/>
+  <rect x="55" y="110" width="60" height="14" rx="3" fill="rgba(200,169,106,0.1)"/>
+  <text x="85" y="120" text-anchor="middle" font-family="'SF Mono', monospace" font-size="7" font-weight="600" fill="#c8a96a">narrates</text>
+
+  <!-- narrates metadata -->
+  <rect x="10" y="132" width="105" height="20" rx="4" fill="#fafafa" stroke="#e5e7eb" stroke-width="0.8"/>
+  <text x="18" y="146" font-family="'SF Mono', monospace" font-size="7" fill="#c8a96a">chain_position: int</text>
+
+  <!-- === BOOK NODE === -->
+  <rect x="370" y="150" width="130" height="44" rx="12" fill="rgba(184,134,11,0.06)" stroke="#b8860b" stroke-width="1.2" filter="url(#shadow)"/>
+  <text x="435" y="168" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="10" font-weight="700" fill="#b8860b">Book</text>
+  <text x="435" y="184" text-anchor="middle" font-family="'SF Mono', monospace" font-size="7" fill="#b8860b" opacity="0.6">book:1</text>
+
+  <!-- belongs_to edge -->
+  <line x1="260" y1="172" x2="364" y2="172" stroke="#b8860b" stroke-width="1.2" marker-end="url(#ab)"/>
+  <rect x="285" y="158" width="60" height="14" rx="3" fill="rgba(184,134,11,0.08)"/>
+  <text x="315" y="168" text-anchor="middle" font-family="'SF Mono', monospace" font-size="7" font-weight="600" fill="#b8860b">belongs_to</text>
+
+  <!-- === AYAH NODE === -->
+  <rect x="370" y="230" width="130" height="44" rx="12" fill="rgba(74,130,200,0.08)" stroke="#4a82c8" stroke-width="1.2" filter="url(#shadow)"/>
+  <text x="435" y="248" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="10" font-weight="700" fill="#4a82c8">Ayah</text>
+  <text x="435" y="264" text-anchor="middle" font-family="'SF Mono', monospace" font-size="7" fill="#4a82c8" opacity="0.6">ayah:2_255</text>
+
+  <!-- references_hadith edge (dashed) -->
+  <line x1="370" y1="248" x2="260" y2="185" stroke="#4a82c8" stroke-width="1.2" stroke-dasharray="5,3" opacity="0.6"/>
+  <rect x="280" y="218" width="100" height="14" rx="3" fill="rgba(74,130,200,0.08)"/>
+  <text x="330" y="228" text-anchor="middle" font-family="'SF Mono', monospace" font-size="7" font-weight="600" fill="#4a82c8">references_hadith</text>
+
+  <!-- Chain reconstruction query box -->
+  <rect x="10" y="220" width="330" height="68" rx="8" fill="#1a1a2e" filter="url(#shadow)"/>
+  <text x="22" y="237" font-family="'SF Mono', monospace" font-size="7" fill="#9ca3af">-- Reconstruct chain for a hadith</text>
+  <text x="22" y="251" font-family="'SF Mono', monospace" font-size="7" fill="#e2e8f0">SELECT in, out, chain_position</text>
+  <text x="22" y="263" font-family="'SF Mono', monospace" font-size="7" fill="#e2e8f0">  FROM <tspan fill="#16a34a">heard_from</tspan> WHERE <tspan fill="#c8a96a">hadith_ref</tspan> = hadith:SB_1</text>
+  <text x="22" y="275" font-family="'SF Mono', monospace" font-size="7" fill="#e2e8f0">  ORDER BY <tspan fill="#c8a96a">chain_position</tspan>;</text>
+</svg>

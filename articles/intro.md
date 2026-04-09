@@ -33,7 +33,7 @@ Every table, every graph edge, every index in the database exists to serve a spe
 If you study hadith science, you will recognize these concepts and see how they map to a graph database. If you build search systems or work with databases, you will see why this domain needs graph traversal, vector similarity, and full-text search working together — and what that looks like in practice.
 
 <p align="center">
-  <img src="img/ontology.svg" alt="Domain ontology: narrators form a directed graph across generations, connected to hadiths, books, and Quran verses" width="700">
+  <img src="../img/ontology.svg" alt="Domain ontology: narrators form a directed graph across generations, connected to hadiths, books, and Quran verses" width="700">
 </p>
 
 ---
@@ -85,7 +85,7 @@ Each method has specific phrases that indicate how the hadith was received: *had
 So how do scholars evaluate whether a chain is authentic? This is where the science of *mustalah al-hadith* begins.
 
 <p align="center">
-  <img src="img/hadith-classification.svg" alt="Complete hadith classification taxonomy" width="700">
+  <img src="../img/hadith-classification.svg" alt="Complete hadith classification taxonomy" width="700">
 </p>
 
 ---
@@ -249,7 +249,7 @@ The grades of **jarh** (disparagement), from mildest to severest:
 **A critical rule**: Ta'deel (validation) is accepted without explanation, because its reasons are many and difficult to enumerate. Jarh (disparagement) is **not** accepted unless explained, because there are different reasons for disparagement, and someone may be undeservingly disparaged on invalid grounds. If both jarh and ta'deel exist for one narrator, **jarh is given precedence** as long as it is explained.
 
 <p align="center">
-  <img src="img/graph-model.svg" alt="Graph model: narrators, hadiths, and edges in SurrealDB" width="700">
+  <img src="../img/graph-model.svg" alt="Graph model: narrators, hadiths, and edges in SurrealDB" width="700">
 </p>
 
 The primary source for narrator reliability in the Ilm project is **Ibn Hajar al-Asqalani's** (d. 852 AH) ***Taqrib al-Tahdhib*** — an abridgement of al-Mizzi's comprehensive *Tahdhib al-Kamal*, which itself is the standard biographical dictionary of the narrators found in the six canonical collections.
@@ -309,14 +309,14 @@ The entire application is a single binary. `cargo run -- serve` starts the datab
 I had attempted this project multiple times over the years, each time getting stuck on the orchestration between separate graph, text, and vector databases. SurrealDB was the first database where I could model narrator chains as graph edges, index hadith texts for BM25, index embeddings for HNSW vector search, and fuse all three result sets with a single `search::rrf()` call — in one query, one round-trip, one database. That is what unblocked the project.
 
 <p align="center">
-  <img src="img/search-flow.svg" alt="Hybrid search: BM25 + Vector → RRF fusion" width="700">
+  <img src="../img/search-flow.svg" alt="Hybrid search: BM25 + Vector → RRF fusion" width="700">
 </p>
 
 The data flow is:
 
 1. **Ingestion**: Python scripts parse raw academic datasets (SemanticHadith KG, Quran data, morphology) → Rust pipeline creates SurrealDB records + generates embeddings via FastEmbed
 2. **Runtime**: User query → Axum handler → SurrealQL query (graph + text + vector as needed) → JSON response → SvelteKit renders
-3. **RAG**: User question → FastEmbed encodes → HNSW retrieves top hadiths/ayahs → graph traversal fetches narrator chains → Ollama streams answer with citations
+3. **GraphRAG**: User question → classify + retrieve relevant ayahs and hadiths → graph traversal for narrator chains → context passed to local LLM → streams grounded answer with citations
 
 ---
 
@@ -602,7 +602,7 @@ The mustalah classification described in the sections above is implemented compu
 ### Quran Reader
 
 <p align="center">
-  <img src="img/feature-quran.svg" alt="Quran reader with Tajweed Arabic, translation, and tafsir" width="600">
+  <img src="../img/feature-quran.svg" alt="Quran reader with Tajweed Arabic, translation, and tafsir" width="600">
 </p>
 
 The Quran reader displays all 114 surahs with Tajweed Arabic rendered in the QPC Hafs font from Tarteel, the Sahih International English translation, and expandable Tafsir Ibn Kathir commentary per ayah.
@@ -618,7 +618,7 @@ Each ayah also shows a count of related hadiths (via the `references_hadith` edg
 ### Hadith Explorer
 
 <p align="center">
-  <img src="img/feature-hadith.svg" alt="Hadith browsing with narrator chains and source attribution" width="600">
+  <img src="../img/feature-hadith.svg" alt="Hadith browsing with narrator chains and source attribution" width="600">
 </p>
 
 The hadith explorer provides access to 368,000+ hadiths from the six canonical collections (*Kutub al-Sittah*):
@@ -637,7 +637,7 @@ Each hadith detail page runs a **single multi-statement SurrealQL query** that r
 ### Narrator Network
 
 <p align="center">
-  <img src="img/feature-narrators.svg" alt="Interactive narrator graph visualization" width="600">
+  <img src="../img/feature-narrators.svg" alt="Interactive narrator graph visualization" width="600">
 </p>
 
 The narrator directory contains 18,000+ narrators with interactive Sigma.js force-directed graph visualization. Each narrator profile shows:
@@ -662,7 +662,7 @@ Select a hadith family (a group of variants of the same report) to see:
 ### Hybrid Search
 
 <p align="center">
-  <img src="img/feature-search.svg" alt="Unified search across Quran and Hadith" width="600">
+  <img src="../img/feature-search.svg" alt="Unified search across Quran and Hadith" width="600">
 </p>
 
 Three search modes: **Hybrid** (default — BM25 + vector via RRF), **Text** (BM25 only), and **Semantic** (vector only). All modes work in both Arabic and English.
@@ -672,23 +672,17 @@ The **Explore** page searches Quran and Hadith simultaneously, returning ranked 
 ### Ask AI (GraphRAG)
 
 <p align="center">
-  <img src="img/graphrag-flow.svg" alt="GraphRAG pipeline: embed → retrieve → traverse → stream" width="700">
+  <img src="../img/graphrag-flow.svg" alt="GraphRAG pipeline: classify → retrieve → traverse → stream" width="700">
 </p>
 
-Natural language Q&A grounded in both Quran and Hadith. The pipeline:
-
-1. **Encode** the question using FastEmbed (BGE-M3)
-2. **Retrieve** the top relevant ayahs and hadiths via HNSW vector search
-3. **Traverse** narrator chains for each retrieved hadith to include isnad context
-4. **Include** Tafsir Ibn Kathir excerpts for retrieved ayahs
-5. **Stream** the response from a local Ollama model with citations
+Natural language Q&A grounded in both Quran and Hadith. The system classifies the question, retrieves relevant Quran ayahs and hadiths via vector search, traverses the narrator graph to reconstruct each isnad (chain of narration), and passes this as context to a local LLM that streams a grounded answer with citations.
 
 Everything runs locally. No data leaves the machine. The system prompt instructs the LLM to cite its sources and never invent hadiths that were not provided in the context.
 
 ### Personal Study Notes
 
 <p align="center">
-  <img src="img/feature-notes.svg" alt="Study notes with @mentions and inline Quran/Hadith embeds" width="600">
+  <img src="../img/feature-notes.svg" alt="Study notes with @mentions and inline Quran/Hadith embeds" width="600">
 </p>
 
 The notes system is designed for Islamic study workflows. Features include:
@@ -706,7 +700,7 @@ Notes are stored in a separate `user_note` table keyed by device ID — no user 
 ## Data Pipeline and Ingestion
 
 <p align="center">
-  <img src="img/ingest-pipeline.svg" alt="Data ingestion: SemanticHadith KG → Rust pipeline → SurrealDB" width="700">
+  <img src="../img/ingest-pipeline.svg" alt="Data ingestion: SemanticHadith KG → Rust pipeline → SurrealDB" width="700">
 </p>
 
 The project ingests data from multiple academic and curated sources:
@@ -732,7 +726,7 @@ The project ingests data from multiple academic and curated sources:
 ## Fine-Tuning a Domain LLM
 
 <p align="center">
-  <img src="img/training-pipeline.svg" alt="Training pipeline: database → Q&A pairs → LoRA → GGUF → Ollama" width="700">
+  <img src="../img/training-pipeline.svg" alt="Training pipeline: database → Q&A pairs → LoRA → GGUF → Ollama" width="700">
 </p>
 
 The project includes a complete pipeline for fine-tuning a domain-specific language model:

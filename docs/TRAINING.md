@@ -4,16 +4,15 @@ This guide covers fine-tuning a lightweight, domain-specific LLM on Islamic text
 
 ## Architecture Overview
 
-The project already uses Ollama for the ask loop (`src/rag.rs`). The flow is:
+The project uses Ollama for a GraphRAG pipeline (`src/agentic_rag.rs`). The flow is:
 
 ```
-User question → FastEmbed (1024-dim) → HNSW vector search → top 6 hadiths
-    → Graph traversal (narrator chains) → Build context
-    → POST to Ollama /api/chat (streaming)
+User question → classify + retrieve (ayahs + hadiths via HNSW, narrator chains via graph)
+    → context passed to Ollama /api/chat (streaming)
     → SSE stream to frontend
 ```
 
-A fine-tuned model simply replaces the default `llama3.2` in Ollama. The `OllamaClient` already supports model override via env var (`OLLAMA_MODEL`), CLI flag (`--model`), or per-request (`{"model": "hadith-scholar"}`).
+A fine-tuned model simply replaces the default model in Ollama. The `OllamaClient` already supports model override via env var (`OLLAMA_MODEL`), CLI flag (`--model`), or per-request (`{"model": "hadith-scholar"}`).
 
 ---
 
