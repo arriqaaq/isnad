@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 380">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 420">
   <defs>
     <filter id="shadow" x="-4%" y="-4%" width="108%" height="112%">
       <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#000" flood-opacity="0.06"/>
@@ -6,96 +6,110 @@
     <marker id="ab" viewBox="0 0 10 7" refX="10" refY="3.5" markerWidth="7" markerHeight="5" orient="auto-start-reverse">
       <path d="M 0 0 L 10 3.5 L 0 7 z" fill="#4a82c8" opacity="0.6"/>
     </marker>
-    <marker id="at" viewBox="0 0 10 7" refX="10" refY="3.5" markerWidth="7" markerHeight="5" orient="auto-start-reverse">
-      <path d="M 0 0 L 10 3.5 L 0 7 z" fill="#7c5cbf" opacity="0.6"/>
-    </marker>
   </defs>
 
+  <!--
+    DESIGN: Two-column layout with HORIZONTAL connection lines.
+    No diagonals. No beziers. Every line is horizontal or vertical.
+
+    Left column (x=30-200):  Quran elements
+    Right column (x=430-670): Hadith elements
+    Middle zone (x=200-430):  Horizontal connection lines with label
+
+    Layout:
+    y=50:   Surah header
+    y=90:   Ayah 2:177      ————————  Bukhari #13
+    y=130:    │ (bracket)    ————————  Muslim #220       ← shared!
+    y=170:    │              ————————  Abu Dawud #91
+    y=200:  Tafsir: 3 chunks
+    y=240:  Ayah 2:255      ————————  Muslim #220       ← same hadith
+    y=280:    │              ————————  Tirmidhi #55
+    y=310:  Tafsir: 5 chunks
+    y=350:  Callout box
+  -->
+
   <!-- Title -->
-  <text x="360" y="20" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="10" font-weight="700" letter-spacing="1.5" fill="#c8a96a">QURAN ↔ HADITH CROSS-REFERENCES</text>
+  <text x="350" y="20" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" font-weight="700" letter-spacing="1.5" fill="#c8a96a">QURAN ↔ HADITH CROSS-REFERENCES</text>
 
-  <!-- ═══ LEFT: QURAN COLUMN (x=40-240) ═══ -->
-  <text x="140" y="45" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="9" font-weight="700" fill="#4a82c8" letter-spacing="1">QURAN</text>
+  <!-- Column headers -->
+  <text x="115" y="42" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9" font-weight="700" fill="#4a82c8" letter-spacing="1">QURAN</text>
+  <text x="550" y="42" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9" font-weight="700" fill="#c8a96a" letter-spacing="1">HADITH</text>
 
-  <!-- Surah -->
-  <rect x="60" y="55" width="160" height="34" rx="8" fill="rgba(74,130,200,0.06)" stroke="#4a82c8" stroke-width="1.2" filter="url(#shadow)"/>
-  <text x="140" y="69" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="7" font-weight="600" fill="#4a82c8" opacity="0.6">SURAH</text>
-  <text x="140" y="82" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="10" font-weight="700" fill="#4a82c8">al-Baqarah</text>
+  <!-- ═══ SURAH (y=55) ═══ -->
+  <rect x="30" y="50" width="170" height="28" rx="6" fill="rgba(74,130,200,0.05)" stroke="#4a82c8" stroke-width="1" filter="url(#shadow)"/>
+  <text x="115" y="61" text-anchor="middle" font-family="system-ui, sans-serif" font-size="7" font-weight="600" fill="#4a82c8" opacity="0.5">SURAH</text>
+  <text x="115" y="73" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9" font-weight="700" fill="#4a82c8">al-Baqarah</text>
 
-  <!-- Ayah 2:177 -->
-  <line x1="110" y1="89" x2="90" y2="112" stroke="#4a82c8" stroke-width="0.8" opacity="0.3"/>
-  <rect x="30" y="115" width="90" height="32" rx="8" fill="rgba(74,130,200,0.08)" stroke="#4a82c8" stroke-width="1.2" filter="url(#shadow)"/>
-  <text x="75" y="135" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="11" font-weight="700" fill="#4a82c8">2:177</text>
+  <!-- Vertical line from surah to first ayah -->
+  <line x1="115" y1="78" x2="115" y2="88" stroke="#4a82c8" stroke-width="0.8" opacity="0.25"/>
 
-  <!-- Ayah 2:255 -->
-  <line x1="170" y1="89" x2="190" y2="112" stroke="#4a82c8" stroke-width="0.8" opacity="0.3"/>
-  <rect x="155" y="115" width="90" height="32" rx="8" fill="rgba(74,130,200,0.08)" stroke="#4a82c8" stroke-width="1.2" filter="url(#shadow)"/>
-  <text x="200" y="135" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="11" font-weight="700" fill="#4a82c8">2:255</text>
+  <!-- ═══ AYAH 2:177 BLOCK (y=90-200) ═══ -->
 
-  <!-- Tafsir chunks under ayahs -->
-  <line x1="75" y1="147" x2="75" y2="162" stroke="#7c5cbf" stroke-width="0.8" opacity="0.4" marker-end="url(#at)"/>
-  <rect x="20" y="165" width="110" height="22" rx="6" fill="rgba(124,92,191,0.06)" stroke="#7c5cbf" stroke-width="1"/>
-  <text x="75" y="180" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="7.5" font-weight="600" fill="#7c5cbf">Tafsir: 3 chunks</text>
+  <!-- Ayah node -->
+  <rect x="30" y="90" width="170" height="28" rx="6" fill="rgba(74,130,200,0.08)" stroke="#4a82c8" stroke-width="1.2" filter="url(#shadow)"/>
+  <text x="115" y="108" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#4a82c8">Ayah 2:177</text>
 
-  <line x1="200" y1="147" x2="200" y2="162" stroke="#7c5cbf" stroke-width="0.8" opacity="0.4" marker-end="url(#at)"/>
-  <rect x="145" y="165" width="110" height="22" rx="6" fill="rgba(124,92,191,0.06)" stroke="#7c5cbf" stroke-width="1"/>
-  <text x="200" y="180" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="7.5" font-weight="600" fill="#7c5cbf">Tafsir: 5 chunks</text>
+  <!-- Vertical bracket line showing this ayah connects to 3 hadiths -->
+  <line x1="210" y1="100" x2="210" y2="172" stroke="#4a82c8" stroke-width="1" opacity="0.2"/>
+  <circle cx="210" cy="100" r="2" fill="#4a82c8" opacity="0.2"/>
+  <circle cx="210" cy="136" r="2" fill="#4a82c8" opacity="0.2"/>
+  <circle cx="210" cy="172" r="2" fill="#4a82c8" opacity="0.2"/>
 
-  <!-- ═══ RIGHT: HADITH COLUMN (x=450-680) — spaced apart vertically ═══ -->
-  <text x="565" y="45" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="9" font-weight="700" fill="#c8a96a" letter-spacing="1">HADITH</text>
+  <!-- Horizontal line: → Bukhari #13 (y=100) -->
+  <line x1="210" y1="100" x2="424" y2="100" stroke="#4a82c8" stroke-width="1" stroke-dasharray="5,3" opacity="0.4" marker-end="url(#ab)"/>
+  <rect x="430" y="86" width="180" height="28" rx="6" fill="rgba(200,169,106,0.08)" stroke="#c8a96a" stroke-width="1.2" filter="url(#shadow)"/>
+  <text x="520" y="104" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" font-weight="700" fill="#c8a96a">Bukhari #13</text>
 
-  <rect x="460" y="55" width="180" height="30" rx="8" fill="rgba(200,169,106,0.08)" stroke="#c8a96a" stroke-width="1.2" filter="url(#shadow)"/>
-  <text x="550" y="74" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="10" font-weight="700" fill="#c8a96a">Bukhari #13</text>
+  <!-- Horizontal line: → Muslim #220 (y=136) -->
+  <line x1="210" y1="136" x2="424" y2="136" stroke="#4a82c8" stroke-width="1" stroke-dasharray="5,3" opacity="0.4" marker-end="url(#ab)"/>
+  <rect x="430" y="122" width="180" height="28" rx="6" fill="rgba(200,169,106,0.1)" stroke="#c8a96a" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="520" y="140" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" font-weight="700" fill="#c8a96a">Muslim #220</text>
+  <text x="618" y="140" font-family="system-ui, sans-serif" font-size="6.5" fill="#dc2626" opacity="0.6">← shared</text>
 
-  <rect x="460" y="100" width="180" height="30" rx="8" fill="rgba(200,169,106,0.08)" stroke="#c8a96a" stroke-width="1.2" filter="url(#shadow)"/>
-  <text x="550" y="119" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="10" font-weight="700" fill="#c8a96a">Muslim #220</text>
+  <!-- Horizontal line: → Abu Dawud #91 (y=172) -->
+  <line x1="210" y1="172" x2="424" y2="172" stroke="#4a82c8" stroke-width="1" stroke-dasharray="5,3" opacity="0.4" marker-end="url(#ab)"/>
+  <rect x="430" y="158" width="180" height="28" rx="6" fill="rgba(200,169,106,0.08)" stroke="#c8a96a" stroke-width="1.2" filter="url(#shadow)"/>
+  <text x="520" y="176" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" font-weight="700" fill="#c8a96a">Abu Dawud #91</text>
 
-  <rect x="460" y="145" width="180" height="30" rx="8" fill="rgba(200,169,106,0.08)" stroke="#c8a96a" stroke-width="1.2" filter="url(#shadow)"/>
-  <text x="550" y="164" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="10" font-weight="700" fill="#c8a96a">Abu Dawud #91</text>
+  <!-- Edge label (once, in the middle) -->
+  <text x="317" y="92" text-anchor="middle" font-family="system-ui, sans-serif" font-size="7" font-style="italic" fill="#4a82c8" opacity="0.45">references_hadith</text>
 
-  <rect x="460" y="190" width="180" height="30" rx="8" fill="rgba(200,169,106,0.08)" stroke="#c8a96a" stroke-width="1.2" filter="url(#shadow)"/>
-  <text x="550" y="209" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="10" font-weight="700" fill="#c8a96a">Tirmidhi #55</text>
+  <!-- Tafsir for 2:177 -->
+  <rect x="30" y="198" width="170" height="20" rx="5" fill="rgba(124,92,191,0.06)" stroke="#7c5cbf" stroke-width="0.8"/>
+  <text x="115" y="212" text-anchor="middle" font-family="system-ui, sans-serif" font-size="7.5" font-weight="600" fill="#7c5cbf">Tafsir Ibn Kathir · 3 chunks</text>
 
-  <!-- ═══ CROSS-REFERENCE EDGES — clean, separated, labeled ═══ -->
+  <!-- ═══ AYAH 2:255 BLOCK (y=240-320) ═══ -->
 
-  <!-- 2:177 → Bukhari #13 -->
-  <line x1="120" y1="126" x2="456" y2="70" stroke="#4a82c8" stroke-width="1.2" stroke-dasharray="6,4" opacity="0.45" marker-end="url(#ab)"/>
+  <!-- Vertical gap line -->
+  <line x1="115" y1="218" x2="115" y2="238" stroke="#4a82c8" stroke-width="0.8" opacity="0.15"/>
 
-  <!-- 2:177 → Muslim #220 -->
-  <line x1="120" y1="131" x2="456" y2="115" stroke="#4a82c8" stroke-width="1.2" stroke-dasharray="6,4" opacity="0.45" marker-end="url(#ab)"/>
+  <!-- Ayah node -->
+  <rect x="30" y="240" width="170" height="28" rx="6" fill="rgba(74,130,200,0.08)" stroke="#4a82c8" stroke-width="1.2" filter="url(#shadow)"/>
+  <text x="115" y="258" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#4a82c8">Ayah 2:255</text>
 
-  <!-- 2:177 → Abu Dawud #91 -->
-  <line x1="120" y1="140" x2="456" y2="160" stroke="#4a82c8" stroke-width="1.2" stroke-dasharray="6,4" opacity="0.35" marker-end="url(#ab)"/>
+  <!-- Vertical bracket line -->
+  <line x1="210" y1="250" x2="210" y2="286" stroke="#4a82c8" stroke-width="1" opacity="0.2"/>
+  <circle cx="210" cy="250" r="2" fill="#4a82c8" opacity="0.2"/>
+  <circle cx="210" cy="286" r="2" fill="#4a82c8" opacity="0.2"/>
 
-  <!-- 2:255 → Muslim #220 -->
-  <line x1="245" y1="126" x2="456" y2="112" stroke="#4a82c8" stroke-width="1.2" stroke-dasharray="6,4" opacity="0.35" marker-end="url(#ab)"/>
+  <!-- Horizontal line: → Muslim #220 AGAIN (y=250) — proves many-to-many -->
+  <line x1="210" y1="250" x2="424" y2="250" stroke="#4a82c8" stroke-width="1" stroke-dasharray="5,3" opacity="0.4" marker-end="url(#ab)"/>
+  <rect x="430" y="236" width="180" height="28" rx="6" fill="rgba(200,169,106,0.1)" stroke="#c8a96a" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="520" y="254" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" font-weight="700" fill="#c8a96a">Muslim #220</text>
+  <text x="618" y="254" font-family="system-ui, sans-serif" font-size="6.5" fill="#dc2626" opacity="0.6">← shared</text>
 
-  <!-- 2:255 → Tirmidhi #55 -->
-  <line x1="245" y1="136" x2="456" y2="205" stroke="#4a82c8" stroke-width="1.2" stroke-dasharray="6,4" opacity="0.45" marker-end="url(#ab)"/>
+  <!-- Horizontal line: → Tirmidhi #55 (y=286) -->
+  <line x1="210" y1="286" x2="424" y2="286" stroke="#4a82c8" stroke-width="1" stroke-dasharray="5,3" opacity="0.4" marker-end="url(#ab)"/>
+  <rect x="430" y="272" width="180" height="28" rx="6" fill="rgba(200,169,106,0.08)" stroke="#c8a96a" stroke-width="1.2" filter="url(#shadow)"/>
+  <text x="520" y="290" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" font-weight="700" fill="#c8a96a">Tirmidhi #55</text>
 
-  <!-- Edge label -->
-  <text x="340" y="90" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="7.5" font-style="italic" fill="#4a82c8" opacity="0.6">references_hadith</text>
+  <!-- Tafsir for 2:255 -->
+  <rect x="30" y="312" width="170" height="20" rx="5" fill="rgba(124,92,191,0.06)" stroke="#7c5cbf" stroke-width="0.8"/>
+  <text x="115" y="326" text-anchor="middle" font-family="system-ui, sans-serif" font-size="7.5" font-weight="600" fill="#7c5cbf">Tafsir Ibn Kathir · 5 chunks</text>
 
-  <!-- ═══ CALLOUT BOX ═══ -->
-  <rect x="20" y="220" width="680" height="145" rx="8" fill="#fafafa" stroke="#e5e7eb" stroke-width="1"/>
-  <text x="360" y="242" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="8" font-weight="700" fill="#4a4a68" letter-spacing="0.5">WHY THIS IS A GRAPH, NOT A LOOKUP TABLE</text>
-
-  <text x="40" y="266" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="8.5" fill="#4a4a68">
-    <tspan x="40" dy="0">• One ayah can reference <tspan font-weight="700">dozens of hadiths</tspan></tspan>
-    <tspan x="50" dy="14" fill="#9ca3af">(2:177 on righteousness → hadiths on prayer, charity, patience, kinship...)</tspan>
-  </text>
-
-  <text x="40" y="298" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="8.5" fill="#4a4a68">
-    <tspan x="40" dy="0">• One hadith can be referenced by <tspan font-weight="700">multiple ayahs</tspan></tspan>
-    <tspan x="50" dy="14" fill="#9ca3af">(a hadith on prayer may explain verses in al-Baqarah, an-Nisaa', and al-Ma'idah)</tspan>
-  </text>
-
-  <text x="40" y="330" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="8.5" fill="#4a4a68">
-    <tspan x="40" dy="0">• Each ayah has <tspan font-weight="700" fill="#7c5cbf">tafsir chunks</tspan> — Ibn Kathir commentary split into 1500-char segments,</tspan>
-    <tspan x="50" dy="14" fill="#9ca3af">200-char overlap, each with its own 1024-dim embedding for semantic retrieval</tspan>
-  </text>
-
-  <text x="40" y="360" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="8.5" fill="#4a4a68">
-    • Total: <tspan font-weight="700">6,236 ayahs</tspan> × tafsir chunks × <tspan font-weight="700">34,457 hadiths</tspan> — connected by <tspan font-weight="700" fill="#4a82c8">references_hadith</tspan> edges
-  </text>
+  <!-- ═══ CALLOUT ═══ -->
+  <rect x="20" y="350" width="660" height="60" rx="6" fill="#fafafa" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="40" y="370" font-family="system-ui, sans-serif" font-size="8" fill="#4a4a68">• One ayah → <tspan font-weight="700">many hadiths</tspan> (2:177 references 3 hadiths across collections)</text>
+  <text x="40" y="386" font-family="system-ui, sans-serif" font-size="8" fill="#4a4a68">• One hadith → <tspan font-weight="700">many ayahs</tspan> (Muslim #220 referenced by both 2:177 and 2:255 — <tspan fill="#dc2626">many-to-many</tspan>)</text>
+  <text x="40" y="402" font-family="system-ui, sans-serif" font-size="8" fill="#4a4a68">• Each ayah has <tspan font-weight="700" fill="#7c5cbf">tafsir chunks</tspan> (1500 chars, 200 overlap) — each with its own <tspan font-weight="700">1024-dim embedding</tspan></text>
 </svg>

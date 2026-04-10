@@ -227,12 +227,12 @@ For each individual transmission chain (variant) in a family:
 
 Classify as: Muttasil, Munqati', Mursal, Mu'allaq, or Mu'dal.
 
-**Weakest-Link Analysis**: The chain grade cannot exceed what the weakest narrator allows. Find the narrator with the lowest `reliability_prior` and grade accordingly:
-- All narrators >= 0.75 (thiqah) + muttasil + no defects = **Saheeh**
-- All narrators >= 0.65 (saduq) + muttasil + no defects = **Hasan**
-- Below saduq, or not muttasil, or unknown narrators = **Da'eef**
-- Matruk/accused narrator present (< 0.35) = **Da'eef Jiddan**
-- Known fabricator = **Mawdoo'**
+**Weakest-Link Analysis**: The chain grade cannot exceed what the weakest narrator allows. Identify the ta'deel/jarh grade of the weakest narrator in the chain and grade accordingly:
+- All narrators at ta'deel grades 1-3 (thiqah level) + muttasil + no defects = **Saheeh**
+- Weakest narrator at ta'deel grade 4 (sadooq level) + muttasil + no defects = **Hasan**
+- Weakest narrator at ta'deel grades 5-6 or jarh grades 1-2 = **Da'eef** (light weakness — eligible for elevation via corroboration)
+- Narrator at jarh grades 3-4 (da'eef jiddan / accused of lying) = **Da'eef Jiddan** (never elevated)
+- Narrator at jarh grades 5-6 (known liar / superlative lying) = **Mawdoo'** (never elevated)
 
 ### 5.3 Transmission Breadth Classification
 
@@ -252,7 +252,7 @@ For gharib, the **bottleneck tabaqah** and the **fard narrator** (single narrato
 - **Group chains by Sahabi**: the root narrator (topmost in each chain, generation = 1) identifies the Sahabi
 - **Mutaba'at**: within each Sahabi group, count divergent paths (> 1 variant = has mutaba'at)
 - **Shawahid**: count distinct Sahabah in the family (> 1 = has shawahid)
-- **Reliability check**: are corroborating chains through narrators with reliability >= 0.65 (saduq or better)?
+- **Reliability check**: are corroborating chains through narrators at ta'deel grade 4 (sadooq) or higher?
 
 **Corroboration strength levels**:
 - **Strong**: 3+ reliable mutaba'at, or multiple shawahid
@@ -303,37 +303,51 @@ This is the recognized concept of *madar al-isnad* — the pivot the chain revol
 
 ### 6.1 Evidence Model
 
-- **Reported**: Classical scholar assessments from biographical dictionaries (e.g., Tahdhib al-Kamal, Taqrib al-Tahdhib, Mizan al-I'tidal). Full weight.
-- **Analytical**: Derived from structural analysis. Half weight.
-- **Derived**: Weighted composite of reported + analytical layers.
+- **Reported**: Classical scholar assessments from biographical dictionaries (e.g., Tahdhib al-Kamal, Taqrib al-Tahdhib, Mizan al-I'tidal). These are the authoritative source for narrator grading.
+- **Analytical**: Derived from structural analysis (e.g., contradiction patterns in the graph). These serve only as flags for further investigation and do not override reported assessments.
+- **Derived**: The narrator's effective grade, determined by applying the classical rules of al-Jarh wa al-Ta'deel (see Section 6.3) to the reported evidence, informed by analytical flags where relevant.
 
-### 6.2 Rating Priors
+### 6.2 Narrator Grade Mappings
 
-| Rating | Arabic | Prior | Description |
-|--------|--------|-------|-------------|
-| thiqah | ثقة | 0.75 | Trustworthy |
-| saduq | صدوق | 0.65 | Truthful |
-| majhul | مجهول | 0.50 | Unknown |
-| daif | ضعيف | 0.35 | Weak |
-| matruk | متروك | 0.20 | Abandoned |
-| accused_fabrication | متهم بالوضع | 0.20 | Accused of fabrication |
+Narrator assessments from classical sources (e.g., Taqrib al-Tahdhib) are mapped to the six grades of ta'deel and six grades of jarh as defined in the science of al-Jarh wa al-Ta'deel:
 
-Sahaabah (generation 1) are rated thiqah by scholarly consensus (*ijma'*), regardless of individual grading.
+**Ta'deel grades and their chain-level rulings:**
+
+| Grade | Example phrases | Chain ruling | Elevation eligibility |
+|-------|----------------|-------------|----------------------|
+| 1. Superlative | *athbat an-naas*, *awthaq* | Saheeh (if chain conditions met) | N/A |
+| 2. Emphasized | *thiqatun thabt*, *thiqatun ma'moon* | Saheeh (if chain conditions met) | N/A |
+| 3. Simple reliability | *thiqah*, *hujjah*, *'adlun daabit* | Saheeh (if chain conditions met) | N/A |
+| 4. Without sense of dabt | *sadooq*, *laa ba'sa bihi* | Hasan (lesser dabt) | Can be elevated to Saheeh li-Ghayrihi |
+| 5. Neutral | *shaykh*, *wasat* | Da'eef (light) | Can be elevated to Hasan li-Ghayrihi |
+| 6. Near disparagement | *saalih al-hadeeth*, *yu'tabaru bihi* | Da'eef (light) | Can be elevated to Hasan li-Ghayrihi |
+
+**Jarh grades and their chain-level rulings:**
+
+| Grade | Example phrases | Chain ruling | Elevation eligibility |
+|-------|----------------|-------------|----------------------|
+| 1. Carelessness | *layyin al-hadeeth*, *feehi maqaal* | Da'eef (light) | Can be elevated to Hasan li-Ghayrihi |
+| 2. Cannot be proof | *da'eef*, *lahu manaakeer* | Da'eef (light) | Can be elevated to Hasan li-Ghayrihi |
+| 3. Not to be written | *da'eef jiddan*, *tarahoo hadeethahu* | Da'eef Jiddan | Never elevated |
+| 4. Accused of lying | *muttahamun bil-kathib*, *saaqit* | Da'eef Jiddan | Never elevated |
+| 5. Known liar | *kaththaab*, *waddaa'* | Mawdoo' | Never elevated |
+| 6. Superlative lying | *akthab an-naas* | Mawdoo' | Never elevated |
+
+Sahaabah (generation 1) are rated thiqah (ta'deel grade 3) by scholarly consensus (*ijma'*), regardless of individual grading.
 
 ### 6.3 Derived Assessment Algorithm
-```
-For each evidence record:
-  prior = rating_prior(rating)
-  weight = rating_confidence (default 0.5)
 
-  If reported layer: weighted_sum += prior * weight
-  If analytical layer: weighted_sum += prior * weight * 0.5  // half-weighted
+When multiple scholar assessments exist for a single narrator, the narrator's effective grade is determined using the classical principles of al-Jarh wa al-Ta'deel:
 
-derived_confidence = weighted_sum / total_weight
+1. **Jarh takes precedence over ta'deel when the jarh is explained** (*mufassar*). An unexplained jarh (e.g., just saying "da'eef" without reason) does not override an explained ta'deel.
 
-// Contradiction pairs: thiqah+daif, thiqah+matruk, thiqah+accused, matruk+accused
-If contradiction detected: derived_confidence = min(derived_confidence, 0.70)
-```
+2. **The most severe applicable explained jarh determines the grade.** If two scholars say *thiqah* and one says *da'eef* with an explanation (e.g., "he had poor memory after age 60"), the explained jarh is adopted for the relevant narrations.
+
+3. **Reported assessments take precedence over analytical assessments.** Classical scholar assessments from biographical dictionaries (e.g., Taqrib al-Tahdhib) are the primary source. Structural/analytical signals (e.g., frequent contradiction with thiqaat in the graph data) serve only as flags for further investigation — they do not override classical assessments.
+
+4. **When scholars differ and none provides explanation**, the majority opinion is adopted. If the number of those who validate equals those who disparage with no explanation on either side, the narrator is treated at the lower of the two claimed grades (precautionary principle).
+
+5. **Contradiction handling**: When a narrator has assessments spanning both ta'deel and jarh (e.g., *thiqah* from one scholar, *da'eef* from another), the narrator's grade is determined by whether the jarh is explained — not by averaging numerical scores.
 
 ## 7. Anti-Hallucination Safeguards
 
@@ -367,8 +381,8 @@ Consider a hadith family with 8 variants transmitted through 3 Sahabah:
 
 **Chain assessments**:
 - 4 chains: muttasil, all narrators thiqah -> **Sahih**
-- 2 chains: muttasil, weakest narrator is saduq (0.65) -> **Hasan**
-- 1 chain: muttasil, narrator with poor memory (0.45) -> **Da'eef** (light weakness)
+- 2 chains: muttasil, weakest narrator is sadooq (ta'deel grade 4) -> **Hasan**
+- 1 chain: muttasil, narrator with poor memory (jarh grade 2) -> **Da'eef** (light weakness)
 - 1 chain: munqati' (generation gap) -> **Da'eef** (light weakness)
 
 **Transmission breadth**:
@@ -626,18 +640,13 @@ The science of evaluating individual narrators predates orientalist hadith criti
 
 **Al-Jarh wa al-Ta'dil (Criticism and Validation)**
 
-The specialized discipline of pronouncing narrators reliable or unreliable, with documented rules for when criticism takes precedence over validation and vice versa. This system produced the six-tier reliability scale used in this tool:
+The specialized discipline of pronouncing narrators reliable or unreliable, with documented rules for when criticism takes precedence over validation and vice versa. The classical system defines six grades of ta'deel (validation) and six grades of jarh (disparagement), each with specific rulings on whether the narrator's hadith can be used as proof, collected for examination, or must be rejected entirely (see Section 6.2 for the full grade tables).
 
-| Rating | Arabic | Description | Prior |
-|--------|--------|-------------|-------|
-| thiqah | ثقة | Trustworthy -- strong memory, upright character, accurate transmission | 0.75 |
-| saduq | صدوق | Truthful -- generally reliable but may have minor lapses | 0.65 |
-| majhul | مجهول | Unknown -- insufficient information to evaluate | 0.50 |
-| daif | ضعيف | Weak -- identified problems with memory, accuracy, or character | 0.35 |
-| matruk | متروك | Abandoned -- severe weakness, scholars ceased transmitting from them | 0.20 |
-| accused_fabrication | متهم بالوضع | Accused of fabrication -- evidence of deliberate invention | 0.20 |
-
-These ratings were derived from cross-checking contemporaneous evidence: a narrator's students, peers, and later critics each contributed independent assessments. The convergence of multiple independent evaluations provides a form of scholarly "triangulation" that is resistant to individual bias.
+Key principles of this system:
+- Ta'deel is accepted without requiring explanation, because the reasons for reliability are numerous and difficult to enumerate
+- Jarh is not accepted unless explained, because there are different grounds for disparagement and someone may be undeservingly disparaged on invalid grounds
+- If both jarh and ta'deel exist for one narrator, the explained jarh takes precedence
+- Assessments were derived from cross-checking contemporaneous evidence: a narrator's students, peers, and later critics each contributed independent evaluations. The convergence of multiple independent assessments provides a form of scholarly "triangulation" that is resistant to individual bias.
 
 **'Ilm al-'Ilal (Defect Analysis)**
 
@@ -660,7 +669,7 @@ A potential objection is that the Islamic tradition's evaluation of hadith is ci
 
 3. **Cross-chain verification**: The same hadith transmitted through different chains provides a natural control. If multiple independent chains from different cities and different students produce the same text, this corroborates both the text and the reliability of the narrators in those chains.
 
-4. The system **explicitly identifies and flags fabrication**. The categories *matruk* and *accused_fabrication* demonstrate that the tradition detected and excluded unreliable narrators. If the entire system were complicit in fabrication, there would be no incentive to develop and maintain these critical categories.
+4. The system **explicitly identifies and flags fabrication**. The jarh grades — from *matrook* (abandoned) to *kaththaab* (known liar) — demonstrate that the tradition detected and excluded unreliable narrators. If the entire system were complicit in fabrication, there would be no incentive to develop and maintain these critical categories.
 
 #### 1.1.7 Scholarly Conclusion
 

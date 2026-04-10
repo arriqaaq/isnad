@@ -34,6 +34,50 @@ The rest of this article explains the domain complexity that drives the architec
 
 ---
 
+## Feature Walkthrough
+
+### Quran Reader
+
+<p align="center">
+  <img src="../site/img/feature-quran.svg" alt="Quran reader with Tajweed Arabic, translation, and tafsir" width="600">
+</p>
+
+114 surahs with Tajweed Arabic (QPC Hafs font), Sahih International English, expandable Tafsir Ibn Kathir per ayah. Click any word to see its root, lemma, POS, and grammatical features. Early manuscript images from Corpus Coranicum (Berlin-Brandenburg Academy). Mutashabihat (similar phrases) detection across ayahs.
+
+### Hadith Explorer
+
+<p align="center">
+  <img src="../site/img/feature-hadith.svg" alt="Hadith browsing with narrator chains" width="600">
+</p>
+
+34,457 hadiths from six collections: Sahih al-Bukhari (7,322), Sahih Muslim (7,454), Sunan an-Nasa'i (5,736), Sunan Abi Dawud (5,244), Sunan Ibn Majah (4,330), Jami at-Tirmidhi (3,925). Each detail page runs a single multi-statement query: hadith text + `<-narrates<-narrator` for the chain + `references_hadith` for linked ayahs + `->similar_to->hadith` for related hadiths.
+
+### Narrator Networks
+
+<p align="center">
+  <img src="../site/img/feature-narrators.svg" alt="Interactive narrator graph visualization" width="600">
+</p>
+
+18,000+ narrators with interactive Sigma.js force-directed graph visualization. Each profile shows teachers, students, hadiths narrated, Ibn Hajar reliability grade, and biographical data. The graph uses tabaqah-based layering.
+
+### Hybrid Search
+
+<p align="center">
+  <img src="../site/img/feature-search.svg" alt="Unified search across Quran and Hadith" width="600">
+</p>
+
+Three modes: Hybrid (BM25 + vector via RRF), Text (BM25 only), Semantic (vector only). Works in Arabic and English. The Explore page searches Quran and Hadith simultaneously.
+
+### Personal Study Notes
+
+<p align="center">
+  <img src="../site/img/feature-notes.svg" alt="Study notes with @mentions" width="600">
+</p>
+
+Rich editor with @mentions: type `@2:255` to embed Ayat al-Kursi inline, or `@bukhari_1` for a hadith. Mentions resolve to rich cards with actual Arabic text + translation. Tags, color-coded highlights, full-text search, JSON export. No user accounts — notes stored by device ID.
+
+---
+
 ## The Domain: Why This Is Complex
 
 ### What Is a Hadith
@@ -352,50 +396,6 @@ The mustalah classification is implemented computationally. The engine reports *
 
 ---
 
-## Feature Walkthrough
-
-### Quran Reader
-
-<p align="center">
-  <img src="../site/img/feature-quran.svg" alt="Quran reader with Tajweed Arabic, translation, and tafsir" width="600">
-</p>
-
-114 surahs with Tajweed Arabic (QPC Hafs font), Sahih International English, expandable Tafsir Ibn Kathir per ayah. Click any word to see its root, lemma, POS, and grammatical features. Early manuscript images from Corpus Coranicum (Berlin-Brandenburg Academy). Mutashabihat (similar phrases) detection across ayahs.
-
-### Hadith Explorer
-
-<p align="center">
-  <img src="../site/img/feature-hadith.svg" alt="Hadith browsing with narrator chains" width="600">
-</p>
-
-34,457 hadiths from six collections: Sahih al-Bukhari (7,322), Sahih Muslim (7,454), Sunan an-Nasa'i (5,736), Sunan Abi Dawud (5,244), Sunan Ibn Majah (4,330), Jami at-Tirmidhi (3,925). Each detail page runs a single multi-statement query: hadith text + `<-narrates<-narrator` for the chain + `references_hadith` for linked ayahs + `->similar_to->hadith` for related hadiths.
-
-### Narrator Networks
-
-<p align="center">
-  <img src="../site/img/feature-narrators.svg" alt="Interactive narrator graph visualization" width="600">
-</p>
-
-18,000+ narrators with interactive Sigma.js force-directed graph visualization. Each profile shows teachers, students, hadiths narrated, Ibn Hajar reliability grade, and biographical data. The graph uses tabaqah-based layering.
-
-### Hybrid Search
-
-<p align="center">
-  <img src="../site/img/feature-search.svg" alt="Unified search across Quran and Hadith" width="600">
-</p>
-
-Three modes: Hybrid (BM25 + vector via RRF), Text (BM25 only), Semantic (vector only). Works in Arabic and English. The Explore page searches Quran and Hadith simultaneously.
-
-### Personal Study Notes
-
-<p align="center">
-  <img src="../site/img/feature-notes.svg" alt="Study notes with @mentions" width="600">
-</p>
-
-Rich editor with @mentions: type `@2:255` to embed Ayat al-Kursi inline, or `@bukhari_1` for a hadith. Mentions resolve to rich cards with actual Arabic text + translation. Tags, color-coded highlights, full-text search, JSON export. No user accounts — notes stored by device ID.
-
----
-
 ## Data Pipeline
 
 <p align="center">
@@ -463,9 +463,3 @@ Currently covering the six canonical collections. The expansion path includes:
 - **UI/UX** — accessibility, mobile, reading modes
 
 This tool is for study and research, grounded in classical *mustalah al-hadith* methodology. It reports structural facts about hadith chains and narrator assessments from classical biographical dictionaries — it does not issue religious rulings.
-
-The scholars of hadith preserved this knowledge with great care and rigor — travelling across lands, spending their lives memorizing, verifying, and documenting. Imam al-Bukhari said: "I have memorized one hundred thousand *sahih* hadiths, and two hundred thousand hadiths which are not *sahih*." Imam Muslim said: "I did not include here everything which I consider *sahih*. I only included what the scholars have agreed upon."
-
-The least we can do is make their work searchable.
-
-والحمد لله رب العالمين
