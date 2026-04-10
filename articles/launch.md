@@ -10,11 +10,13 @@
 
 It currently indexes **34,457 hadiths** from the six canonical collections (*Kutub al-Sittah*) with **18,000+ identified narrators** and their transmission chains. The Quran is included with all 114 surahs, Tafsir Ibn Kathir commentary, word-by-word morphological analysis, and cross-references to related hadiths.
 
-The infrastructure supports expansion. The [Sanadset dataset](https://data.mendeley.com/datasets/5xth87zwb5/5) covers **650,000+ records from 926 books** across the broader hadith literature. The project is open source and built to be extended — contributions from the community will help it grow.
+The infrastructure supports expansion. The [Sanadset dataset](https://data.mendeley.com/datasets/5xth87zwb5/5) covers **650,000+ records from 926 books** across the broader hadith literature. The project is open source and built to be extended.
+
+Imagine what becomes possible when the hadith corpus is complete — every book, every chain, every narrator, searchable by meaning and traversable by graph. That is what this project is building toward. The architecture is designed so that adding a new hadith collection or tafsir source is a data ingestion task, not a rewrite. Whether you work with Arabic NLP, graph databases, Islamic scholarship, or frontend development — there is something here to build.
 
 ### Why "Ilm"
 
-The Quran and the Sunnah are the two objective sources of knowledge for Muslims. The Quran is the word of Allah, preserved letter by letter through *mutawaatir* recitation chains spanning fourteen centuries. The Sunnah — the practice, statements, and approvals of the Prophet Muhammad (peace be upon him) — is preserved through the science of hadith: a chain-of-custody system where every report is traced, narrator by narrator, back to the Prophet himself.
+For Muslims, the Quran and the Sunnah are the two primary sources of knowledge. The Quran has been preserved letter by letter through *mutawaatir* recitation chains spanning fourteen centuries. The Sunnah — the practice, statements, and approvals of the Prophet Muhammad ﷺ — is preserved through the science of hadith: a chain-of-custody system where every report is traced, narrator by narrator, back to the Prophet himself.
 
 The word **'ilm** (عِلْم) — knowledge — appears throughout the Quran. This project is named after it because that is what it serves: making these two sources searchable using modern tools, while staying grounded in the classical methodology that preserved them.
 
@@ -54,7 +56,7 @@ This is where the modeling challenge begins. The chain structure is not a simple
 
 A single narrator like Abu Hurayrah (may Allah be pleased with him) appears in over 4,700 hadith chains in the dataset. A single hadith can have **multiple parallel chains** — the same report transmitted through different narrators, creating variant chains that must be tracked separately. Narrators are shared across chains: az-Zuhri appears in the isnads of thousands of hadiths, connected to Companions like Abu Hurayrah and Ibn 'Umar through the Tabi'een who heard from them. Every `heard_from` edge carries metadata: which specific hadith this transmission belongs to, and the position in the chain.
 
-At scale: **18,000+ narrator nodes**, **34,457 hadith nodes**, **~300,000 heard_from edges** (student→teacher), and **~150,000 narrates edges** (narrator→hadith). This is not a tree — it is a directed acyclic graph with extensive cross-linking.
+At scale: **18,000+ narrator nodes**, **34,457 hadith nodes**, **~300,000 heard_from edges** (student→teacher), and **~150,000 narrates edges** (narrator→hadith). This is not a tree — it is a directed acyclic graph with extensive cross-linking. With the current 6 canonical collections, the graph has ~450K edges. The Sanadset dataset covers 650,000+ hadith records from 926 books — ingesting the full corpus would multiply the graph several times over, with potentially millions of narrator-to-narrator and narrator-to-hadith edges.
 
 ### Quran ↔ Hadith Cross-References
 
@@ -324,7 +326,16 @@ This means narrator questions are answered with **exact database results**, not 
 
 ### Why One Database Matters for RAG
 
-The narrator chain traversal and the vector search happen in the same connection, the same transaction. There is no orchestration layer between "find relevant hadiths" (vector search) and "get the narrator chain for each" (graph traversal). The context sent to the LLM includes both semantic relevance and structural provenance — because both come from the same query.
+SurrealDB functions as a unified context layer for the RAG pipeline. Graph edges, HNSW vector indexes, BM25 full-text indexes, and relational tables coexist in the same engine, queryable in the same SurrealQL statement. The narrator chain traversal (`->heard_from->narrator`) and the vector search (`embedding <|4,80|> $query_vec`) happen in the same connection, the same transaction. There is no orchestration layer between "find relevant hadiths" and "get the narrator chain for each." The context sent to the LLM includes both semantic relevance and structural provenance — because both come from the same query.
+
+This matters for a collaborative project that needs to scale. SurrealDB supports multiple deployment modes from the same query language:
+
+- **Embedded** (SurrealKV) — single binary, no server process. This is how Ilm runs today: `cargo run` and everything is in one process.
+- **Single-node** (RocksDB) — file-based persistent storage for production single-server deployments.
+- **Distributed** ([SurrealDB Cloud](https://surrealdb.com/cloud) or TiKV backend) — multi-node cluster with separation of compute and storage, horizontal scaling for both reads and writes.
+- **Browser** (WebAssembly + IndexedDB) — runs directly in the browser for offline-capable applications.
+
+The same SurrealQL queries work across all deployment modes. Ilm can start as an embedded single-binary tool and scale to a distributed service as the corpus grows from 34K hadiths to the full 650K+ records — without rewriting the query layer. The choice of SurrealDB was driven by the modeling requirements described above: graph, vector, full-text, and relational in one engine. That it also provides a scaling path from embedded to distributed is what makes the project viable as a long-term collaborative platform.
 
 ---
 
@@ -432,7 +443,9 @@ The project includes a training pipeline for when the corpus is large enough to 
 3. **Export** — convert to GGUF for Ollama deployment (`ollama create hadith-scholar -f Modelfile`)
 4. **Deploy** — zero backend changes; the Rust `OllamaClient` already supports model override
 
-The vision: as more hadith books and tafsir sources are added, generate higher-quality training data grounded in the actual texts. Additional hadith collections (Musnad Ahmad, Muwatta' Malik, Sahih Ibn Khuzaymah), additional tafsir (at-Tabari, al-Qurtubi, as-Sa'di) — each addition enriches both the RAG context and the potential training corpus. This requires time, compute resources, and scholarly review. Contributions are welcome.
+The vision: as more hadith books and tafsir sources are added, generate higher-quality training data grounded in the actual texts. Additional hadith collections (Musnad Ahmad, Muwatta' Malik, Sahih Ibn Khuzaymah), additional tafsir (at-Tabari, al-Qurtubi, as-Sa'di) — each addition enriches both the RAG context and the potential training corpus. This requires time, compute resources, and scholarly review.
+
+The long-term goal is to reach a point where the corpus is comprehensive enough and the model grounded enough to serve as a reliable study resource globally — available to anyone with an internet connection, in multiple languages, grounded in the authenticated sources rather than internet noise. That requires the community's help: more books, more languages, more scholarly review.
 
 ---
 
@@ -449,7 +462,7 @@ Currently covering the six canonical collections. The expansion path includes:
 - **Scholarly review** — verification of the mustalah analysis against classical references
 - **UI/UX** — accessibility, mobile, reading modes
 
-This tool is for study and research, grounded in classical *mustalah al-hadith* methodology. It reports structural facts about hadith chains and narrator assessments from classical biographical dictionaries — it does not issue rulings. For *fatwas* and their application, one must approach the scholars of knowledge directly.
+This tool is for study and research, grounded in classical *mustalah al-hadith* methodology. It reports structural facts about hadith chains and narrator assessments from classical biographical dictionaries — it does not issue religious rulings.
 
 The scholars of hadith preserved this knowledge with great care and rigor — travelling across lands, spending their lives memorizing, verifying, and documenting. Imam al-Bukhari said: "I have memorized one hundred thousand *sahih* hadiths, and two hundred thousand hadiths which are not *sahih*." Imam Muslim said: "I did not include here everything which I consider *sahih*. I only included what the scholars have agreed upon."
 

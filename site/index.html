@@ -8,11 +8,15 @@
   <meta property="og:title" content="Ilm — Search the Quran & Sunnah">
   <meta property="og:description" content="A semantic search platform for Islamic scholarship — Quran with tafsir, 34K+ hadiths with narrator chains, and interactive isnad graphs.">
   <meta property="og:type" content="website">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500;1,600&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
       --accent: #c8a96a;
+      --accent-light: #d4ba85;
       --accent-muted: rgba(200, 169, 106, 0.1);
       --accent-border: rgba(200, 169, 106, 0.15);
       --text-primary: #1a1a2e;
@@ -21,7 +25,9 @@
       --bg: #ffffff;
       --bg-surface: #f9fafb;
       --bg-warm: #faf8f5;
+      --border: #e5e7eb;
       --radius: 16px;
+      --font-serif: 'EB Garamond', Georgia, serif;
     }
 
     body {
@@ -42,7 +48,13 @@
       text-align: center;
       padding: 100px 24px 80px;
       overflow: hidden;
-      background: linear-gradient(180deg, var(--bg-warm) 0%, var(--bg) 100%);
+      background: linear-gradient(135deg, #faf8f5, #f3e8d0, #faf8f5, #f5efe4, #e8d5a8, #faf8f5) 0 0 / 300% 300%;
+      animation: hero-gradient 12s ease infinite;
+    }
+
+    @keyframes hero-gradient {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
     }
 
     .hero-glow {
@@ -55,7 +67,7 @@
     }
 
     .hero-title {
-      font-size: 4rem;
+      font-size: 5rem;
       font-weight: 800;
       color: var(--accent);
       letter-spacing: -2px;
@@ -65,11 +77,11 @@
 
     .title-ar {
       font-family: 'Traditional Arabic', 'Scheherazade New', 'Noto Naskh Arabic', serif;
-      font-size: 2.4rem;
+      font-size: 3rem;
       font-weight: 400;
       color: var(--text-muted);
       letter-spacing: 0;
-      margin-left: 12px;
+      margin-left: 14px;
     }
 
     .hero-tagline {
@@ -105,11 +117,19 @@
       border: 1px solid var(--accent-border);
     }
 
+    .hero-ctas {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: center;
+      gap: 12px;
+      margin-top: 36px;
+    }
+
     .hero-cta {
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      margin-top: 36px;
       padding: 14px 32px;
       font-size: 1rem;
       font-weight: 600;
@@ -130,12 +150,38 @@
       fill: currentColor;
     }
 
+    .hero-cta-secondary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 32px;
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--accent);
+      background: rgba(255,255,255,0.7);
+      border: 2px solid var(--accent);
+      border-radius: 12px;
+      transition: background 0.15s, color 0.15s, transform 0.15s;
+    }
+
+    .hero-cta-secondary:hover {
+      background: var(--accent);
+      color: #fff;
+      transform: translateY(-1px);
+    }
+
+    /* Hero stats highlight */
     .hero-stats {
-      display: flex;
+      display: inline-flex;
       justify-content: center;
       align-items: center;
       gap: 24px;
       margin-top: 40px;
+      padding: 16px 36px;
+      background: rgba(255,255,255,0.6);
+      border: 1px solid var(--accent-border);
+      border-radius: 60px;
+      backdrop-filter: blur(8px);
       flex-wrap: wrap;
     }
 
@@ -159,7 +205,7 @@
     }
 
     /* ════════ SECTIONS ════════ */
-    section { padding: 80px 0; }
+    section { padding: 100px 0; }
 
     .section-label {
       display: inline-block;
@@ -171,7 +217,7 @@
       margin-bottom: 8px;
     }
 
-    .section-header { text-align: center; margin-bottom: 56px; }
+    .section-header { text-align: center; margin-bottom: 64px; }
     .section-header h2 { font-size: 2rem; font-weight: 800; letter-spacing: -0.5px; }
     .section-header p { color: var(--text-secondary); margin-top: 8px; max-width: 520px; margin-inline: auto; }
 
@@ -189,16 +235,22 @@
 
     .app-frame {
       background: var(--bg-surface);
-      border: 1px solid #e5e7eb;
+      border: 1px solid var(--border);
       border-radius: var(--radius);
       overflow: hidden;
+      transition: transform 0.4s cubic-bezier(.25,.46,.45,.94), box-shadow 0.4s cubic-bezier(.25,.46,.45,.94);
+    }
+
+    .app-frame:hover {
+      transform: scale(1.02);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.08);
     }
 
     .frame-dots {
       display: flex;
       gap: 6px;
       padding: 10px 14px;
-      border-bottom: 1px solid #e5e7eb;
+      border-bottom: 1px solid var(--border);
     }
 
     .frame-dots span {
@@ -210,6 +262,11 @@
     .app-frame img {
       width: 100%;
       display: block;
+    }
+
+    .feat-text {
+      padding-left: 16px;
+      border-left: 3px solid var(--accent-border);
     }
 
     .feat-text h3 {
@@ -248,7 +305,7 @@
     /* ════════ DATA SOURCES ════════ */
     .sources-section {
       background: var(--bg-warm);
-      padding: 80px 0;
+      padding: 100px 0;
     }
 
     .source-grid {
@@ -259,10 +316,17 @@
 
     .source-card {
       background: var(--bg);
-      border: 1px solid #e5e7eb;
+      border: 1px solid var(--border);
       border-radius: var(--radius);
       padding: 28px 24px;
       text-align: center;
+      transition: transform 0.3s cubic-bezier(.25,.46,.45,.94), box-shadow 0.3s cubic-bezier(.25,.46,.45,.94), border-color 0.3s ease;
+    }
+
+    .source-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.05);
+      border-color: var(--accent-border);
     }
 
     .source-num {
@@ -270,6 +334,11 @@
       font-weight: 800;
       color: var(--accent);
       margin-bottom: 4px;
+      transition: transform 0.3s ease;
+    }
+
+    .source-card:hover .source-num {
+      transform: scale(1.08);
     }
 
     .source-card h4 {
@@ -285,7 +354,7 @@
     }
 
     /* ════════ GETTING STARTED ════════ */
-    .start-section { padding: 80px 0; }
+    .start-section { padding: 100px 0; }
 
     .start-grid {
       display: grid;
@@ -356,50 +425,240 @@
       color: #fff;
     }
 
-    /* ════════ TECH STACK ════════ */
-    .stack-section {
-      background: var(--bg-surface);
-      padding: 80px 0;
+    /* ════════ UNDER THE HOOD ════════ */
+    .hood-section {
+      position: relative;
+      background: linear-gradient(180deg,
+        var(--bg) 0%,
+        rgba(200,169,106,0.06) 15%,
+        rgba(200,169,106,0.10) 50%,
+        rgba(200,169,106,0.06) 85%,
+        var(--bg) 100%
+      );
+      padding: 100px 24px;
+      overflow: hidden;
     }
 
-    .stack-grid {
+    .hood-glow {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 700px; height: 500px;
+      background: radial-gradient(ellipse, rgba(200,169,106,0.06) 0%, transparent 70%);
+      filter: blur(80px);
+      animation: glow-breathe 4s ease-in-out infinite alternate;
+      pointer-events: none;
+    }
+
+    @keyframes glow-breathe {
+      from { opacity: 0.6; transform: translate(-50%, -50%) scale(0.95); }
+      to { opacity: 1; transform: translate(-50%, -50%) scale(1.05); }
+    }
+
+    .hood-inner {
+      position: relative;
+      z-index: 1;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .hood-section .section-header h2 {
+      font-size: 2.5rem;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+    }
+
+    .hood-columns {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 20px;
+      grid-template-columns: 1fr 1fr;
+      gap: 72px;
+      align-items: stretch;
     }
 
-    .stack-card {
-      background: var(--bg);
-      border: 1px solid #e5e7eb;
-      border-radius: var(--radius);
-      padding: 24px;
+    .hood-col {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .hood-subtitle {
       text-align: center;
+      font-family: var(--font-serif);
+      font-size: 1.05rem;
+      margin-bottom: 8px;
+      color: var(--accent);
+      font-weight: 600;
     }
 
-    .stack-card strong {
-      display: block;
-      font-size: 1.05rem;
+    /* Architecture stack */
+    .arch-stack {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0;
+      flex: 1;
+      justify-content: space-between;
+    }
+
+    .glass-card {
+      width: 100%;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px 20px;
+      text-align: center;
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+    }
+
+    .glass-card:hover {
+      border-color: var(--accent);
+      box-shadow: 0 4px 24px rgba(200,169,106,0.1);
+      transform: translateY(-2px);
+    }
+
+    .layer-label {
+      font-size: 0.6rem;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--accent);
+      font-weight: 700;
       margin-bottom: 4px;
     }
 
-    .stack-card span {
-      font-size: 0.82rem;
+    .glass-card strong {
+      display: block;
+      font-size: 1rem;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+    }
+
+    .glass-card p {
+      font-size: 0.75rem;
       color: var(--text-muted);
     }
 
-    .stack-label {
-      display: inline-block;
-      font-size: 0.65rem;
+    .sub-cards {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .sub-chip {
+      flex: 1;
+      padding: 6px 0;
+      background: var(--accent-muted);
+      border: 1px solid rgba(200,169,106,0.15);
+      border-radius: 8px;
+      font-size: 0.7rem;
+      color: var(--text-secondary);
+      text-align: center;
+    }
+
+    /* Animated connecting lines */
+    .arch-line, .pipe-line {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      height: 28px;
+      position: relative;
+      overflow: visible;
+    }
+
+    .line-pulse {
+      width: 2px;
+      height: 100%;
+      background: linear-gradient(180deg, var(--accent), rgba(200,169,106,0.2));
+      position: relative;
+    }
+
+    .line-pulse::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -2px;
+      width: 6px;
+      height: 6px;
+      background: var(--accent);
+      border-radius: 50%;
+      box-shadow: 0 0 8px rgba(200,169,106,0.4);
+      animation: dot-travel 2s ease-in-out infinite;
+    }
+
+    @keyframes dot-travel {
+      0% { top: 0; opacity: 0; }
+      20% { opacity: 1; }
+      80% { opacity: 1; }
+      100% { top: calc(100% - 6px); opacity: 0; }
+    }
+
+    .line-label {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 0.6rem;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    /* Pipeline steps */
+    .pipeline-grid {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0;
+      flex: 1;
+      justify-content: space-between;
+    }
+
+    .pipe-card {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 16px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+    }
+
+    .pipe-card:hover {
+      border-color: var(--accent);
+      box-shadow: 0 4px 20px rgba(200,169,106,0.1);
+      transform: translateY(-1px);
+    }
+
+    .pipe-num {
+      flex-shrink: 0;
+      width: 30px; height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--accent);
+      color: white;
+      border-radius: 50%;
       font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: var(--accent);
-      margin-bottom: 8px;
+      font-size: 0.75rem;
+      box-shadow: 0 0 10px rgba(200,169,106,0.2);
+    }
+
+    .pipe-text strong {
+      display: block;
+      font-size: 0.85rem;
+      color: var(--text-primary);
+    }
+
+    .pipe-text span {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      line-height: 1.4;
     }
 
     /* ════════ FOOTER ════════ */
     footer {
-      border-top: 1px solid #e5e7eb;
+      border-top: 1px solid var(--border);
       padding: 48px 0 32px;
       text-align: center;
     }
@@ -436,7 +695,7 @@
       font-style: italic;
     }
 
-    /* ════════ ANIMATIONS ════════ */
+    /* ════════ SCROLL ANIMATIONS ════════ */
     @keyframes fade-up {
       from { opacity: 0; transform: translateY(24px); }
       to   { opacity: 1; transform: translateY(0); }
@@ -450,21 +709,60 @@
     .delay-2 { animation-delay: 0.2s; }
     .delay-3 { animation-delay: 0.3s; }
 
+    .reveal {
+      opacity: 0;
+      will-change: transform, opacity;
+      transition: opacity 0.7s cubic-bezier(.25,.46,.45,.94), transform 0.7s cubic-bezier(.25,.46,.45,.94);
+      transform: translateY(32px);
+    }
+
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .reveal-left {
+      opacity: 0;
+      will-change: transform, opacity;
+      transition: opacity 0.7s cubic-bezier(.25,.46,.45,.94), transform 0.7s cubic-bezier(.25,.46,.45,.94);
+      transform: translateX(-40px);
+    }
+
+    .reveal-left.visible {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    .reveal-right {
+      opacity: 0;
+      will-change: transform, opacity;
+      transition: opacity 0.7s cubic-bezier(.25,.46,.45,.94), transform 0.7s cubic-bezier(.25,.46,.45,.94);
+      transform: translateX(40px);
+    }
+
+    .reveal-right.visible {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
     /* ════════ RESPONSIVE ════════ */
     @media (max-width: 768px) {
       .hero { padding: 64px 20px 56px; }
       .hero-title { font-size: 2.6rem; }
       .title-ar { font-size: 1.6rem; display: block; margin: 4px 0 0; }
+      .hero-stats { gap: 16px; padding: 12px 24px; }
       .feat { grid-template-columns: 1fr; gap: 24px; }
       .feat-reverse { direction: ltr; }
       .source-grid { grid-template-columns: 1fr 1fr; }
       .start-grid { grid-template-columns: 1fr; }
-      .stack-grid { grid-template-columns: 1fr 1fr; }
+      .hood-columns { grid-template-columns: 1fr; gap: 48px; }
+      .hood-section .section-header h2 { font-size: 2rem; }
+      .reveal-left, .reveal-right { transform: translateY(32px); }
+      .reveal-left.visible, .reveal-right.visible { transform: translateY(0); }
     }
 
     @media (max-width: 480px) {
       .source-grid { grid-template-columns: 1fr; }
-      .stack-grid { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -494,13 +792,13 @@
         <span class="pill">AI-Powered</span>
       </div>
 
-      <div style="display:flex; flex-wrap:wrap; justify-content:center; gap:12px;" class="animate delay-3">
+      <div class="hero-ctas animate delay-3">
         <a href="https://github.com/arriqaaq/ilm" target="_blank" rel="noopener noreferrer" class="hero-cta">
           <svg viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.64 7.64 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
           View on GitHub
         </a>
-        <a href="https://github.com/arriqaaq/ilm/blob/main/articles/launch.md" target="_blank" rel="noopener noreferrer" class="start-cta" style="margin-top:0; padding:14px 32px; font-size:1rem;">
-          Read the Launch Article
+        <a href="blog.html" class="hero-cta-secondary">
+          Blog
         </a>
       </div>
 
@@ -531,20 +829,20 @@
   <!-- ════════ FEATURES ════════ -->
   <section>
     <div class="container">
-      <div class="section-header">
+      <div class="section-header reveal">
         <span class="section-label">Features</span>
         <h2>Everything you need to study</h2>
       </div>
 
       <!-- Intelligent Search -->
       <div class="feat">
-        <div class="feat-visual">
+        <div class="feat-visual reveal-left">
           <div class="app-frame">
             <div class="frame-dots"><span></span><span></span><span></span></div>
             <img src="img/feature-search.svg" alt="Unified search across Quran and Hadith" loading="lazy">
           </div>
         </div>
-        <div class="feat-text">
+        <div class="feat-text reveal-right">
           <h3>Intelligent Search</h3>
           <p>Find verses and hadiths by what they mean, not just keywords. Hybrid search fuses BM25 full-text with 1024-dimension semantic vectors across the entire corpus.</p>
         </div>
@@ -552,13 +850,13 @@
 
       <!-- Quran Reader -->
       <div class="feat feat-reverse">
-        <div class="feat-visual">
+        <div class="feat-visual reveal-right">
           <div class="app-frame">
             <div class="frame-dots"><span></span><span></span><span></span></div>
             <img src="img/feature-quran.svg" alt="Quran reader with tajweed and tafsir" loading="lazy">
           </div>
         </div>
-        <div class="feat-text">
+        <div class="feat-text reveal-left">
           <h3>Quran Reader</h3>
           <p>114 Surahs with Tajweed-colored Arabic, Sahih International translation, and expandable Tafsir Ibn Kathir commentary — per ayah.</p>
         </div>
@@ -566,13 +864,13 @@
 
       <!-- Hadith Explorer -->
       <div class="feat">
-        <div class="feat-visual">
+        <div class="feat-visual reveal-left">
           <div class="app-frame">
             <div class="frame-dots"><span></span><span></span><span></span></div>
             <img src="img/feature-hadith.svg" alt="Hadith browsing with narrator chains" loading="lazy">
           </div>
         </div>
-        <div class="feat-text">
+        <div class="feat-text reveal-right">
           <h3>Hadith Explorer</h3>
           <p>Browse 34K+ hadiths from 926 books across 6 canonical collections, each with full narrator chains and source attribution.</p>
         </div>
@@ -580,13 +878,13 @@
 
       <!-- Narrator Networks -->
       <div class="feat feat-reverse">
-        <div class="feat-visual">
+        <div class="feat-visual reveal-right">
           <div class="app-frame">
             <div class="frame-dots"><span></span><span></span><span></span></div>
             <img src="img/feature-narrators.svg" alt="Interactive narrator graph visualization" loading="lazy">
           </div>
         </div>
-        <div class="feat-text">
+        <div class="feat-text reveal-left">
           <h3>Narrator Networks</h3>
           <p>Interactive graph visualization of 18K+ narrators. Trace isnad chains, explore teacher-student relationships, and check Ibn Hajar reliability grades.</p>
         </div>
@@ -594,13 +892,13 @@
 
       <!-- Early Manuscripts -->
       <div class="feat">
-        <div class="feat-visual">
+        <div class="feat-visual reveal-left">
           <div class="app-frame">
             <div class="frame-dots"><span></span><span></span><span></span></div>
             <img src="img/manuscript-sample.jpg" alt="Early Quranic manuscript — Berlin, Wetzstein II 1913" class="manuscript-img" loading="lazy">
           </div>
         </div>
-        <div class="feat-text">
+        <div class="feat-text reveal-right">
           <h3>Early Manuscripts</h3>
           <p>View high-resolution images of early Quranic manuscripts per ayah from the Corpus Coranicum archive — Berlin-Brandenburg Academy of Sciences.</p>
         </div>
@@ -608,13 +906,13 @@
 
       <!-- Personal Study Notes -->
       <div class="feat feat-reverse">
-        <div class="feat-visual">
+        <div class="feat-visual reveal-right">
           <div class="app-frame">
             <div class="frame-dots"><span></span><span></span><span></span></div>
             <img src="img/feature-notes.svg" alt="Personal Study Notes" loading="lazy" style="background: #f9fafb; padding: 8px;">
           </div>
         </div>
-        <div class="feat-text">
+        <div class="feat-text reveal-left">
           <h3>Personal Study Notes</h3>
           <p>Capture your thoughts while studying. Annotate any ayah or hadith, collect evidence by topic, and embed Quran verses and hadiths inline with @mentions.</p>
           <div class="feat-pills">
@@ -632,38 +930,38 @@
   <!-- ════════ DATA SOURCES ════════ -->
   <section class="sources-section">
     <div class="container">
-      <div class="section-header">
+      <div class="section-header reveal">
         <span class="section-label">Provenance</span>
         <h2>Data Sources</h2>
         <p>Built on open scholarly datasets. Every hadith, ayah, and narrator is traceable to its source.</p>
       </div>
-      <div class="source-grid">
-        <div class="source-card">
+      <div class="source-grid stagger-children">
+        <div class="source-card reveal">
           <div class="source-num">34K</div>
           <h4>SemanticHadith KG</h4>
           <p>Hadiths with narrator chains and knowledge graph from 6 canonical collections</p>
         </div>
-        <div class="source-card">
+        <div class="source-card reveal">
           <div class="source-num">6,236</div>
           <h4>QUL (Tarteel)</h4>
           <p>QPC Hafs Arabic + Sahih International English from Quranic Universal Library</p>
         </div>
-        <div class="source-card">
+        <div class="source-card reveal">
           <div class="source-num">6,236</div>
           <h4>Tafsir Ibn Kathir</h4>
           <p>Classical exegesis per ayah via QUL</p>
         </div>
-        <div class="source-card">
+        <div class="source-card reveal">
           <div class="source-num">33K</div>
           <h4>Sunnah.com</h4>
           <p>Human-verified English translations across 6 canonical collections</p>
         </div>
-        <div class="source-card">
+        <div class="source-card reveal">
           <div class="source-num">18K</div>
           <h4>AR-Sanad</h4>
           <p>Narrators with Ibn Hajar's reliability classifications</p>
         </div>
-        <div class="source-card">
+        <div class="source-card reveal">
           <div class="source-num">&#x2726;</div>
           <h4>Corpus Coranicum</h4>
           <p>Early manuscript images per ayah from Berlin-Brandenburg Academy</p>
@@ -675,18 +973,19 @@
   <!-- ════════ GETTING STARTED ════════ -->
   <section class="start-section">
     <div class="container">
-      <div class="section-header">
+      <div class="section-header reveal">
         <span class="section-label">Get Started</span>
         <h2>Run it locally</h2>
         <p>Ilm runs entirely on your machine — no cloud, no accounts, full privacy.</p>
       </div>
 
       <div class="start-grid">
-        <div>
+        <div class="reveal-left">
           <h3 style="font-size:1.1rem; margin-bottom:16px;">Prerequisites</h3>
           <ul class="prereq-list">
             <li><span class="check">&#10003;</span> Rust (latest stable)</li>
             <li><span class="check">&#10003;</span> Node.js v20+</li>
+            <li><span class="check">&#10003;</span> Python 3 (for data download)</li>
             <li><span class="check">&#10003;</span> SurrealDB</li>
             <li><span class="check">&#10003;</span> Ollama (for Ask AI)</li>
           </ul>
@@ -695,11 +994,11 @@
             Get the Code
           </a>
         </div>
-        <div>
+        <div class="reveal-right">
           <div class="code-block">
             <span class="comment"># Clone</span><br>
             <span class="cmd">git clone</span> https://github.com/arriqaaq/ilm.git<br>
-            <span class="cmd">cd</span> isnad<br><br>
+            <span class="cmd">cd</span> ilm<br><br>
             <span class="comment"># Download pre-built data (no ingestion needed)</span><br>
             <span class="cmd">make</span> download-data<br><br>
             <span class="comment"># Build & run</span><br>
@@ -710,44 +1009,102 @@
     </div>
   </section>
 
-  <!-- ════════ TECH STACK ════════ -->
-  <section class="stack-section">
-    <div class="container">
-      <div class="section-header">
+  <!-- ════════ UNDER THE HOOD ════════ -->
+  <section class="hood-section">
+    <div class="hood-glow"></div>
+    <div class="hood-inner">
+      <div class="section-header reveal">
         <span class="section-label">Open Architecture</span>
         <h2>Under the Hood</h2>
         <p>A modern stack built for Islamic scholarship.</p>
       </div>
-      <div class="stack-grid">
-        <div class="stack-card">
-          <span class="stack-label">Frontend</span>
-          <strong>SvelteKit</strong>
-          <span>Quran, Hadith, Search, Narrators, Graphs</span>
+
+      <div class="hood-columns">
+        <!-- Architecture column -->
+        <div class="hood-col reveal-left">
+          <h3 class="hood-subtitle">Architecture</h3>
+          <div class="arch-stack">
+            <div class="glass-card">
+              <div class="layer-label">Frontend</div>
+              <strong>SvelteKit</strong>
+              <p>Quran &middot; Hadith &middot; Search &middot; Narrators &middot; Graphs</p>
+            </div>
+            <div class="arch-line">
+              <div class="line-pulse"></div>
+              <span class="line-label">JSON API</span>
+            </div>
+            <div class="glass-card">
+              <div class="layer-label">Backend</div>
+              <strong>Rust / Axum</strong>
+              <div class="sub-cards">
+                <div class="sub-chip">Search</div>
+                <div class="sub-chip">Ingest</div>
+                <div class="sub-chip">RAG</div>
+              </div>
+            </div>
+            <div class="arch-line">
+              <div class="line-pulse"></div>
+            </div>
+            <div class="glass-card">
+              <div class="layer-label">Database</div>
+              <strong>SurrealDB</strong>
+              <p>Graph &middot; HNSW vectors &middot; BM25</p>
+            </div>
+            <div class="arch-line">
+              <div class="line-pulse"></div>
+            </div>
+            <div class="glass-card">
+              <div class="layer-label">Embeddings</div>
+              <strong>FastEmbed</strong>
+              <p>bge-m3 &middot; 1024-dim</p>
+            </div>
+          </div>
         </div>
-        <div class="stack-card">
-          <span class="stack-label">Backend</span>
-          <strong>Rust / Axum</strong>
-          <span>Search, Ingest, GraphRAG</span>
-        </div>
-        <div class="stack-card">
-          <span class="stack-label">Database</span>
-          <strong>SurrealDB</strong>
-          <span>Graph + HNSW vectors + BM25</span>
-        </div>
-        <div class="stack-card">
-          <span class="stack-label">Embeddings</span>
-          <strong>FastEmbed</strong>
-          <span>bge-m3 &middot; 1024-dim</span>
-        </div>
-        <div class="stack-card">
-          <span class="stack-label">Visualization</span>
-          <strong>Cytoscape.js</strong>
-          <span>Interactive narrator network graphs</span>
-        </div>
-        <div class="stack-card">
-          <span class="stack-label">LLM</span>
-          <strong>Ollama</strong>
-          <span>Local inference, GraphRAG Q&A</span>
+
+        <!-- Training Pipeline column -->
+        <div class="hood-col reveal-right">
+          <h3 class="hood-subtitle">Training Pipeline</h3>
+          <div class="pipeline-grid">
+            <div class="pipe-card">
+              <div class="pipe-num">1</div>
+              <div class="pipe-text">
+                <strong>Raw Data</strong>
+                <span>SemanticHadith 34K &middot; QUL &middot; Sunnah.com</span>
+              </div>
+            </div>
+            <div class="pipe-line"><div class="line-pulse"></div></div>
+            <div class="pipe-card">
+              <div class="pipe-num">2</div>
+              <div class="pipe-text">
+                <strong>Parse &amp; Enrich</strong>
+                <span>Join translations + narrator bios + tafsir</span>
+              </div>
+            </div>
+            <div class="pipe-line"><div class="line-pulse"></div></div>
+            <div class="pipe-card">
+              <div class="pipe-num">3</div>
+              <div class="pipe-text">
+                <strong>Generate QA</strong>
+                <span>ChatML pairs matching RAG prompt pattern</span>
+              </div>
+            </div>
+            <div class="pipe-line"><div class="line-pulse"></div></div>
+            <div class="pipe-card">
+              <div class="pipe-num">4</div>
+              <div class="pipe-text">
+                <strong>LoRA Fine-tune</strong>
+                <span>MLX on Phi-4-mini / Command-R</span>
+              </div>
+            </div>
+            <div class="pipe-line"><div class="line-pulse"></div></div>
+            <div class="pipe-card">
+              <div class="pipe-num">5</div>
+              <div class="pipe-text">
+                <strong>GGUF &rarr; Ollama</strong>
+                <span>Quantize Q4_K_M &middot; ollama create &middot; serve</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -762,6 +1119,38 @@
       <p class="footer-motto">Built with care for the Muslim community.</p>
     </div>
   </footer>
+
+  <!-- ════════ SCROLL ANIMATIONS ════════ -->
+  <script>
+    const revealObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          revealObserver.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.15, rootMargin: '0px 0px -60px 0px' });
+
+    document.querySelectorAll('.reveal, .reveal-left, .reveal-right').forEach(el => {
+      if (!el.parentElement.classList.contains('stagger-children')) {
+        revealObserver.observe(el);
+      }
+    });
+
+    const staggerObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          Array.from(entry.target.children).forEach((child, i) => {
+            child.style.transitionDelay = `${i * 80}ms`;
+            child.classList.add('visible');
+          });
+          staggerObserver.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+
+    document.querySelectorAll('.stagger-children').forEach(el => staggerObserver.observe(el));
+  </script>
 
 </body>
 </html>

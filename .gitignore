@@ -1,6 +1,7 @@
 /target
 /db_data
 /data
+/site/img
 /backup
 .fastembed_cache
 *.swp

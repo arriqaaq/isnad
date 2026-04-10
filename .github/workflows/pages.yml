@@ -3,7 +3,7 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [main]
-    paths: [site/**]
+    paths: [site/**, articles/**]
   workflow_dispatch:
 
 permissions:
@@ -23,6 +23,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - run: pip install markdown
+      - run: make blog
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

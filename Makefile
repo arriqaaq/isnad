@@ -1,4 +1,4 @@
-.PHONY: build frontend backend server dev stop download-data semantic-download semantic-extract semantic-verify semantic-setup ingest ingest-test ingest-full hadith-full hadith-ingest sanadset-download quran-prepare quran-prepare-deps quran-ingest quran-hadith-refs quran-morphology quran-similar quran quran-full quran-check analyze analyze-families analyze-transmission pipeline-check pipeline-test pipeline-full clean
+.PHONY: build frontend backend server dev stop download-data blog semantic-download semantic-extract semantic-verify semantic-setup ingest ingest-test ingest-full hadith-full hadith-ingest sanadset-download quran-prepare quran-prepare-deps quran-ingest quran-hadith-refs quran-morphology quran-similar quran quran-full quran-check analyze analyze-families analyze-transmission pipeline-check pipeline-test pipeline-full clean
 
 # SurrealDB HNSW index traversal needs extra stack space
 export RUST_MIN_STACK=8388608
@@ -38,10 +38,17 @@ download-data:
 	gdown "1X0oYLzCWytm0qTyjmZKAi_d-a0bvSv_d" -O /tmp/data.zip
 	gdown "16KOkdE5g7fGfH3zPwRmyGfzGUnHl444F" -O /tmp/db_data.zip
 	@echo "Extracting data..."
-	unzip -o /tmp/data.zip -d .
-	unzip -o /tmp/db_data.zip -d .
-	@rm -f /tmp/data.zip /tmp/db_data.zip
+	unzip -o /tmp/data.zip -d /tmp/ilm-extract
+	unzip -o /tmp/db_data.zip -d /tmp/ilm-extract
+	unzip -o /tmp/ilm-extract/ilm/data.zip -d .
+	unzip -o /tmp/ilm-extract/ilm/db.zip -d .
+	@rm -rf /tmp/data.zip /tmp/db_data.zip /tmp/ilm-extract
 	@echo "✓ Data ready. Run: make dev"
+
+# Build blog: convert articles/*.md to site HTML
+blog:
+	pip3 install -q markdown
+	python3 scripts/build_blog.py
 
 # === SemanticHadith KG data preparation (one-time) ===
 

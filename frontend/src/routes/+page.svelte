@@ -398,7 +398,6 @@
     color: var(--text-primary);
     margin-bottom: 12px;
     letter-spacing: -0.5px;
-    font-style: italic;
   }
   .section-header p {
     font-size: 0.95rem;

@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Blog — Ilm</title>
+  <meta name="description" content="Deep dives into how Ilm is built — architecture, data pipelines, and design decisions.">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --accent: #c8a96a;
+      --accent-muted: rgba(200, 169, 106, 0.1);
+      --accent-border: rgba(200, 169, 106, 0.15);
+      --text-primary: #1a1a2e;
+      --text-secondary: #4a4a68;
+      --text-muted: #9ca3af;
+      --bg: #ffffff;
+      --bg-surface: #f9fafb;
+      --bg-warm: #faf8f5;
+      --radius: 16px;
+    }
+    body {
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      color: var(--text-primary); background: var(--bg);
+      line-height: 1.6; -webkit-font-smoothing: antialiased;
+    }
+    a { color: inherit; text-decoration: none; }
+    .container { max-width: 860px; margin: 0 auto; padding: 0 24px; }
+    .nav {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 20px 24px; max-width: 860px; margin: 0 auto;
+    }
+    .nav-logo { font-size: 1.3rem; font-weight: 800; color: var(--accent); }
+    .nav-links { display: flex; gap: 24px; }
+    .nav-links a { font-size: 0.9rem; font-weight: 500; color: var(--text-secondary); transition: color 0.15s; }
+    .nav-links a:hover { color: var(--accent); }
+    .blog-header {
+      text-align: center; padding: 60px 24px 48px;
+      background: linear-gradient(180deg, var(--bg-warm) 0%, var(--bg) 100%);
+    }
+    .blog-header h1 { font-size: 2.4rem; font-weight: 800; letter-spacing: -1px; }
+    .blog-header p { color: var(--text-secondary); margin-top: 8px; font-size: 1.05rem; }
+    .articles { padding: 48px 0 100px; }
+    .article-card {
+      display: block; background: var(--bg); border: 1px solid #e5e7eb;
+      border-radius: var(--radius); padding: 36px 32px; margin-bottom: 24px;
+      transition: transform 0.3s cubic-bezier(.25,.46,.45,.94), box-shadow 0.3s cubic-bezier(.25,.46,.45,.94), border-color 0.3s ease;
+    }
+    .article-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 32px rgba(0,0,0,0.06);
+      border-color: var(--accent-border);
+    }
+    .article-meta { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+    .article-date {
+      font-size: 0.78rem; font-weight: 600; color: var(--text-muted);
+      text-transform: uppercase; letter-spacing: 0.04em;
+    }
+    .article-card h2 {
+      font-size: 1.3rem; font-weight: 700; line-height: 1.4;
+      margin-bottom: 10px; color: var(--text-primary);
+    }
+    .article-card p {
+      font-size: 0.92rem; color: var(--text-secondary);
+      line-height: 1.7; margin-bottom: 16px;
+    }
+    .article-read {
+      font-size: 0.85rem; font-weight: 600; color: var(--accent);
+      transition: letter-spacing 0.2s ease;
+    }
+    .article-card:hover .article-read { letter-spacing: 0.03em; }
+    footer {
+      border-top: 1px solid #e5e7eb; padding: 36px 0 24px; text-align: center;
+    }
+    .footer-logo { font-size: 1.2rem; font-weight: 800; color: var(--accent); }
+    .footer-tagline { display: block; color: var(--text-muted); font-size: 0.8rem; margin-top: 4px; }
+    .reveal {
+      opacity: 0; will-change: transform, opacity;
+      transition: opacity 0.7s cubic-bezier(.25,.46,.45,.94), transform 0.7s cubic-bezier(.25,.46,.45,.94);
+      transform: translateY(32px);
+    }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+    @media (max-width: 640px) {
+      .blog-header { padding: 40px 20px 32px; }
+      .blog-header h1 { font-size: 1.8rem; }
+      .article-card { padding: 24px 20px; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <a href="index.html" class="nav-logo">Ilm</a>
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="https://github.com/arriqaaq/ilm" target="_blank" rel="noopener noreferrer">GitHub</a>
+    </div>
+  </nav>
+  <header class="blog-header">
+    <div class="container">
+      <h1>Blog</h1>
+      <p>Deep dives into how Ilm is built — architecture, data pipelines, and design decisions.</p>
+    </div>
+  </header>
+  <section class="articles">
+    <div class="container">
+      <a href="articles/launch.html" class="article-card reveal">
+        <div class="article-meta">
+          <span class="article-date">April 2026</span>
+        </div>
+        <h2>Introducing Ilm: Searching the Quran and Sunnah with Graph, Vector, Full-Text Search, and LLMs</h2>
+        <p>Ilm is an open-source, collaborative project to make the Quran and the Sunnah searchable.</p>
+        <span class="article-read">Read article &rarr;</span>
+      </a>
+
+    </div>
+  </section>
+  <footer>
+    <div class="container">
+      <a href="index.html" class="footer-logo">Ilm</a>
+      <span class="footer-tagline">Islamic Knowledge Platform</span>
+    </div>
+  </footer>
+  <script>
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.15, rootMargin: '0px 0px -60px 0px' });
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+  </script>
+</body>
+</html>

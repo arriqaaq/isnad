@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Introducing Ilm: Searching the Quran and Sunnah with Graph, Vector, Full-Text Search, and LLMs — Ilm</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --accent: #c8a96a;
+      --accent-muted: rgba(200, 169, 106, 0.1);
+      --accent-border: rgba(200, 169, 106, 0.15);
+      --text-primary: #1a1a2e;
+      --text-secondary: #4a4a68;
+      --text-muted: #9ca3af;
+      --bg: #ffffff;
+      --bg-warm: #faf8f5;
+      --border: #e5e7eb;
+    }
+    body {
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      color: var(--text-primary);
+      background: var(--bg);
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--accent); }
+    .nav {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 20px 24px; max-width: 780px; margin: 0 auto;
+    }
+    .nav-logo { font-size: 1.3rem; font-weight: 800; color: var(--accent); text-decoration: none; }
+    .nav-links { display: flex; gap: 24px; }
+    .nav-links a { font-size: 0.9rem; font-weight: 500; color: var(--text-secondary); text-decoration: none; transition: color 0.15s; }
+    .nav-links a:hover { color: var(--accent); }
+    .article-header {
+      text-align: center; padding: 48px 24px 32px;
+      background: linear-gradient(180deg, var(--bg-warm) 0%, var(--bg) 100%);
+    }
+    .article-header h1 {
+      font-size: 2rem; font-weight: 800; letter-spacing: -0.5px;
+      max-width: 700px; margin: 0 auto; line-height: 1.3;
+    }
+    .article-date { display: block; margin-top: 12px; font-size: 0.82rem; color: var(--text-muted); }
+    .article-body {
+      max-width: 780px; margin: 0 auto; padding: 40px 24px 80px;
+      font-size: 1.02rem; color: var(--text-secondary);
+    }
+    .article-body h1, .article-body h2, .article-body h3 { color: var(--text-primary); margin: 2em 0 0.6em; }
+    .article-body h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+    .article-body h3 { font-size: 1.2rem; }
+    .article-body p { margin-bottom: 1.2em; }
+    .article-body img { max-width: 100%; border-radius: 8px; margin: 1.5em 0; }
+    .article-body figure { text-align: center; margin: 2em 0; }
+    .article-body figcaption { font-size: 0.82rem; color: var(--text-muted); margin-top: 8px; }
+    .article-body pre {
+      background: #1a1a2e; color: #e2e8f0; border-radius: 12px;
+      padding: 20px; overflow-x: auto; margin: 1.5em 0; font-size: 0.85rem; line-height: 1.6;
+    }
+    .article-body code {
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 0.88em; background: var(--accent-muted);
+      padding: 2px 6px; border-radius: 4px;
+    }
+    .article-body pre code { background: none; padding: 0; }
+    .article-body blockquote {
+      border-left: 3px solid var(--accent-border); padding-left: 16px;
+      margin: 1.5em 0; color: var(--text-muted); font-style: italic;
+    }
+    .article-body table {
+      width: 100%; border-collapse: collapse; margin: 1.5em 0; font-size: 0.9rem;
+    }
+    .article-body th, .article-body td {
+      border: 1px solid var(--border); padding: 10px 14px; text-align: left;
+    }
+    .article-body th { background: var(--bg-warm); font-weight: 600; }
+    .article-body hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+    .article-body ul, .article-body ol { margin: 1em 0; padding-left: 1.5em; }
+    .article-body li { margin-bottom: 0.5em; }
+    footer {
+      border-top: 1px solid var(--border); padding: 36px 0 24px; text-align: center;
+    }
+    .footer-logo { font-size: 1.2rem; font-weight: 800; color: var(--accent); text-decoration: none; }
+    .footer-tagline { display: block; color: var(--text-muted); font-size: 0.8rem; margin-top: 4px; }
+    /* Override Prism theme to match site dark code blocks */
+    .article-body pre[class*="language-"] {
+      background: #1a1a2e; border-radius: 12px; padding: 20px;
+      margin: 1.5em 0; overflow-x: auto; font-size: 0.85rem; line-height: 1.6;
+    }
+    .article-body code[class*="language-"] { background: none; padding: 0; font-size: 0.85rem; }
+  </style>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+</head>
+<body>
+  <nav class="nav">
+    <a href="../index.html" class="nav-logo">Ilm</a>
+    <div class="nav-links">
+      <a href="../blog.html">Blog</a>
+      <a href="https://github.com/arriqaaq/ilm" target="_blank" rel="noopener noreferrer">GitHub</a>
+    </div>
+  </nav>
+  <header class="article-header">
+    <h1>Introducing Ilm: Searching the Quran and Sunnah with Graph, Vector, Full-Text Search, and LLMs</h1>
+    <span class="article-date">April 2026</span>
+  </header>
+  <article class="article-body">
+    <p>بسم الله الرحمن الرحيم</p>
+<hr />
+<h2 id="an-open-source-project-for-islamic-knowledge">An Open-Source Project for Islamic Knowledge</h2>
+<p><strong>Ilm</strong> is an open-source, collaborative project to make the Quran and the Sunnah searchable.</p>
+<p>It currently indexes <strong>34,457 hadiths</strong> from the six canonical collections (<em>Kutub al-Sittah</em>) with <strong>18,000+ identified narrators</strong> and their transmission chains. The Quran is included with all 114 surahs, Tafsir Ibn Kathir commentary, word-by-word morphological analysis, and cross-references to related hadiths.</p>
+<p>The infrastructure supports expansion. The <a href="https://data.mendeley.com/datasets/5xth87zwb5/5">Sanadset dataset</a> covers <strong>650,000+ records from 926 books</strong> across the broader hadith literature. The project is open source and built to be extended.</p>
+<p>Imagine what becomes possible when the hadith corpus is complete — every book, every chain, every narrator, searchable by meaning and traversable by graph. That is what this project is building toward. The architecture is designed so that adding a new hadith collection or tafsir source is a data ingestion task, not a rewrite. Whether you work with Arabic NLP, graph databases, Islamic scholarship, or frontend development — there is something here to build.</p>
+<h3 id="why-ilm">Why "Ilm"</h3>
+<p>For Muslims, the Quran and the Sunnah are the two primary sources of knowledge. The Quran has been preserved letter by letter through <em>mutawaatir</em> recitation chains spanning fourteen centuries. The Sunnah — the practice, statements, and approvals of the Prophet Muhammad ﷺ — is preserved through the science of hadith: a chain-of-custody system where every report is traced, narrator by narrator, back to the Prophet himself.</p>
+<p>The word <strong>'ilm</strong> (عِلْم) — knowledge — appears throughout the Quran. This project is named after it because that is what it serves: making these two sources searchable using modern tools, while staying grounded in the classical methodology that preserved them.</p>
+<h3 id="what-ilm-provides">What Ilm Provides</h3>
+<ul>
+<li><strong>Quran Reader</strong> — 114 surahs with Tajweed Arabic, English translation, Tafsir Ibn Kathir, word-by-word morphology, early manuscript images, and similar phrase detection</li>
+<li><strong>Hadith Explorer</strong> — 34,457 hadiths from the six canonical collections with Arabic/English text, narrator chains, and cross-references to Quran verses</li>
+<li><strong>Narrator Networks</strong> — 18,000+ narrators with interactive graph visualization, reliability assessments, and teacher-student transmission networks</li>
+<li><strong>Isnad Analysis</strong> — chain continuity, transmission breadth, pivot narrator detection, and word-level text comparison between hadith variants</li>
+<li><strong>Hybrid Search</strong> — bilingual (Arabic + English) BM25 full-text fused with 1024-dim semantic vectors using Reciprocal Rank Fusion</li>
+<li><strong>AI-Powered Q&amp;A</strong> — natural language questions answered from Quran and Hadith sources, running entirely locally via Ollama</li>
+<li><strong>Personal Study Notes</strong> — annotate any ayah or hadith with @mentions that embed Quran verses and hadiths inline</li>
+</ul>
+<p>The rest of this article explains the domain complexity that drives the architecture, the technical challenges involved, and how everything fits together. If you study hadith science, you will recognize the domain concepts and see how they map to a graph database. If you build search systems or work with databases, you will see why this domain needs graph traversal, vector similarity, and full-text search working together — and what that looks like in practice.</p>
+<hr />
+<h2 id="the-domain-why-this-is-complex">The Domain: Why This Is Complex</h2>
+<h3 id="what-is-a-hadith">What Is a Hadith</h3>
+<p>A hadith has two parts: the <strong>sanad</strong> (chain of narration) and the <strong>matn</strong> (text). Every hadith traces its content back to the Prophet through a sequence of named individuals, each of whom transmitted it to the next.</p>
+<p align="center">
+  <img src="../img/hadith-anatomy.svg" alt="Anatomy of a hadith: sanad (chain of 5 narrators across generations) and matn (text)" width="700">
+</p>
+
+<p>In the example above, al-Bukhari (d. 256 AH / 870 CE) records a chain of six narrators linking him back to Jubayr ibn Mut'im, a Companion who heard the Prophet directly. The chain passes through Abdullah ibn Yoosuf, then Maalik ibn Anas, then az-Zuhri (Muhammad ibn Shihaab), then Muhammad ibn Jubayr, then his father Jubayr ibn Mut'im. Every link in this chain is a historical person whose character, memory, and chronological plausibility must be verified.</p>
+<h3 id="the-narrator-graph">The Narrator Graph</h3>
+<p>This is where the modeling challenge begins. The chain structure is not a simple linked list — it is a <strong>dense, directed graph</strong>:</p>
+<p align="center">
+  <img src="../img/narrator-graph.svg" alt="The narrator graph: 18K+ narrators, 34K+ hadiths, ~300K heard_from edges showing cross-links across generations" width="720">
+</p>
+
+<p>A single narrator like Abu Hurayrah (may Allah be pleased with him) appears in over 4,700 hadith chains in the dataset. A single hadith can have <strong>multiple parallel chains</strong> — the same report transmitted through different narrators, creating variant chains that must be tracked separately. Narrators are shared across chains: az-Zuhri appears in the isnads of thousands of hadiths, connected to Companions like Abu Hurayrah and Ibn 'Umar through the Tabi'een who heard from them. Every <code>heard_from</code> edge carries metadata: which specific hadith this transmission belongs to, and the position in the chain.</p>
+<p>At scale: <strong>18,000+ narrator nodes</strong>, <strong>34,457 hadith nodes</strong>, <strong>~300,000 heard_from edges</strong> (student→teacher), and <strong>~150,000 narrates edges</strong> (narrator→hadith). This is not a tree — it is a directed acyclic graph with extensive cross-linking. With the current 6 canonical collections, the graph has ~450K edges. The Sanadset dataset covers 650,000+ hadith records from 926 books — ingesting the full corpus would multiply the graph several times over, with potentially millions of narrator-to-narrator and narrator-to-hadith edges.</p>
+<h3 id="quran-hadith-cross-references">Quran ↔ Hadith Cross-References</h3>
+<p>The Quran and the Sunnah are not separate silos. Hadiths explain Quranic verses, and Quranic verses provide context for hadiths. This creates a bipartite graph:</p>
+<p align="center">
+  <img src="../img/quran-hadith-links.svg" alt="Quran-Hadith cross-references: ayahs linked to multiple hadiths, tafsir chunked per ayah" width="700">
+</p>
+
+<p>A single ayah on righteousness (2:177) references dozens of hadiths on prayer, charity, patience, and kinship. A single hadith on prayer may be referenced by verses across multiple surahs. Each ayah also has <strong>Tafsir Ibn Kathir</strong> commentary — often thousands of words — that is chunked into segments (1500 chars, 200-char overlap) for fine-grained semantic retrieval. Each chunk gets its own embedding.</p>
+<h3 id="arabic-text-challenges">Arabic Text Challenges</h3>
+<p>Arabic script introduces normalization problems that can break the entire graph if not handled:</p>
+<p align="center">
+  <img src="../img/arabic-normalization.svg" alt="Arabic normalization: 4 Unicode representations of Abu Hurayrah converge to 1 canonical form" width="700">
+</p>
+
+<p>The same narrator appears with different diacritics, different alef variants (أ vs إ vs آ vs ا — four Unicode code points), taa marbuta vs haa (ة vs ه), and different grammatical cases for kunya patronymics (ابي in genitive vs ابو in nominative). Without normalization, Abu Hurayrah would be four different records in the database — breaking every isnad chain that passes through him.</p>
+<p>The normalization pipeline strips diacritics (tashkeel: Unicode 0x064B-0x065F), unifies alef variants, converts taa marbuta to haa, normalizes kunya case, and resolves relative references like "his father" to actual narrator names by extracting them from patronymics.</p>
+<p>Arabic morphology also prevents generic stemming for search. The same three-letter root produces dozens of surface forms through vowel patterns, prefixes, and suffixes. A snowball stemmer would incorrectly conflate semantically distinct forms. This is why the project uses separate BM25 analyzers: English gets snowball stemming, Arabic gets tokenization only.</p>
+<h3 id="the-embedding-challenge-why-co-location-matters">The Embedding Challenge: Why Co-Location Matters</h3>
+<p>Every text in the system needs a dense vector embedding for semantic search. But the embeddings must live <strong>alongside the data</strong> — not in a separate vector database:</p>
+<p align="center">
+  <img src="../img/embedding-colocation.svg" alt="Three embedding types (hadith, ayah, tafsir_chunk) co-located with data, enabling single-query RAG retrieval" width="720">
+</p>
+
+<p>Three tables carry 1024-dimensional embeddings (via BGE-M3, a multilingual model):</p>
+<ul>
+<li><strong>hadith</strong> — each of the 34,457 hadiths embeds concatenated Arabic + English text with narrator context</li>
+<li><strong>ayah</strong> — each of the 6,236 Quran verses embeds Arabic + English text</li>
+<li><strong>tafsir_chunk</strong> — tafsir commentary is too long for a single embedding, so it's split into ≤1500-char chunks with 200-char overlap; each chunk gets its own embedding</li>
+</ul>
+<p>All three have HNSW indexes for sub-millisecond KNN search. When the RAG pipeline retrieves a hadith, it needs the text, the narrator chain (via graph traversal), and the similarity score — all in one query. If embeddings lived in Pinecone while text lived in Postgres and chains lived in Neo4j, every retrieval would require three round-trips across three services. With embeddings co-located in the same database as the data they describe, it is one query, one round-trip.</p>
+<h3 id="how-hadith-chains-are-evaluated">How Hadith Chains Are Evaluated</h3>
+<p>The classical science of <em>mustalah al-hadith</em> evaluates chains on multiple dimensions, each of which maps to a database table:</p>
+<ul>
+<li><strong>Route count</strong> — how many independent chains transmit the same hadith. Mapped to <code>isnad_analysis.breadth_class</code>: <em>mutawatir</em> (≥10 at every generation), <em>mashhur</em> (≥3), <em>aziz</em> (≥2), <em>gharib</em> (only 1 at some level)</li>
+<li><strong>Chain continuity</strong> — whether every link in the chain is connected. Mapped to <code>chain_assessment.continuity</code>: <em>muttasil</em> (connected), <em>munqati'</em> (broken), <em>mursal</em> (Tabi'i skips Sahabi), <em>mu'allaq</em> (missing from beginning), <em>mu'dal</em> (2+ consecutive missing)</li>
+<li><strong>Narrator reliability</strong> — each narrator is assessed by classical scholars on a spectrum from fully trustworthy to fabricator, with detailed citations from biographical dictionaries like Ibn Hajar's <em>Taqrib al-Tahdhib</em>. Mapped to the <code>evidence</code> table with source references.</li>
+</ul>
+<p align="center">
+  <img src="../img/hadith-classification.svg" alt="Complete hadith classification taxonomy" width="700">
+</p>
+
+<p>For the complete mustalah al-hadith framework — including all classification types, narrator assessment grades, corroboration rules, and defect detection — see <a href="../docs/METHODOLOGY.md">docs/METHODOLOGY.md</a>.</p>
+<hr />
+<h2 id="the-multi-database-problem">The Multi-Database Problem</h2>
+<p>Consider what a database must handle to model this domain:</p>
+<ol>
+<li><strong>Deep graph traversal</strong> — narrator chains 10-15+ nodes deep, reachability computation, bottleneck detection, chronology validation (a generation-1 Companion cannot have heard from a generation-3 scholar)</li>
+<li><strong>Full-text bilingual search</strong> — BM25 on Arabic text (no stemming) and English text (snowball stemming), fused into a single ranked list</li>
+<li><strong>Vector search at scale</strong> — 1024-dim HNSW KNN across 34K+ hadiths, 6K+ ayahs, and ~20K tafsir chunks</li>
+<li><strong>Metadata on edges</strong> — <code>heard_from</code> edges carry <code>hadith_ref</code> and <code>chain_position</code>; <code>narrates</code> edges carry <code>chain_position</code></li>
+<li><strong>Fusion in a single query</strong> — BM25 English + BM25 Arabic + vector KNN fused with Reciprocal Rank Fusion</li>
+<li><strong>RAG context assembly</strong> — vector search to find relevant hadiths + graph traversal to fetch narrator chains + text retrieval for tafsir — all in one round-trip to build LLM context</li>
+</ol>
+<p align="center">
+  <img src="../img/database-comparison.svg" alt="Traditional 4-database approach vs single SurrealDB" width="700">
+</p>
+
+<p>The traditional approach requires Neo4j for the graph, Elasticsearch for BM25, Pinecone for vectors, and PostgreSQL for relational data — four services, four query languages, and custom orchestration code to join results across them.</p>
+<p>I had attempted this project multiple times over the years, each time getting stuck on this orchestration. SurrealDB was the first database where I could model narrator chains as graph edges, index hadith texts for BM25, index embeddings for HNSW vector search, and fuse all three result sets with a single <code>search::rrf()</code> call — in one query, one round-trip, one database.</p>
+<hr />
+<h2 id="architecture">Architecture</h2>
+<p align="center">
+  <img src="../img/architecture.svg" alt="Architecture: SvelteKit → Rust/Axum → SurrealDB + FastEmbed + Ollama" width="700">
+</p>
+
+<ul>
+<li><strong>Backend</strong>: Rust with Axum (async HTTP)</li>
+<li><strong>Frontend</strong>: SvelteKit 2 with Svelte 5 (static SPA served by Axum)</li>
+<li><strong>Database</strong>: SurrealDB embedded via SurrealKV — no separate server process</li>
+<li><strong>Embeddings</strong>: FastEmbed with BGE-M3 (1024-dim, multilingual) or Multilingual E5-Small (384-dim)</li>
+<li><strong>LLM</strong>: Ollama running locally for RAG Q&amp;A</li>
+</ul>
+<p>The entire application is a single binary. <code>cargo run -- serve</code> starts the database, the API server, and serves the frontend — all in one process.</p>
+<p align="center">
+  <img src="../img/search-flow.svg" alt="Hybrid search: BM25 + Vector → RRF fusion" width="700">
+</p>
+
+<hr />
+<h2 id="schema-deep-dive">Schema Deep Dive</h2>
+<p>Every table, every edge, every index — and how they map to the domain concepts above.</p>
+<h3 id="core-nodes">Core Nodes</h3>
+<pre><code class="language-sql">DEFINE TABLE narrator SCHEMAFULL;
+DEFINE FIELD name_ar           ON narrator TYPE option&lt;string&gt;;
+DEFINE FIELD name_en           ON narrator TYPE string;
+DEFINE FIELD generation        ON narrator TYPE option&lt;string&gt;;  -- tabaqah number
+DEFINE FIELD kunya             ON narrator TYPE option&lt;string&gt;;  -- patronymic (Abu X)
+DEFINE FIELD aliases           ON narrator TYPE option&lt;array&lt;string&gt;&gt;;
+DEFINE FIELD reliability_rating ON narrator TYPE option&lt;string&gt;;
+DEFINE FIELD ibn_hajar_rank    ON narrator TYPE option&lt;string&gt;;
+DEFINE FIELD hadith_count      ON narrator TYPE option&lt;int&gt;;    -- pre-computed via graph
+DEFINE INDEX narrator_name ON narrator FIELDS name_en;
+</code></pre>
+<p>The <code>hadith_count</code> is pre-computed with a single graph aggregation query: <code>UPDATE narrator SET hadith_count = count(-&gt;narrates-&gt;hadith)</code>.</p>
+<pre><code class="language-sql">DEFINE TABLE hadith SCHEMAFULL;
+DEFINE FIELD text_ar       ON hadith TYPE option&lt;string&gt;;
+DEFINE FIELD text_en       ON hadith TYPE option&lt;string&gt;;
+DEFINE FIELD hadith_type   ON hadith TYPE option&lt;string&gt;;  -- marfoo'/mawqoof/qudsee
+DEFINE FIELD embedding     ON hadith TYPE option&lt;array&lt;float&gt;&gt;;
+DEFINE INDEX hadith_vec ON hadith FIELDS embedding HNSW DIMENSION 1024 DIST COSINE;
+</code></pre>
+<h3 id="graph-edges-the-core-of-isnad">Graph Edges: The Core of Isnad</h3>
+<p align="center">
+  <img src="../img/schema-edges.svg" alt="SurrealQL graph edges with metadata: heard_from, narrates, belongs_to, references_hadith" width="700">
+</p>
+
+<pre><code class="language-sql">-- &quot;Narrator B heard from Narrator A&quot; (student → teacher, toward Prophet)
+DEFINE TABLE heard_from TYPE RELATION FROM narrator TO narrator;
+DEFINE FIELD hadith_ref    ON heard_from TYPE option&lt;record&lt;hadith&gt;&gt;;
+DEFINE FIELD chain_position ON heard_from TYPE option&lt;int&gt;;
+
+-- &quot;Narrator narrates Hadith&quot;
+DEFINE TABLE narrates TYPE RELATION FROM narrator TO hadith;
+DEFINE FIELD chain_position ON narrates TYPE option&lt;int&gt;;
+
+-- &quot;Hadith belongs to Book&quot;
+DEFINE TABLE belongs_to TYPE RELATION FROM hadith TO book;
+</code></pre>
+<p>Reconstructing a full chain:</p>
+<pre><code class="language-sql">SELECT in AS student, out AS teacher, chain_position
+  FROM heard_from WHERE hadith_ref = hadith:SB_1
+  ORDER BY chain_position;
+</code></pre>
+<p>Bidirectional narrator traversal:</p>
+<pre><code class="language-sql">-- Teachers
+SELECT -&gt;heard_from-&gt;narrator.* AS teachers FROM narrator:N_123;
+-- Students
+SELECT &lt;-heard_from&lt;-narrator.* AS students FROM narrator:N_123;
+</code></pre>
+<h3 id="quran-and-cross-references">Quran and Cross-References</h3>
+<pre><code class="language-sql">DEFINE TABLE ayah SCHEMAFULL;
+DEFINE FIELD text_ar     ON ayah TYPE string;       -- Uthmani Hafs
+DEFINE FIELD text_en     ON ayah TYPE option&lt;string&gt;;   -- Sahih International
+DEFINE FIELD tafsir_en   ON ayah TYPE option&lt;string&gt;;   -- Ibn Kathir
+DEFINE FIELD embedding   ON ayah TYPE option&lt;array&lt;float&gt;&gt;;
+DEFINE INDEX ayah_vec ON ayah FIELDS embedding HNSW DIMENSION 1024 DIST COSINE;
+
+DEFINE TABLE references_hadith TYPE RELATION IN ayah OUT hadith;
+
+DEFINE TABLE tafsir_chunk SCHEMAFULL;
+DEFINE FIELD ayah_id     ON tafsir_chunk TYPE record&lt;ayah&gt;;
+DEFINE FIELD chunk_text  ON tafsir_chunk TYPE string;
+DEFINE FIELD embedding   ON tafsir_chunk TYPE option&lt;array&lt;float&gt;&gt;;
+DEFINE INDEX tafsir_chunk_vec ON tafsir_chunk FIELDS embedding HNSW DIMENSION 1024 DIST COSINE;
+</code></pre>
+<h3 id="full-text-search-indexes">Full-Text Search Indexes</h3>
+<pre><code class="language-sql">DEFINE ANALYZER en_analyzer TOKENIZERS blank,class FILTERS lowercase,snowball(english);
+DEFINE ANALYZER ar_analyzer TOKENIZERS blank,class;
+
+DEFINE INDEX hadith_text_en ON hadith FIELDS text_en
+    FULLTEXT ANALYZER en_analyzer BM25 HIGHLIGHTS;
+DEFINE INDEX hadith_text_ar ON hadith FIELDS text_ar
+    FULLTEXT ANALYZER ar_analyzer BM25 HIGHLIGHTS;
+</code></pre>
+<h3 id="the-hybrid-search-query">The Hybrid Search Query</h3>
+<p align="center">
+  <img src="../img/hybrid-query.svg" alt="Three search strategies (Vector HNSW, English BM25, Arabic BM25) fused via search::rrf()" width="700">
+</p>
+
+<p>Three search strategies fused in one query:</p>
+<pre><code class="language-sql">LET $vs = SELECT id, vector::distance::knn() AS distance
+    FROM hadith WHERE embedding &lt;|20,80|&gt; $query_vec;
+
+LET $ft_en = SELECT id, search::score(1) AS ft_score
+    FROM hadith WHERE text_en @1@ 'prayer at night'
+    ORDER BY ft_score DESC LIMIT 20;
+
+LET $ft_ar = SELECT id, search::score(2) AS ft_score
+    FROM hadith WHERE text_ar @2@ 'قيام الليل'
+    ORDER BY ft_score DESC LIMIT 20;
+
+RETURN search::rrf([$vs, $ft_en, $ft_ar], 20, 60);
+</code></pre>
+<p>Vector KNN, English BM25, Arabic BM25 — fused with Reciprocal Rank Fusion (k=60). One query, one round-trip. The <code>&lt;|20,80|&gt;</code> syntax means "return 20 results, searching through 80 HNSW graph nodes."</p>
+<h3 id="scholarly-evidence-model">Scholarly Evidence Model</h3>
+<pre><code class="language-sql">DEFINE TABLE evidence SCHEMAFULL;
+DEFINE FIELD narrator ON evidence TYPE record&lt;narrator&gt;;
+DEFINE FIELD rating   ON evidence TYPE option&lt;string&gt;;
+DEFINE FIELD scholar  ON evidence TYPE option&lt;string&gt;;
+DEFINE FIELD work     ON evidence TYPE option&lt;string&gt;;
+DEFINE FIELD citation_text ON evidence TYPE option&lt;string&gt;;
+DEFINE FIELD layer    ON evidence TYPE string;  -- &quot;reported&quot; or &quot;computed&quot;
+</code></pre>
+<p>Classical assessments from <em>Taqrib al-Tahdhib</em> are stored as "reported" layer evidence with full citations. The tool never overrides classical scholarly judgement.</p>
+<hr />
+<h2 id="rag-graph-enhanced-retrieval">RAG: Graph-Enhanced Retrieval</h2>
+<p>The project implements three RAG modes, all running locally via Ollama:</p>
+<p align="center">
+  <img src="../img/rag-pipeline.svg" alt="RAG pipeline: embed → intent classification → parallel search → chain traversal → context build → LLM stream" width="720">
+</p>
+
+<h3 id="unified-rag-quran-hadith">Unified RAG (Quran + Hadith)</h3>
+<ol>
+<li><strong>Embed</strong> the user's question with BGE-M3 (1024-dim, multilingual)</li>
+<li><strong>Parallel HNSW search</strong>: 4 most relevant ayahs + 4 most relevant hadiths</li>
+<li><strong>Graph traversal</strong>: batch-fetch narrator chains for all retrieved hadiths with a single query: <code>SELECT out AS hadith, in.name_ar, in.name_en FROM narrates WHERE out IN $hids</code></li>
+<li><strong>Build context</strong>: ayah references (surah:ayah + text + tafsir truncated to 1000 chars) + hadith references (number + chain + text)</li>
+<li><strong>Stream</strong> response from Ollama with system prompt: <em>"Answer using ONLY the Quranic verses and hadiths provided below. Cite surah and ayah numbers. Cite hadith numbers. Mention the chain of narration when relevant."</em></li>
+<li><strong>SSE</strong> to frontend: sources first, then streamed answer with citations</li>
+</ol>
+<h3 id="agentic-rag-intent-classification">Agentic RAG (Intent Classification)</h3>
+<p>For narrator-specific questions ("How many hadiths did Abu Hurayrah narrate?", "Who were az-Zuhri's teachers?"), the system first classifies intent via a lightweight LLM call, then runs <strong>structured graph queries</strong> instead of semantic search:</p>
+<ul>
+<li><code>narrator_info</code> → biography + reliability grade</li>
+<li><code>narrator_count</code> → reads pre-computed <code>hadith_count</code> (O(1))</li>
+<li><code>narrator_teachers</code> → <code>SELECT -&gt;heard_from-&gt;narrator.*</code></li>
+<li><code>narrator_students</code> → <code>SELECT &lt;-heard_from&lt;-narrator.*</code></li>
+<li><code>chain_between</code> → path finding between two narrators</li>
+<li><code>content</code> → falls back to semantic RAG</li>
+</ul>
+<p>This means narrator questions are answered with <strong>exact database results</strong>, not LLM guesses. The LLM only formats the response; the data comes directly from the graph.</p>
+<h3 id="why-one-database-matters-for-rag">Why One Database Matters for RAG</h3>
+<p>SurrealDB functions as a unified context layer for the RAG pipeline. Graph edges, HNSW vector indexes, BM25 full-text indexes, and relational tables coexist in the same engine, queryable in the same SurrealQL statement. The narrator chain traversal (<code>-&gt;heard_from-&gt;narrator</code>) and the vector search (<code>embedding &lt;|4,80|&gt; $query_vec</code>) happen in the same connection, the same transaction. There is no orchestration layer between "find relevant hadiths" and "get the narrator chain for each." The context sent to the LLM includes both semantic relevance and structural provenance — because both come from the same query.</p>
+<p>This matters for a collaborative project that needs to scale. SurrealDB supports multiple deployment modes from the same query language:</p>
+<ul>
+<li><strong>Embedded</strong> (SurrealKV) — single binary, no server process. This is how Ilm runs today: <code>cargo run</code> and everything is in one process.</li>
+<li><strong>Single-node</strong> (RocksDB) — file-based persistent storage for production single-server deployments.</li>
+<li><strong>Distributed</strong> (<a href="https://surrealdb.com/cloud">SurrealDB Cloud</a> or TiKV backend) — multi-node cluster with separation of compute and storage, horizontal scaling for both reads and writes.</li>
+<li><strong>Browser</strong> (WebAssembly + IndexedDB) — runs directly in the browser for offline-capable applications.</li>
+</ul>
+<p>The same SurrealQL queries work across all deployment modes. Ilm can start as an embedded single-binary tool and scale to a distributed service as the corpus grows from 34K hadiths to the full 650K+ records — without rewriting the query layer. The choice of SurrealDB was driven by the modeling requirements described above: graph, vector, full-text, and relational in one engine. That it also provides a scaling path from embedded to distributed is what makes the project viable as a long-term collaborative platform.</p>
+<hr />
+<h2 id="isnad-analysis-engine">Isnad Analysis Engine</h2>
+<p>The mustalah classification is implemented computationally. The engine reports <strong>structural facts</strong> — it does not override classical scholarly grading.</p>
+<ul>
+<li><strong>Hadith Family Clustering</strong>: Variants of the same hadith grouped by embedding similarity (cosine ≥ 0.85) confirmed by shared narrators. Uses Union-Find for efficient clustering.</li>
+<li><strong>Chain Continuity Assessment</strong>: Walks each chain checking heard_from edges, generation gaps, and mursal patterns. Classifies as muttasil, munqati', mursal, mu'allaq, or mu'dal.</li>
+<li><strong>Transmission Breadth</strong>: Groups narrators by tabaqah, counts per level → mutawatir/mashhur/aziz/gharib.</li>
+<li><strong>Pivot Narrator Detection</strong>: Identifies the <em>madar al-isnad</em> — the narrator the family's transmission depends on. Computes bundle coverage, fan-out, and bypass count.</li>
+<li><strong>Chronology Validation</strong>: Rejects impossible <code>heard_from</code> edges where generation gaps ≥ 2 (signals a <em>tahweel</em> — compound chain boundary). Splits concatenated chains at these boundaries.</li>
+<li><strong>Matn Diffing</strong>: Word-level LCS between variant texts, with segments marked as unchanged/added/missing.</li>
+</ul>
+<hr />
+<h2 id="feature-walkthrough">Feature Walkthrough</h2>
+<h3 id="quran-reader">Quran Reader</h3>
+<p align="center">
+  <img src="../img/feature-quran.svg" alt="Quran reader with Tajweed Arabic, translation, and tafsir" width="600">
+</p>
+
+<p>114 surahs with Tajweed Arabic (QPC Hafs font), Sahih International English, expandable Tafsir Ibn Kathir per ayah. Click any word to see its root, lemma, POS, and grammatical features. Early manuscript images from Corpus Coranicum (Berlin-Brandenburg Academy). Mutashabihat (similar phrases) detection across ayahs.</p>
+<h3 id="hadith-explorer">Hadith Explorer</h3>
+<p align="center">
+  <img src="../img/feature-hadith.svg" alt="Hadith browsing with narrator chains" width="600">
+</p>
+
+<p>34,457 hadiths from six collections: Sahih al-Bukhari (7,322), Sahih Muslim (7,454), Sunan an-Nasa'i (5,736), Sunan Abi Dawud (5,244), Sunan Ibn Majah (4,330), Jami at-Tirmidhi (3,925). Each detail page runs a single multi-statement query: hadith text + <code>&lt;-narrates&lt;-narrator</code> for the chain + <code>references_hadith</code> for linked ayahs + <code>-&gt;similar_to-&gt;hadith</code> for related hadiths.</p>
+<h3 id="narrator-networks">Narrator Networks</h3>
+<p align="center">
+  <img src="../img/feature-narrators.svg" alt="Interactive narrator graph visualization" width="600">
+</p>
+
+<p>18,000+ narrators with interactive Sigma.js force-directed graph visualization. Each profile shows teachers, students, hadiths narrated, Ibn Hajar reliability grade, and biographical data. The graph uses tabaqah-based layering.</p>
+<h3 id="hybrid-search">Hybrid Search</h3>
+<p align="center">
+  <img src="../img/feature-search.svg" alt="Unified search across Quran and Hadith" width="600">
+</p>
+
+<p>Three modes: Hybrid (BM25 + vector via RRF), Text (BM25 only), Semantic (vector only). Works in Arabic and English. The Explore page searches Quran and Hadith simultaneously.</p>
+<h3 id="personal-study-notes">Personal Study Notes</h3>
+<p align="center">
+  <img src="../img/feature-notes.svg" alt="Study notes with @mentions" width="600">
+</p>
+
+<p>Rich editor with @mentions: type <code>@2:255</code> to embed Ayat al-Kursi inline, or <code>@bukhari_1</code> for a hadith. Mentions resolve to rich cards with actual Arabic text + translation. Tags, color-coded highlights, full-text search, JSON export. No user accounts — notes stored by device ID.</p>
+<hr />
+<h2 id="data-pipeline">Data Pipeline</h2>
+<p align="center">
+  <img src="../img/ingest-pipeline.svg" alt="Data ingestion pipeline" width="700">
+</p>
+
+<ul>
+<li><strong>SemanticHadith KG V2</strong> (primary) — 34,457 hadiths with fully identified narrator chains. RDF/Turtle → JSON via Python, enriched with reliability grades via 3-pass Arabic name matching.</li>
+<li><strong>Sunnah.com translations</strong> — human English translations, merged via normalized Arabic text matching with cascading key lengths (40→30→20→15→10 chars).</li>
+<li><strong>QUL/Tarteel</strong> — Quran text (QPC Hafs), Sahih International translation, Tafsir Ibn Kathir commentary.</li>
+<li><strong>Quran.com API</strong> — ayah-to-hadith reference mappings, cached locally.</li>
+<li><strong>corpus.quran.com</strong> — word-level morphological analysis for 77,000+ tokens.</li>
+<li><strong>Corpus Coranicum</strong> — early manuscript images from Berlin-Brandenburg Academy (live API).</li>
+<li><strong>Embedding generation</strong> — FastEmbed with BGE-M3 (1024-dim, multilingual), batch size 64. Applied to all hadiths, ayahs, and tafsir chunks.</li>
+</ul>
+<hr />
+<h2 id="data-sources-and-acknowledgments">Data Sources and Acknowledgments</h2>
+<p>This project would not exist without the following open-source datasets and academic work:</p>
+<table>
+<thead>
+<tr>
+<th>Dataset</th>
+<th>Source</th>
+<th>Records</th>
+<th>License</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="https://github.com/A-Kamran/SemanticHadith-V2">SemanticHadith KG V2</a></td>
+<td>A. Kamran et al., <em>Journal of Web Semantics</em> 2023</td>
+<td>34,457 hadiths, 6,786 narrators</td>
+<td>Academic open access</td>
+</tr>
+<tr>
+<td><a href="https://huggingface.co/datasets/meeAtif/hadith_datasets">Sunnah.com translations</a></td>
+<td>HuggingFace / sunnah.com</td>
+<td>Human English for 6 collections</td>
+<td>Various</td>
+</tr>
+<tr>
+<td><a href="https://github.com/somaia02/Narrator-Disambiguation">AR-Sanad</a></td>
+<td>Somaia et al., <em>Information</em> 2022</td>
+<td>18,298 narrators with Ibn Hajar grades</td>
+<td>Open</td>
+</tr>
+<tr>
+<td><a href="https://qul.tarteel.ai/">QUL / Tarteel</a></td>
+<td>Tarteel AI</td>
+<td>Quran text, translations, tafsir</td>
+<td>Open</td>
+</tr>
+<tr>
+<td><a href="https://corpuscoranicum.de/">Corpus Coranicum</a></td>
+<td>Berlin-Brandenburg Academy</td>
+<td>Early manuscript images</td>
+<td>Academic</td>
+</tr>
+<tr>
+<td><a href="https://corpus.quran.com/">corpus.quran.com</a></td>
+<td>Leeds University</td>
+<td>Word morphology for entire Quran</td>
+<td>Open</td>
+</tr>
+<tr>
+<td><a href="https://data.mendeley.com/datasets/5xth87zwb5/5">Sanadset 650K</a></td>
+<td>Mendeley Data (PMC 9440281)</td>
+<td>650,986 records from 926 books</td>
+<td>CC BY 4.0</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="training-pipeline-the-vision-for-a-grounded-llm">Training Pipeline: The Vision for a Grounded LLM</h2>
+<p align="center">
+  <img src="../img/training-pipeline.svg" alt="Training pipeline: database → Q&A pairs → LoRA → GGUF → Ollama" width="700">
+</p>
+
+<p>Currently, Ilm uses <strong>RAG only</strong> — no fine-tuned model. The Ollama LLM generates answers grounded in retrieved sources, but has no domain-specific training.</p>
+<p>The project includes a training pipeline for when the corpus is large enough to justify it:</p>
+<ol>
+<li><strong>Generate training data</strong> — a Python script reads the ingested database and produces ChatML Q&amp;A pairs matching the exact RAG prompt pattern</li>
+<li><strong>Fine-tune</strong> — LoRA fine-tuning via <a href="https://github.com/unslothai/unsloth">Unsloth</a> on Google Colab</li>
+<li><strong>Export</strong> — convert to GGUF for Ollama deployment (<code>ollama create hadith-scholar -f Modelfile</code>)</li>
+<li><strong>Deploy</strong> — zero backend changes; the Rust <code>OllamaClient</code> already supports model override</li>
+</ol>
+<p>The vision: as more hadith books and tafsir sources are added, generate higher-quality training data grounded in the actual texts. Additional hadith collections (Musnad Ahmad, Muwatta' Malik, Sahih Ibn Khuzaymah), additional tafsir (at-Tabari, al-Qurtubi, as-Sa'di) — each addition enriches both the RAG context and the potential training corpus. This requires time, compute resources, and scholarly review.</p>
+<p>The long-term goal is to reach a point where the corpus is comprehensive enough and the model grounded enough to serve as a reliable study resource globally — available to anyone with an internet connection, in multiple languages, grounded in the authenticated sources rather than internet noise. That requires the community's help: more books, more languages, more scholarly review.</p>
+<hr />
+<h2 id="contributing">Contributing</h2>
+<p>Ilm is open source. The <a href="https://github.com/arriqaaq/ilm">repository</a> contains everything needed to build, ingest, and run the platform from scratch.</p>
+<p>Currently covering the six canonical collections. The expansion path includes:</p>
+<ul>
+<li><strong>More hadith collections</strong> — Musnad Ahmad, Muwatta' Malik, Sahih Ibn Khuzaymah, Sahih Ibn Hibbaan, Sunan al-Bayhaqi, Musannaf 'Abdur-Razzaaq</li>
+<li><strong>Arabic NLP</strong> — better tokenization, morphological analysis for hadith texts</li>
+<li><strong>Narrator disambiguation</strong> — Arabic naming conventions (kunya, laqab, nisba) create difficult deduplication problems</li>
+<li><strong>Additional tafsir</strong> — at-Tabari, al-Qurtubi, as-Sa'di alongside Ibn Kathir</li>
+<li><strong>Scholarly review</strong> — verification of the mustalah analysis against classical references</li>
+<li><strong>UI/UX</strong> — accessibility, mobile, reading modes</li>
+</ul>
+<p>This tool is for study and research, grounded in classical <em>mustalah al-hadith</em> methodology. It reports structural facts about hadith chains and narrator assessments from classical biographical dictionaries — it does not issue religious rulings.</p>
+<p>The scholars of hadith preserved this knowledge with great care and rigor — travelling across lands, spending their lives memorizing, verifying, and documenting. Imam al-Bukhari said: "I have memorized one hundred thousand <em>sahih</em> hadiths, and two hundred thousand hadiths which are not <em>sahih</em>." Imam Muslim said: "I did not include here everything which I consider <em>sahih</em>. I only included what the scholars have agreed upon."</p>
+<p>The least we can do is make their work searchable.</p>
+<p>والحمد لله رب العالمين</p>
+  </article>
+  <footer>
+    <a href="../index.html" class="footer-logo">Ilm</a>
+    <span class="footer-tagline">Islamic Knowledge Platform</span>
+  </footer>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-sql.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-rust.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-toml.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+</body>
+</html>
