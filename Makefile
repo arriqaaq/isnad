@@ -34,9 +34,8 @@ stop:
 # Download pre-built data and database from Google Drive (uses bge-m3 embeddings)
 download-data:
 	@echo "Downloading pre-built data from Google Drive..."
-	pip3 install -q gdown
-	gdown "1X0oYLzCWytm0qTyjmZKAi_d-a0bvSv_d" -O /tmp/data.zip
-	gdown "16KOkdE5g7fGfH3zPwRmyGfzGUnHl444F" -O /tmp/db_data.zip
+	uvx gdown "1X0oYLzCWytm0qTyjmZKAi_d-a0bvSv_d" -O /tmp/data.zip
+	uvx gdown "16KOkdE5g7fGfH3zPwRmyGfzGUnHl444F" -O /tmp/db_data.zip
 	@echo "Extracting data..."
 	unzip -o /tmp/data.zip -d /tmp/ilm-extract
 	unzip -o /tmp/db_data.zip -d /tmp/ilm-extract
@@ -47,8 +46,7 @@ download-data:
 
 # Build blog: convert articles/*.md to site HTML
 blog:
-	pip3 install -q markdown
-	python3 scripts/build_blog.py
+	uv run --with markdown python3 scripts/build_blog.py
 
 # === SemanticHadith KG data preparation (one-time) ===
 
