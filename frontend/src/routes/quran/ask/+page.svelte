@@ -1,6 +1,9 @@
 <script lang="ts">
   import type { ApiAyahSearchResult } from '$lib/types';
   import { truncate } from '$lib/utils';
+  import { marked } from 'marked';
+
+  marked.setOptions({ breaks: true, gfm: true });
 
   interface Message {
     role: 'user' | 'assistant';
@@ -108,7 +111,7 @@
         </div>
         <div class="message-content">
           {#if msg.role === 'assistant'}
-            <div class="assistant-text">{msg.content}{#if msg.streaming}<span class="cursor">|</span>{/if}</div>
+            <div class="assistant-text prose">{@html marked(msg.content)}{#if msg.streaming}<span class="cursor">|</span>{/if}</div>
             {#if msg.sources && msg.sources.length > 0}
               <details class="sources">
                 <summary>Sources ({msg.sources.length} ayahs)</summary>
@@ -153,7 +156,16 @@
   .role-label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
   .message.user .message-content { background: var(--accent-muted); color: var(--text-primary); padding: 12px 16px; border-radius: var(--radius); font-size: 0.9rem; }
   .message.assistant .message-content { background: var(--bg-surface); border: 1px solid var(--border); padding: 16px; border-radius: var(--radius); }
-  .assistant-text { font-size: 0.9rem; line-height: 1.7; white-space: pre-wrap; color: var(--text-primary); }
+  .assistant-text { font-size: 0.9rem; line-height: 1.7; color: var(--text-primary); }
+  .assistant-text :global(p) { margin: 0.5em 0; }
+  .assistant-text :global(strong) { font-weight: 700; color: var(--text-primary); }
+  .assistant-text :global(em) { font-style: italic; }
+  .assistant-text :global(ul), .assistant-text :global(ol) { margin: 0.5em 0; padding-left: 1.5em; }
+  .assistant-text :global(li) { margin: 0.25em 0; }
+  .assistant-text :global(h2) { font-size: 1.05rem; margin: 0.75em 0 0.25em; font-weight: 700; }
+  .assistant-text :global(h3) { font-size: 0.95rem; margin: 0.75em 0 0.25em; font-weight: 700; }
+  .assistant-text :global(code) { background: var(--bg-hover); padding: 2px 5px; border-radius: 3px; font-size: 0.85em; }
+  .assistant-text :global(blockquote) { border-left: 3px solid var(--accent); margin: 0.5em 0; padding: 0.25em 0.75em; color: var(--text-secondary); }
   .cursor { animation: blink 1s step-end infinite; color: var(--accent); }
   @keyframes blink { 50% { opacity: 0; } }
   .sources { margin-top: 12px; border-top: 1px solid var(--border); padding-top: 12px; }
