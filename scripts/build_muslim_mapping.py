@@ -1,0 +1,145 @@
+#!/usr/bin/env python3
+"""
+Build Muslim hadith_number → page_index mapping for Sharh Nawawi.
+
+Two methods combined for 100% coverage:
+  1. Sequential باب alignment with Muslim chapters (~5569 hadiths)
+  2. Interpolation from nearest preceding mapped hadith (fills gaps)
+
+Note: Nawawi uses his own numbering ([N] in text) which differs from Muslim's
+hadith numbers, so we skip direct text marker matching and rely on باب alignment.
+
+Requires:
+  data/nawawi_on_muslim_headings.json  (from fetch_nawawi.py)
+  data/semantic_hadith.json            (source hadith data)
+
+Outputs:
+  data/nawawi_on_muslim_hadith_mapping.json
+"""
+
+import json
+import re
+import os
+import sys
+
+DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
+HEADINGS_FILE = os.path.join(DATA_DIR, "nawawi_on_muslim_headings.json")
+HADITH_FILE = os.path.join(DATA_DIR, "semantic_hadith.json")
+MAPPING_FILE = os.path.join(DATA_DIR, "nawawi_on_muslim_hadith_mapping.json")
+
+# Muslim is book 2 in our BOOK_ORDER (SB=1, SM=2, AD=3, JT=4, AN=5, IM=6)
+BOOK_PREFIX = "SM"
+INTRO_PAGE_CUTOFF = 140  # commentary starts after intro
+
+
+def main():
+    for path, label in [
+        (HEADINGS_FILE, "Nawawi headings"),
+        (HADITH_FILE, "Semantic hadith data"),
+    ]:
+        if not os.path.exists(path):
+            print(f"Error: {label} not found at {path}")
+            sys.exit(1)
+
+    print("Loading data...")
+    with open(HEADINGS_FILE, "r", encoding="utf-8") as f:
+        nw_data = json.load(f)
+    with open(HADITH_FILE, "r", encoding="utf-8") as f:
+        hadith_data = json.load(f)
+
+    headings = nw_data["indexes"]["headings"]
+    print(f"  Headings: {len(headings)}")
+
+    # === Method 1: Sequential باب alignment ===
+    print("Method 1: Sequential باب alignment...")
+
+    # Extract ordered باب entries from commentary section
+    bab_pages = []
+    for h in headings:
+        if h["page"] < INTRO_PAGE_CUTOFF:
+            continue
+        if "باب" in h["title"] and h["level"] == 2:
+            bab_pages.append(h["page"] - 1)  # 0-based
+
+    # Group Muslim hadiths by chapter
+    muslim = {k: v for k, v in hadith_data["hadiths"].items() if v.get("book") == BOOK_PREFIX}
+    chapters: dict[str, dict] = {}
+    for k, h in muslim.items():
+        ch = h.get("chapter", "")
+        ref = h.get("refNo", 0)
+        if ch not in chapters:
+            chapters[ch] = {"min": ref, "max": ref, "count": 0}
+        chapters[ch]["min"] = min(chapters[ch]["min"], ref)
+        chapters[ch]["max"] = max(chapters[ch]["max"], ref)
+        chapters[ch]["count"] += 1
+
+    sorted_chs = sorted(chapters.items(), key=lambda x: x[1]["min"])
+    print(f"  باب headings: {len(bab_pages)}, our chapters: {len(sorted_chs)}")
+
+    # Map each chapter's hadiths to corresponding باب page
+    combined: dict[int, int] = {}
+    sources: dict[int, str] = {}
+    for i in range(min(len(sorted_chs), len(bab_pages))):
+        ch_id, ch_data = sorted_chs[i]
+        page_idx = bab_pages[i]
+        for ref in range(ch_data["min"], ch_data["max"] + 1):
+            combined[ref] = page_idx
+            sources[ref] = "bab"
+
+    bab_count = len(combined)
+    print(f"  Mapped {bab_count} hadiths via باب alignment")
+
+    # === Method 2: Interpolation for gaps ===
+    print("Method 2: Interpolating gaps...")
+    all_refs = sorted(combined.keys())
+    max_ref = max(h.get("refNo", 0) for h in muslim.values())
+
+    interp_count = 0
+    for ref in range(1, max_ref + 1):
+        if ref not in combined:
+            prev = None
+            for r in all_refs:
+                if r <= ref:
+                    prev = r
+                else:
+                    break
+            if prev:
+                combined[ref] = combined[prev]
+                sources[ref] = "interpolated"
+                interp_count += 1
+
+    print(f"  Interpolated {interp_count} hadiths")
+
+    # Check coverage
+    muslim_refs = set(h.get("refNo", 0) for h in muslim.values())
+    covered = muslim_refs & set(combined.keys())
+
+    # Save
+    output = {}
+    for ref in sorted(combined.keys()):
+        output[str(ref)] = {"page_index": combined[ref]}
+
+    with open(MAPPING_FILE, "w", encoding="utf-8") as f:
+        json.dump(output, f, ensure_ascii=False, indent=2)
+
+    bab_final = sum(1 for v in sources.values() if v == "bab")
+    interp_final = sum(1 for v in sources.values() if v == "interpolated")
+
+    print(f"\nResults:")
+    print(f"  Method 1 (sequential باب):     {bab_final:>5} hadiths")
+    print(f"  Method 2 (interpolated):       {interp_final:>5} hadiths")
+    print(f"  Total mapped:                  {len(combined):>5}")
+    print(f"  Coverage vs our Muslim data:   {len(covered)}/{len(muslim_refs)} = {len(covered)/len(muslim_refs)*100:.1f}%")
+    print(f"  Saved to {MAPPING_FILE}")
+
+    # Spot checks
+    print(f"\nSpot checks:")
+    for h_num in [1, 2, 50, 100, 500, 1000, 3000, 5000, 7000]:
+        if h_num in combined:
+            print(f"  Hadith {h_num:>5} -> page_index {combined[h_num]:>5} ({sources[h_num]})")
+        else:
+            print(f"  Hadith {h_num:>5} -> MISS")
+
+
+if __name__ == "__main__":
+    main()

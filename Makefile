@@ -1,4 +1,4 @@
-.PHONY: build frontend backend server dev stop download-data blog semantic-download semantic-extract semantic-verify semantic-setup ingest ingest-test ingest-full hadith-full hadith-ingest sanadset-download quran-prepare quran-prepare-deps quran-ingest quran-hadith-refs quran-morphology quran-similar quran quran-full quran-check turath-fetch-tafsir turath-fetch-fathulbari turath-fetch turath-mapping turath-ingest-tafsir turath-ingest-fathulbari turath-ingest turath-full turath-check analyze analyze-families analyze-transmission pipeline-check pipeline-test pipeline-full clean
+.PHONY: build frontend backend server dev stop download-data blog semantic-download semantic-extract semantic-verify semantic-setup ingest ingest-test ingest-full hadith-full hadith-ingest sanadset-download quran-prepare quran-prepare-deps quran-ingest quran-hadith-refs quran-morphology quran-similar quran quran-full quran-check turath-fetch-tafsir turath-fetch-fathulbari turath-fetch-nawawi turath-fetch-tuhfat turath-fetch-nasai turath-fetch-awnmabud turath-fetch-ibnmajah turath-fetch turath-mapping turath-ingest-tafsir turath-ingest-fathulbari turath-ingest-nawawi turath-ingest-tuhfat turath-ingest-nasai turath-ingest-awnmabud turath-ingest-ibnmajah turath-ingest turath-full turath-check analyze analyze-families analyze-transmission pipeline-check pipeline-test pipeline-full clean
 
 # SurrealDB HNSW index traversal needs extra stack space
 export RUST_MIN_STACK=8388608
@@ -225,12 +225,37 @@ turath-fetch-tafsir:
 turath-fetch-fathulbari:
 	python3 scripts/fetch_fathulbari.py --pages
 
-# Fetch both books (can run in parallel with -j2)
-turath-fetch: turath-fetch-tafsir turath-fetch-fathulbari
+# Fetch Sharh Nawawi on Muslim from turath.io API (~8 min, resume-safe)
+turath-fetch-nawawi:
+	python3 scripts/fetch_nawawi.py --pages
 
-# Build hadith→Fath al-Bari page mapping (needs: semantic_hadith.json + fath_al_bari_pages.json)
+# Fetch Tuhfat al-Ahwadhi (Tirmidhi sharh) from turath.io API (~10 min, resume-safe)
+turath-fetch-tuhfat:
+	python3 scripts/fetch_tuhfat_ahwadhi.py --pages
+
+# Fetch Sahih Sunan al-Nasa'i from turath.io API (~2 min, resume-safe)
+turath-fetch-nasai:
+	python3 scripts/fetch_sahih_nasai.py --pages
+
+# Fetch Awn al-Ma'bud (Abu Dawud sharh) from turath.io API (~8 min, resume-safe)
+turath-fetch-awnmabud:
+	python3 scripts/fetch_awn_mabud.py --pages
+
+# Fetch Sunan Ibn Majah (Arnaut ed.) from turath.io API (~5 min, resume-safe)
+turath-fetch-ibnmajah:
+	python3 scripts/fetch_ibn_majah.py --pages
+
+# Fetch all books (can run in parallel with -j7)
+turath-fetch: turath-fetch-tafsir turath-fetch-fathulbari turath-fetch-nawawi turath-fetch-tuhfat turath-fetch-nasai turath-fetch-awnmabud turath-fetch-ibnmajah
+
+# Build hadith→sharh page mappings (needs: semantic_hadith.json + *_headings.json)
 turath-mapping:
 	python3 scripts/build_hadith_mapping.py
+	python3 scripts/build_muslim_mapping.py
+	python3 scripts/build_tirmidhi_mapping.py
+	python3 scripts/build_nasai_mapping.py
+	python3 scripts/build_abu_dawud_mapping.py
+	python3 scripts/build_ibn_majah_mapping.py
 
 # Ingest Tafsir Ibn Kathir into SurrealDB (needs: turath-fetch-tafsir)
 turath-ingest-tafsir:
@@ -255,8 +280,68 @@ turath-ingest-fathulbari:
 		--sharh-mapping data/fath_al_bari_hadith_mapping.json \
 		--sharh-collection-id 1
 
-# Ingest both books into SurrealDB
-turath-ingest: turath-ingest-tafsir turath-ingest-fathulbari
+# Ingest Sharh Nawawi into SurrealDB (needs: turath-fetch-nawawi + turath-mapping)
+turath-ingest-nawawi:
+	cargo run -- ingest-turath \
+		--pages-file data/nawawi_on_muslim_pages.json \
+		--headings-file data/nawawi_on_muslim_headings.json \
+		--book-id 1711 \
+		--name-ar "شرح النووي على مسلم" \
+		--name-en "Sharh Nawawi on Muslim" \
+		--author-ar "النووي" \
+		--sharh-mapping data/nawawi_on_muslim_hadith_mapping.json \
+		--sharh-collection-id 2
+
+# Ingest Tuhfat al-Ahwadhi into SurrealDB (needs: turath-fetch-tuhfat + turath-mapping)
+turath-ingest-tuhfat:
+	cargo run -- ingest-turath \
+		--pages-file data/tuhfat_ahwadhi_pages.json \
+		--headings-file data/tuhfat_ahwadhi_headings.json \
+		--book-id 21662 \
+		--name-ar "تحفة الأحوذي" \
+		--name-en "Tuhfat al-Ahwadhi" \
+		--author-ar "المباركفوري" \
+		--sharh-mapping data/tuhfat_ahwadhi_hadith_mapping.json \
+		--sharh-collection-id 4
+
+# Ingest Sahih Sunan al-Nasa'i into SurrealDB
+turath-ingest-nasai:
+	cargo run -- ingest-turath \
+		--pages-file data/sahih_nasai_pages.json \
+		--headings-file data/sahih_nasai_headings.json \
+		--book-id 1147 \
+		--name-ar "صحيح سنن النسائي" \
+		--name-en "Sahih Sunan al-Nasai" \
+		--author-ar "الألباني" \
+		--sharh-mapping data/sahih_nasai_hadith_mapping.json \
+		--sharh-collection-id 5
+
+# Ingest Awn al-Ma'bud into SurrealDB
+turath-ingest-awnmabud:
+	cargo run -- ingest-turath \
+		--pages-file data/awn_mabud_pages.json \
+		--headings-file data/awn_mabud_headings.json \
+		--book-id 5760 \
+		--name-ar "عون المعبود شرح سنن أبي داود" \
+		--name-en "Awn al-Mabud" \
+		--author-ar "العظيم آبادي" \
+		--sharh-mapping data/awn_mabud_hadith_mapping.json \
+		--sharh-collection-id 3
+
+# Ingest Sunan Ibn Majah into SurrealDB
+turath-ingest-ibnmajah:
+	cargo run -- ingest-turath \
+		--pages-file data/ibn_majah_pages.json \
+		--headings-file data/ibn_majah_headings.json \
+		--book-id 98138 \
+		--name-ar "سنن ابن ماجه - ت الأرنؤوط" \
+		--name-en "Sunan Ibn Majah" \
+		--author-ar "ابن ماجه" \
+		--sharh-mapping data/ibn_majah_hadith_mapping.json \
+		--sharh-collection-id 6
+
+# Ingest all books into SurrealDB
+turath-ingest: turath-ingest-tafsir turath-ingest-fathulbari turath-ingest-nawawi turath-ingest-tuhfat turath-ingest-nasai turath-ingest-awnmabud turath-ingest-ibnmajah
 
 # Full turath pipeline: fetch → mapping → ingest
 # Note: turath-mapping needs data/semantic_hadith.json (run make semantic-setup first if missing)
@@ -271,6 +356,16 @@ turath-check:
 	test -f data/tafsir_verse_mapping.json         && echo "  ✓ data/tafsir_verse_mapping.json" || echo "  ○ data/tafsir_verse_mapping.json (built by fetch_tafsir.py)"; \
 	test -f data/fath_al_bari_pages.json           && echo "  ✓ data/fath_al_bari_pages.json" || echo "  ○ data/fath_al_bari_pages.json (will fetch from turath.io)"; \
 	test -f data/fath_al_bari_hadith_mapping.json  && echo "  ✓ data/fath_al_bari_hadith_mapping.json" || echo "  ○ data/fath_al_bari_hadith_mapping.json (built by build_hadith_mapping.py)"; \
+	test -f data/nawawi_on_muslim_pages.json        && echo "  ✓ data/nawawi_on_muslim_pages.json" || echo "  ○ data/nawawi_on_muslim_pages.json (will fetch from turath.io)"; \
+	test -f data/nawawi_on_muslim_hadith_mapping.json && echo "  ✓ data/nawawi_on_muslim_hadith_mapping.json" || echo "  ○ data/nawawi_on_muslim_hadith_mapping.json (built by build_muslim_mapping.py)"; \
+	test -f data/tuhfat_ahwadhi_pages.json             && echo "  ✓ data/tuhfat_ahwadhi_pages.json" || echo "  ○ data/tuhfat_ahwadhi_pages.json (will fetch from turath.io)"; \
+	test -f data/tuhfat_ahwadhi_hadith_mapping.json    && echo "  ✓ data/tuhfat_ahwadhi_hadith_mapping.json" || echo "  ○ data/tuhfat_ahwadhi_hadith_mapping.json (built by build_tirmidhi_mapping.py)"; \
+	test -f data/sahih_nasai_pages.json                && echo "  ✓ data/sahih_nasai_pages.json" || echo "  ○ data/sahih_nasai_pages.json (will fetch from turath.io)"; \
+	test -f data/sahih_nasai_hadith_mapping.json       && echo "  ✓ data/sahih_nasai_hadith_mapping.json" || echo "  ○ data/sahih_nasai_hadith_mapping.json (built by build_nasai_mapping.py)"; \
+	test -f data/awn_mabud_pages.json                   && echo "  ✓ data/awn_mabud_pages.json" || echo "  ○ data/awn_mabud_pages.json (will fetch from turath.io)"; \
+	test -f data/awn_mabud_hadith_mapping.json          && echo "  ✓ data/awn_mabud_hadith_mapping.json" || echo "  ○ data/awn_mabud_hadith_mapping.json (built by build_abu_dawud_mapping.py)"; \
+	test -f data/ibn_majah_pages.json                  && echo "  ✓ data/ibn_majah_pages.json" || echo "  ○ data/ibn_majah_pages.json (will fetch from turath.io)"; \
+	test -f data/ibn_majah_hadith_mapping.json         && echo "  ✓ data/ibn_majah_hadith_mapping.json" || echo "  ○ data/ibn_majah_hadith_mapping.json (built by build_ibn_majah_mapping.py)"; \
 	echo ""; \
 	if $$ok; then echo "Ready. Run: make turath-full"; else echo "⚠  Fix missing files above first"; exit 1; fi
 
