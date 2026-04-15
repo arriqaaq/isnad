@@ -1,0 +1,236 @@
+use anyhow::Result;
+use serde::Deserialize;
+use std::collections::HashMap;
+use surrealdb::Surreal;
+use surrealdb::types::SurrealValue;
+
+use crate::db::Db;
+
+// ── JSON file structures ──
+
+#[derive(Debug, Deserialize)]
+struct PageMeta {
+    page_id: Option<u32>,
+    page: Option<u32>,
+    vol: Option<String>,
+    #[allow(dead_code)]
+    headings: Option<Vec<String>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct RawPage {
+    page_id: u32,
+    meta: serde_json::Value, // can be string or object
+    text: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct HeadingsFile {
+    meta: serde_json::Value,
+    indexes: IndexesData,
+}
+
+#[derive(Debug, Deserialize)]
+struct IndexesData {
+    headings: Vec<RawHeading>,
+    #[allow(dead_code)]
+    volumes: Option<Vec<String>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct RawHeading {
+    title: String,
+    level: u32,
+    page: u32,
+}
+
+#[derive(Debug, Deserialize)]
+struct MappingEntry {
+    page_index: u32,
+    heading: Option<String>,
+}
+
+// (DB inserts use raw SQL — no struct binding needed)
+
+fn parse_meta(raw: &serde_json::Value) -> PageMeta {
+    match raw {
+        serde_json::Value::String(s) => serde_json::from_str(s).unwrap_or(PageMeta {
+            page_id: None,
+            page: None,
+            vol: None,
+            headings: None,
+        }),
+        serde_json::Value::Object(_) => serde_json::from_value(raw.clone()).unwrap_or(PageMeta {
+            page_id: None,
+            page: None,
+            vol: None,
+            headings: None,
+        }),
+        _ => PageMeta {
+            page_id: None,
+            page: None,
+            vol: None,
+            headings: None,
+        },
+    }
+}
+
+pub async fn ingest(
+    db: &Surreal<Db>,
+    pages_file: &str,
+    headings_file: &str,
+    mapping_file: &str,
+) -> Result<()> {
+    crate::db::init_turath_schema(db).await?;
+
+    // Check if already ingested
+    let count: Option<CountResult> = db
+        .query("SELECT count() AS c FROM turath_page GROUP ALL")
+        .await?
+        .take(0)?;
+    if count.map(|c| c.c as u64).unwrap_or(0) > 0 {
+        tracing::info!("Turath pages already ingested, skipping");
+        return Ok(());
+    }
+
+    // 1. Load and insert headings/book metadata
+    tracing::info!("Loading headings from {headings_file}...");
+    let headings_raw = std::fs::read_to_string(headings_file)?;
+    let headings_data: HeadingsFile = serde_json::from_str(&headings_raw)?;
+
+    let book_name = headings_data
+        .meta
+        .get("name")
+        .and_then(|v| v.as_str())
+        .unwrap_or("تفسير ابن كثير")
+        .to_string();
+
+    // Serialize headings to JSON string for storage
+    let headings_json: Vec<serde_json::Value> = headings_data
+        .indexes
+        .headings
+        .iter()
+        .map(|h| {
+            serde_json::json!({
+                "title": h.title,
+                "level": h.level,
+                "page_index": h.page
+            })
+        })
+        .collect();
+    let headings_str = serde_json::to_string(&headings_json)?;
+
+    // 2. Load pages
+    tracing::info!("Loading pages from {pages_file}...");
+    let pages_raw = std::fs::read_to_string(pages_file)?;
+    let pages: Vec<RawPage> = serde_json::from_str(&pages_raw)?;
+    let total_pages = pages.len() as u32;
+    tracing::info!("Loaded {total_pages} pages");
+
+    // Insert book record
+    let escaped_name = book_name.replace('\'', "\\'");
+    let escaped_headings = headings_str.replace('\'', "\\'");
+    db.query(&format!(
+        "CREATE turath_book SET book_id = 23604, name_ar = '{escaped_name}', \
+         name_en = 'Tafsir Ibn Kathir', author_ar = 'ابن كثير', \
+         total_pages = {total_pages}, headings = '{escaped_headings}'"
+    ))
+    .await?
+    .check()?;
+    tracing::info!("Inserted turath_book record");
+
+    // 3. Insert pages in batches
+    let batch_size = 100;
+    let bar = indicatif::ProgressBar::new(total_pages as u64);
+    bar.set_style(
+        indicatif::ProgressStyle::default_bar()
+            .template("[{elapsed_precise}] {bar:40} {pos}/{len} pages")?,
+    );
+
+    for chunk in pages.chunks(batch_size) {
+        let mut sql = String::new();
+        for (i, page) in chunk.iter().enumerate() {
+            let meta = parse_meta(&page.meta);
+            let vol = meta.vol.unwrap_or_else(|| "1".to_string());
+            let page_num = meta.page.unwrap_or(0);
+            let page_index = page.page_id - 1; // 0-based index
+
+            // Escape text for SQL
+            let escaped_text = page.text.replace('\\', "\\\\").replace('\'', "\\'");
+            let escaped_vol = vol.replace('\'', "\\'");
+
+            sql.push_str(&format!(
+                "CREATE turath_page SET book_id = 23604, page_index = {page_index}, \
+                 text = '{escaped_text}', vol = '{escaped_vol}', page_num = {page_num};\n"
+            ));
+
+            if i % 10 == 9 || i == chunk.len() - 1 {
+                // Execute batch
+                if let Err(e) = db.query(&sql).await.and_then(|r| r.check()) {
+                    tracing::error!("Failed to insert page batch: {e}");
+                    // Try individual inserts as fallback
+                    for stmt in sql.split(";\n").filter(|s| !s.is_empty()) {
+                        let _ = db.query(stmt).await;
+                    }
+                }
+                sql.clear();
+            }
+        }
+        bar.inc(chunk.len() as u64);
+    }
+    bar.finish();
+    tracing::info!("Inserted {total_pages} turath pages");
+
+    // 4. Load and insert verse mapping
+    tracing::info!("Loading verse mapping from {mapping_file}...");
+    let mapping_raw = std::fs::read_to_string(mapping_file)?;
+    let mapping: HashMap<String, MappingEntry> = serde_json::from_str(&mapping_raw)?;
+    tracing::info!("Loaded {} ayah mappings", mapping.len());
+
+    let mut mapping_sql = String::new();
+    let mut count = 0;
+    for (key, entry) in &mapping {
+        let parts: Vec<&str> = key.split(':').collect();
+        if parts.len() != 2 {
+            continue;
+        }
+        let surah: u32 = parts[0].parse().unwrap_or(0);
+        let ayah: u32 = parts[1].parse().unwrap_or(0);
+        if surah == 0 || ayah == 0 {
+            continue;
+        }
+
+        let heading_sql = match &entry.heading {
+            Some(h) => format!("'{}'", h.replace('\'', "\\'")),
+            None => "NONE".to_string(),
+        };
+
+        mapping_sql.push_str(&format!(
+            "CREATE tafsir_ayah_map SET surah = {surah}, ayah = {ayah}, \
+             book_id = 23604, page_index = {}, heading = {heading_sql};\n",
+            entry.page_index
+        ));
+        count += 1;
+
+        if count % 200 == 0 {
+            if let Err(e) = db.query(&mapping_sql).await.and_then(|r| r.check()) {
+                tracing::error!("Failed to insert mapping batch: {e}");
+            }
+            mapping_sql.clear();
+        }
+    }
+    // Final batch
+    if !mapping_sql.is_empty() {
+        if let Err(e) = db.query(&mapping_sql).await.and_then(|r| r.check()) {
+            tracing::error!("Failed to insert final mapping batch: {e}");
+        }
+    }
+    tracing::info!("Inserted {count} tafsir ayah mappings");
+
+    Ok(())
+}
+
+#[derive(Debug, SurrealValue)]
+struct CountResult {
+    c: i64,
+}

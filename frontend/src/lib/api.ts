@@ -28,6 +28,10 @@ import type {
   NoteRef,
   LinkPreview,
   NoteRefsIndicator,
+  TurathBook,
+  TurathBookDetail,
+  TurathPagesResponse,
+  TafsirSurahMappings,
 } from './types';
 import { getDeviceId } from './stores/deviceId';
 
@@ -351,4 +355,22 @@ export async function exportNotes(): Promise<UserNote[]> {
 
 export async function fetchLinkPreview(url: string): Promise<LinkPreview> {
   return get(`/link-preview?url=${encodeURIComponent(url)}`);
+}
+
+// ── Turath Book Viewer ──
+
+export async function getTurathBooks(): Promise<TurathBook[]> {
+  return get('/turath/books');
+}
+
+export async function getTurathBook(bookId: number): Promise<TurathBookDetail> {
+  return get(`/turath/books/${bookId}`);
+}
+
+export async function getTurathPages(bookId: number, start: number, size: number): Promise<TurathPagesResponse> {
+  return get(`/turath/books/${bookId}/pages?start=${start}&size=${size}`);
+}
+
+export async function getSurahTafsirPages(surahNumber: number): Promise<TafsirSurahMappings> {
+  return get(`/quran/surah/${surahNumber}/tafsir-pages`);
 }

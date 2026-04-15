@@ -1,13 +1,14 @@
 <script lang="ts">
   import { page } from '$app/state';
-  import { getSurah, fetchNoteRefs } from '$lib/api';
-  import type { ApiAyah, ApiAyahSearchResult, SurahDetailResponse, NoteRefsIndicator } from '$lib/types';
+  import { getSurah, fetchNoteRefs, getSurahTafsirPages } from '$lib/api';
+  import type { ApiAyah, ApiAyahSearchResult, SurahDetailResponse, NoteRefsIndicator, TafsirPageRef } from '$lib/types';
   import SurahHeader from '$lib/components/quran/SurahHeader.svelte';
   import AyahCard from '$lib/components/quran/AyahCard.svelte';
   import AyahSidePanel from '$lib/components/quran/AyahSidePanel.svelte';
   import NoteModal from '$lib/components/notes/NoteModal.svelte';
   import LoadingSpinner from '$lib/components/common/LoadingSpinner.svelte';
   import RecitationPlayer from '$lib/components/quran/RecitationPlayer.svelte';
+  import TafsirModal from '$lib/components/reader/TafsirModal.svelte';
   import { preferences } from '$lib/stores/preferences';
 
   let data: SurahDetailResponse | null = $state(null);
@@ -16,6 +17,8 @@
   let panelAyah: ApiAyah | ApiAyahSearchResult | null = $state(null);
   let noteTarget: { refType: 'ayah'; refId: string; label: string } | null = $state(null);
   let noteIndicators: NoteRefsIndicator = $state({});
+  let tafsirMappings: Record<string, TafsirPageRef> = $state({});
+  let tafsirTarget: { pageIndex: number; ayahRef: string } | null = $state(null);
   let playerRef: ReturnType<typeof RecitationPlayer> | undefined = $state(undefined);
 
   let surahNum = $derived(Number(page.params.surah));
@@ -33,6 +36,11 @@
       const refIds = d.ayahs.map((a: ApiAyah) => `${d.surah.surah_number}:${a.ayah_number}`);
       fetchNoteRefs('ayah', refIds)
         .then(indicators => { noteIndicators = indicators; })
+        .catch(() => {});
+
+      // Load tafsir page mappings for this surah
+      getSurahTafsirPages(surahNum)
+        .then(res => { tafsirMappings = res.mappings; })
         .catch(() => {});
 
       // Scroll to specific ayah if ?ayah=N is in the URL
@@ -92,7 +100,9 @@
             onplay={handleAyahPlay}
             onopenpanel={(a) => panelAyah = a}
             onopennote={(a) => { noteTarget = { refType: 'ayah', refId: `${a.surah_number}:${a.ayah_number}`, label: `${a.surah_number}:${a.ayah_number}` }; }}
+            onopentafsir={(info) => { tafsirTarget = info; }}
             noteIndicator={noteIndicators[`${data.surah.surah_number}:${ayah.ayah_number}`]}
+            tafsirPage={tafsirMappings[String(ayah.ayah_number)]}
             {reciterFolder}
           />
         </div>
@@ -121,6 +131,15 @@
     refId={noteTarget.refId}
     refLabel="Quran {noteTarget.refId}"
     onclose={() => noteTarget = null}
+  />
+{/if}
+
+{#if tafsirTarget}
+  <TafsirModal
+    bookId={23604}
+    pageIndex={tafsirTarget.pageIndex}
+    ayahRef={tafsirTarget.ayahRef}
+    onclose={() => { tafsirTarget = null; }}
   />
 {/if}
 

@@ -446,3 +446,46 @@ export interface LinkPreview {
 export interface NoteRefsIndicator {
   [refId: string]: { color: string; count: number };
 }
+
+// ── Turath Book Viewer ──
+
+export interface TurathBook {
+  book_id: number;
+  name_ar: string;
+  name_en: string;
+  author_ar: string;
+  total_pages: number;
+}
+
+export interface TurathBookDetail extends TurathBook {
+  headings: TurathHeading[];
+}
+
+export interface TurathHeading {
+  title: string;
+  level: number;
+  page_index: number;
+}
+
+export interface TurathPage {
+  page_index: number;
+  text: string;
+  vol: string;
+  page_num: number;
+}
+
+export interface TurathPagesResponse {
+  pages: TurathPage[];
+  total: number;
+  start: number;
+  size: number;
+}
+
+export interface TafsirPageRef {
+  page_index: number;
+  heading: string | null;
+}
+
+export interface TafsirSurahMappings {
+  mappings: Record<string, TafsirPageRef>;
+}

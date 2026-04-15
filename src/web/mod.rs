@@ -1,6 +1,7 @@
 pub mod handlers;
 pub mod note_handlers;
 pub mod quran_handlers;
+pub mod turath_handlers;
 
 use std::sync::Arc;
 
@@ -155,6 +156,23 @@ pub async fn serve(
         .route(
             "/api/quran/phrases/{id}",
             axum::routing::get(quran_handlers::phrase_detail),
+        )
+        // Turath book viewer routes
+        .route(
+            "/api/turath/books",
+            axum::routing::get(turath_handlers::list_books),
+        )
+        .route(
+            "/api/turath/books/{book_id}",
+            axum::routing::get(turath_handlers::get_book),
+        )
+        .route(
+            "/api/turath/books/{book_id}/pages",
+            axum::routing::get(turath_handlers::get_pages),
+        )
+        .route(
+            "/api/quran/surah/{number}/tafsir-pages",
+            axum::routing::get(turath_handlers::surah_tafsir_pages),
         )
         // Unified Quran & Sunnah routes
         .route(

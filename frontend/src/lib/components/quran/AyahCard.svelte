@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { ApiAyah, ApiAyahSearchResult, ApiQuranWord } from '$lib/types';
+  import type { ApiAyah, ApiAyahSearchResult, ApiQuranWord, TafsirPageRef } from '$lib/types';
   import { getAyahWords } from '$lib/api';
   import { truncate } from '$lib/utils';
   import { preferences } from '$lib/stores/preferences';
@@ -33,7 +33,7 @@
     }).catch(() => { glyphReady = false; });
   });
 
-  let { ayah, showScore = false, compact = false, active = false, onplay, onopenpanel, onopennote, noteIndicator, reciterFolder }: {
+  let { ayah, showScore = false, compact = false, active = false, onplay, onopenpanel, onopennote, onopentafsir, noteIndicator, reciterFolder, tafsirPage }: {
     ayah: ApiAyah | ApiAyahSearchResult;
     showScore?: boolean;
     compact?: boolean;
@@ -41,8 +41,10 @@
     onplay?: (ayah: number) => void;
     onopenpanel?: (ayah: ApiAyah | ApiAyahSearchResult) => void;
     onopennote?: (ayah: ApiAyah | ApiAyahSearchResult) => void;
+    onopentafsir?: (info: { pageIndex: number; ayahRef: string }) => void;
     noteIndicator?: { color: string; count: number };
     reciterFolder?: string;
+    tafsirPage?: TafsirPageRef;
   } = $props();
 
   function pad3(n: number): string {
@@ -183,6 +185,15 @@
     {#if !compact && onopenpanel}
       <button class="detail-toggle" onclick={() => onopenpanel(ayah)}>
         Details
+      </button>
+    {/if}
+    {#if tafsirPage && onopentafsir}
+      <button
+        class="detail-toggle tafsir-link"
+        onclick={() => onopentafsir({ pageIndex: tafsirPage.page_index, ayahRef: `${ayah.surah_number}:${ayah.ayah_number}` })}
+        title="View Tafsir Ibn Kathir"
+      >
+        Tafsir
       </button>
     {/if}
   </div>
@@ -358,6 +369,15 @@
     background: var(--btn-text);
     color: var(--bg-primary);
     border-color: var(--btn-text);
+  }
+  .tafsir-link {
+    text-decoration: none;
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+  .tafsir-link:hover {
+    background: var(--accent-muted);
+    color: var(--accent);
   }
   .words-toggle:hover, .detail-toggle:hover {
     background: var(--btn-bg-hover);

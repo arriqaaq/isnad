@@ -111,6 +111,24 @@ enum Commands {
         #[arg(long, default_value = "db_data")]
         db_path: String,
     },
+    /// Ingest Tafsir Ibn Kathir from local JSON files (fetched from turath.io)
+    IngestTurath {
+        /// Path to pages JSON file
+        #[arg(long, default_value = "data/tafsir_ibn_kathir_pages.json")]
+        pages_file: String,
+
+        /// Path to headings JSON file
+        #[arg(long, default_value = "data/tafsir_ibn_kathir_headings.json")]
+        headings_file: String,
+
+        /// Path to verse mapping JSON file
+        #[arg(long, default_value = "data/tafsir_verse_mapping.json")]
+        mapping_file: String,
+
+        /// Path to SurrealDB data directory
+        #[arg(long, default_value = "db_data")]
+        db_path: String,
+    },
     /// Start the web server
     Serve {
         /// Port to listen on
@@ -366,6 +384,16 @@ async fn async_main() -> Result<()> {
             quran::similar::ingest_similar(&db, &qul_dir).await?;
             tracing::info!("Quran similar/mutashabihat ingestion complete");
         }
+        Commands::IngestTurath {
+            pages_file,
+            headings_file,
+            mapping_file,
+            db_path,
+        } => {
+            let db = db::connect(&db_path).await?;
+            ingest::turath::ingest(&db, &pages_file, &headings_file, &mapping_file).await?;
+            tracing::info!("Turath ingestion complete");
+        }
         Commands::Serve {
             port,
             db_path,
@@ -381,6 +409,7 @@ async fn async_main() -> Result<()> {
             db::init_quran_similar_schema(&db).await?;
             db::init_tafsir_chunk_schema(&db, dim).await?;
             db::init_reciter_schema(&db).await?;
+            db::init_turath_schema(&db).await?;
             db::init_user_note_schema(&db).await?;
             db::init_link_preview_schema(&db).await?;
             quran::audio::init_reciters(&db).await?;

@@ -519,6 +519,55 @@ pub async fn init_link_preview_schema(db: &Surreal<Db>) -> Result<()> {
     Ok(())
 }
 
+// ── Turath Book Viewer Schema ──
+
+const TURATH_SCHEMA: &str = r#"
+DEFINE TABLE IF NOT EXISTS turath_book SCHEMAFULL;
+DEFINE FIELD IF NOT EXISTS book_id     ON turath_book TYPE int;
+DEFINE FIELD IF NOT EXISTS name_ar     ON turath_book TYPE string;
+DEFINE FIELD IF NOT EXISTS name_en     ON turath_book TYPE string;
+DEFINE FIELD IF NOT EXISTS author_ar   ON turath_book TYPE string;
+DEFINE FIELD IF NOT EXISTS total_pages ON turath_book TYPE int;
+DEFINE FIELD IF NOT EXISTS headings    ON turath_book TYPE option<string>;
+DEFINE INDEX IF NOT EXISTS turath_book_id ON turath_book FIELDS book_id UNIQUE;
+
+DEFINE TABLE IF NOT EXISTS turath_page SCHEMAFULL;
+DEFINE FIELD IF NOT EXISTS book_id     ON turath_page TYPE int;
+DEFINE FIELD IF NOT EXISTS page_index  ON turath_page TYPE int;
+DEFINE FIELD IF NOT EXISTS text        ON turath_page TYPE string;
+DEFINE FIELD IF NOT EXISTS vol         ON turath_page TYPE string;
+DEFINE FIELD IF NOT EXISTS page_num    ON turath_page TYPE int;
+DEFINE INDEX IF NOT EXISTS turath_page_lookup ON turath_page FIELDS book_id, page_index UNIQUE;
+
+DEFINE TABLE IF NOT EXISTS tafsir_ayah_map SCHEMAFULL;
+DEFINE FIELD IF NOT EXISTS surah       ON tafsir_ayah_map TYPE int;
+DEFINE FIELD IF NOT EXISTS ayah        ON tafsir_ayah_map TYPE int;
+DEFINE FIELD IF NOT EXISTS book_id     ON tafsir_ayah_map TYPE int;
+DEFINE FIELD IF NOT EXISTS page_index  ON tafsir_ayah_map TYPE int;
+DEFINE FIELD IF NOT EXISTS heading     ON tafsir_ayah_map TYPE option<string>;
+DEFINE INDEX IF NOT EXISTS tafsir_ayah_lookup ON tafsir_ayah_map FIELDS surah, ayah UNIQUE
+"#;
+
+pub async fn init_turath_schema(db: &Surreal<Db>) -> Result<()> {
+    for (i, stmt) in TURATH_SCHEMA
+        .split(';')
+        .map(|s| s.trim())
+        .filter(|s| !s.is_empty() && !s.starts_with("--"))
+        .enumerate()
+    {
+        let sql = format!("{stmt};");
+        if let Err(e) = db.query(&sql).await.and_then(|r| r.check()) {
+            tracing::error!(
+                "Turath schema statement {i} failed: {e}\n  SQL: {}",
+                stmt.chars().take(120).collect::<String>()
+            );
+            return Err(e.into());
+        }
+    }
+    tracing::info!("Turath book viewer schema initialized");
+    Ok(())
+}
+
 /// Pre-compute hadith_count on every narrator record.
 ///
 /// This avoids expensive `count(->narrates->hadith)` graph traversals on every
