@@ -1,4 +1,4 @@
-.PHONY: build frontend backend server dev stop download-data blog semantic-download semantic-extract semantic-verify semantic-setup ingest ingest-test ingest-full hadith-full hadith-ingest sanadset-download quran-prepare quran-prepare-deps quran-ingest quran-hadith-refs quran-morphology quran-similar quran quran-full quran-check turath-fetch-tafsir turath-fetch-fathulbari turath-fetch-nawawi turath-fetch-tuhfat turath-fetch-nasai turath-fetch-awnmabud turath-fetch-ibnmajah turath-fetch turath-mapping turath-ingest-tafsir turath-ingest-fathulbari turath-ingest-nawawi turath-ingest-tuhfat turath-ingest-nasai turath-ingest-awnmabud turath-ingest-ibnmajah turath-ingest turath-full turath-check analyze analyze-families analyze-transmission pipeline-check pipeline-test pipeline-full clean
+.PHONY: build frontend backend server dev stop download-data blog semantic-download semantic-extract semantic-verify semantic-setup ingest ingest-test ingest-full hadith-full hadith-ingest sanadset-download quran-prepare quran-prepare-deps quran-ingest quran-hadith-refs quran-morphology quran-similar quran quran-full quran-check turath-fetch-tafsir turath-fetch-fathulbari turath-fetch-nawawi turath-fetch-tuhfat turath-fetch-nasai turath-fetch-awnmabud turath-fetch-ibnmajah turath-fetch-tahdhib turath-fetch turath-mapping turath-mapping-narrators turath-ingest-tafsir turath-ingest-fathulbari turath-ingest-nawawi turath-ingest-tuhfat turath-ingest-nasai turath-ingest-awnmabud turath-ingest-ibnmajah turath-ingest-tahdhib turath-ingest turath-full turath-check analyze analyze-families analyze-transmission pipeline-check pipeline-test pipeline-full clean
 
 # SurrealDB HNSW index traversal needs extra stack space
 export RUST_MIN_STACK=8388608
@@ -233,6 +233,10 @@ turath-fetch-nawawi:
 turath-fetch-tuhfat:
 	python3 scripts/fetch_tuhfat_ahwadhi.py --pages
 
+# Fetch Tahdhib al-Tahdhib (narrator bios) from turath.io API (~25 min, resume-safe)
+turath-fetch-tahdhib:
+	python3 scripts/fetch_tahdhib.py --pages
+
 # Fetch Sahih Sunan al-Nasa'i from turath.io API (~2 min, resume-safe)
 turath-fetch-nasai:
 	python3 scripts/fetch_sahih_nasai.py --pages
@@ -245,8 +249,12 @@ turath-fetch-awnmabud:
 turath-fetch-ibnmajah:
 	python3 scripts/fetch_ibn_majah.py --pages
 
-# Fetch all books (can run in parallel with -j7)
-turath-fetch: turath-fetch-tafsir turath-fetch-fathulbari turath-fetch-nawawi turath-fetch-tuhfat turath-fetch-nasai turath-fetch-awnmabud turath-fetch-ibnmajah
+# Fetch all books (can run in parallel with -j8)
+turath-fetch: turath-fetch-tafsir turath-fetch-fathulbari turath-fetch-nawawi turath-fetch-tuhfat turath-fetch-nasai turath-fetch-awnmabud turath-fetch-ibnmajah turath-fetch-tahdhib
+
+# Build narrator→book mappings (needs: semantic_hadith.json + tahdhib_headings.json)
+turath-mapping-narrators:
+	python3 scripts/build_narrator_book_mapping.py
 
 # Build hadith→sharh page mappings (needs: semantic_hadith.json + *_headings.json)
 turath-mapping:
@@ -340,12 +348,23 @@ turath-ingest-ibnmajah:
 		--sharh-mapping data/ibn_majah_hadith_mapping.json \
 		--sharh-collection-id 6
 
+# Ingest Tahdhib al-Tahdhib (narrator bios) into SurrealDB
+turath-ingest-tahdhib:
+	cargo run -- ingest-turath \
+		--pages-file data/tahdhib_pages.json \
+		--headings-file data/tahdhib_headings.json \
+		--book-id 1278 \
+		--name-ar "تهذيب التهذيب" \
+		--name-en "Tahdhib al-Tahdhib" \
+		--author-ar "ابن حجر العسقلاني" \
+		--narrator-mapping data/tahdhib_narrator_mapping.json
+
 # Ingest all books into SurrealDB
-turath-ingest: turath-ingest-tafsir turath-ingest-fathulbari turath-ingest-nawawi turath-ingest-tuhfat turath-ingest-nasai turath-ingest-awnmabud turath-ingest-ibnmajah
+turath-ingest: turath-ingest-tafsir turath-ingest-fathulbari turath-ingest-nawawi turath-ingest-tuhfat turath-ingest-nasai turath-ingest-awnmabud turath-ingest-ibnmajah turath-ingest-tahdhib
 
 # Full turath pipeline: fetch → mapping → ingest
 # Note: turath-mapping needs data/semantic_hadith.json (run make semantic-setup first if missing)
-turath-full: turath-fetch turath-mapping turath-ingest
+turath-full: turath-fetch turath-mapping turath-mapping-narrators turath-ingest
 
 # Check required turath data files
 turath-check:
@@ -366,6 +385,8 @@ turath-check:
 	test -f data/awn_mabud_hadith_mapping.json          && echo "  ✓ data/awn_mabud_hadith_mapping.json" || echo "  ○ data/awn_mabud_hadith_mapping.json (built by build_abu_dawud_mapping.py)"; \
 	test -f data/ibn_majah_pages.json                  && echo "  ✓ data/ibn_majah_pages.json" || echo "  ○ data/ibn_majah_pages.json (will fetch from turath.io)"; \
 	test -f data/ibn_majah_hadith_mapping.json         && echo "  ✓ data/ibn_majah_hadith_mapping.json" || echo "  ○ data/ibn_majah_hadith_mapping.json (built by build_ibn_majah_mapping.py)"; \
+	test -f data/tahdhib_pages.json                    && echo "  ✓ data/tahdhib_pages.json" || echo "  ○ data/tahdhib_pages.json (will fetch from turath.io — ~25 min)"; \
+	test -f data/tahdhib_narrator_mapping.json         && echo "  ✓ data/tahdhib_narrator_mapping.json" || echo "  ○ data/tahdhib_narrator_mapping.json (built by build_narrator_book_mapping.py)"; \
 	echo ""; \
 	if $$ok; then echo "Ready. Run: make turath-full"; else echo "⚠  Fix missing files above first"; exit 1; fi
 

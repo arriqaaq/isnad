@@ -499,3 +499,10 @@ export interface SharhPageRef {
 export interface SharhBatchResponse {
   mappings: Record<string, SharhPageRef>;
 }
+
+export interface NarratorBookRef {
+  turath_book_id: number;
+  page_index: number;
+  entry_num: number | null;
+  book_name: string;
+}

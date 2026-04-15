@@ -33,6 +33,7 @@ import type {
   TurathPagesResponse,
   TafsirSurahMappings,
   SharhBatchResponse,
+  NarratorBookRef,
 } from './types';
 import { getDeviceId } from './stores/deviceId';
 
@@ -374,6 +375,10 @@ export async function getTurathPages(bookId: number, start: number, size: number
 
 export async function getSurahTafsirPages(surahNumber: number): Promise<TafsirSurahMappings> {
   return get(`/quran/surah/${surahNumber}/tafsir-pages`);
+}
+
+export async function getNarratorBooks(narratorId: string): Promise<NarratorBookRef[]> {
+  return get(`/narrators/${encodeURIComponent(narratorId)}/books`);
 }
 
 export async function getHadithSharhPages(bookId: number, hadithNumbers: number[]): Promise<SharhBatchResponse> {

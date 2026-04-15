@@ -100,6 +100,22 @@ struct SharhRow {
 }
 
 #[derive(Debug, SurrealValue)]
+struct NarratorBookRow {
+    turath_book_id: i64,
+    page_index: i64,
+    entry_num: Option<i64>,
+    book_name: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct NarratorBookRef {
+    pub turath_book_id: u64,
+    pub page_index: u64,
+    pub entry_num: Option<u64>,
+    pub book_name: String,
+}
+
+#[derive(Debug, SurrealValue)]
 struct NameRow {
     name_en: String,
 }
@@ -366,6 +382,46 @@ pub async fn hadith_sharh_pages(
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "Failed to get sharh pages",
+            )
+                .into_response()
+        }
+    }
+}
+
+/// Get all book references for a narrator.
+/// GET /api/narrators/:id/books
+pub async fn narrator_books(
+    State(state): State<AppState>,
+    Path(narrator_id): Path<String>,
+) -> impl IntoResponse {
+    let result: Result<Vec<NarratorBookRow>, _> = state
+        .db
+        .query(
+            "SELECT turath_book_id, page_index, entry_num, book_name \
+             FROM narrator_book_map WHERE narrator_id = $nid",
+        )
+        .bind(("nid", narrator_id.clone()))
+        .await
+        .and_then(|mut r| r.take(0));
+
+    match result {
+        Ok(rows) => {
+            let refs: Vec<NarratorBookRef> = rows
+                .into_iter()
+                .map(|r| NarratorBookRef {
+                    turath_book_id: r.turath_book_id as u64,
+                    page_index: r.page_index as u64,
+                    entry_num: r.entry_num.map(|n| n as u64),
+                    book_name: r.book_name,
+                })
+                .collect();
+            Json(refs).into_response()
+        }
+        Err(e) => {
+            tracing::error!("Failed to get narrator books for {narrator_id}: {e}");
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Failed to get narrator books",
             )
                 .into_response()
         }

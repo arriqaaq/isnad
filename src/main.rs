@@ -149,6 +149,10 @@ enum Commands {
         #[arg(long)]
         sharh_collection_id: Option<u32>,
 
+        /// Optional: narrator→book mapping file (for narrator bio books)
+        #[arg(long)]
+        narrator_mapping: Option<String>,
+
         /// Path to SurrealDB data directory
         #[arg(long, default_value = "db_data")]
         db_path: String,
@@ -418,6 +422,7 @@ async fn async_main() -> Result<()> {
             tafsir_mapping,
             sharh_mapping,
             sharh_collection_id,
+            narrator_mapping,
             db_path,
         } => {
             let db = db::connect(&db_path).await?;
@@ -444,6 +449,16 @@ async fn async_main() -> Result<()> {
                     &sharh_file,
                     collection_id,
                     book_id,
+                )
+                .await?;
+            }
+
+            if let Some(narrator_file) = narrator_mapping {
+                ingest::turath::ingest_narrator_book_mapping(
+                    &db,
+                    &narrator_file,
+                    book_id,
+                    &name_en,
                 )
                 .await?;
             }

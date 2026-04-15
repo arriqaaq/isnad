@@ -553,7 +553,15 @@ DEFINE FIELD IF NOT EXISTS book_id       ON hadith_sharh_map TYPE int;
 DEFINE FIELD IF NOT EXISTS sharh_book_id ON hadith_sharh_map TYPE int;
 DEFINE FIELD IF NOT EXISTS page_index    ON hadith_sharh_map TYPE int;
 DEFINE FIELD IF NOT EXISTS context       ON hadith_sharh_map TYPE option<string>;
-DEFINE INDEX IF NOT EXISTS hadith_sharh_lookup ON hadith_sharh_map FIELDS hadith_number, book_id UNIQUE
+DEFINE INDEX IF NOT EXISTS hadith_sharh_lookup ON hadith_sharh_map FIELDS hadith_number, book_id UNIQUE;
+
+DEFINE TABLE IF NOT EXISTS narrator_book_map SCHEMAFULL;
+DEFINE FIELD IF NOT EXISTS narrator_id    ON narrator_book_map TYPE string;
+DEFINE FIELD IF NOT EXISTS turath_book_id ON narrator_book_map TYPE int;
+DEFINE FIELD IF NOT EXISTS page_index     ON narrator_book_map TYPE int;
+DEFINE FIELD IF NOT EXISTS entry_num      ON narrator_book_map TYPE option<int>;
+DEFINE FIELD IF NOT EXISTS book_name      ON narrator_book_map TYPE string;
+DEFINE INDEX IF NOT EXISTS narrator_book_lookup ON narrator_book_map FIELDS narrator_id, turath_book_id UNIQUE
 "#;
 
 pub async fn init_turath_schema(db: &Surreal<Db>) -> Result<()> {

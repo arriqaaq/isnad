@@ -313,6 +313,76 @@ pub async fn ingest_hadith_sharh_mapping(
     Ok(())
 }
 
+/// Ingest narrator→book page mapping (e.g. narrators → Tahdhib al-Tahdhib pages).
+pub async fn ingest_narrator_book_mapping(
+    db: &Surreal<Db>,
+    mapping_file: &str,
+    turath_book_id: u32,
+    book_name: &str,
+) -> Result<()> {
+    // Check if already ingested
+    let count: Option<CountResult> = db
+        .query(
+            "SELECT count() AS c FROM narrator_book_map \
+             WHERE turath_book_id = $bid GROUP ALL",
+        )
+        .bind(("bid", turath_book_id as i64))
+        .await?
+        .take(0)?;
+    if count.map(|c| c.c as u64).unwrap_or(0) > 0 {
+        tracing::info!(
+            "Narrator book mapping for turath_book_id={turath_book_id} already ingested"
+        );
+        return Ok(());
+    }
+
+    tracing::info!("Loading narrator book mapping from {mapping_file}...");
+    let mapping_raw = std::fs::read_to_string(mapping_file)?;
+    let mapping: HashMap<String, NarratorBookEntry> = serde_json::from_str(&mapping_raw)?;
+    tracing::info!("Loaded {} narrator→book mappings", mapping.len());
+
+    let escaped_book_name = book_name.replace('\'', "\\'");
+    let mut sql = String::new();
+    let mut inserted = 0;
+    for (narrator_id, entry) in &mapping {
+        let escaped_nid = narrator_id.replace('\'', "\\'");
+        let entry_num_sql = match entry.entry_num {
+            Some(n) => n.to_string(),
+            None => "NONE".to_string(),
+        };
+
+        sql.push_str(&format!(
+            "CREATE narrator_book_map SET narrator_id = '{escaped_nid}', \
+             turath_book_id = {turath_book_id}, page_index = {}, \
+             entry_num = {entry_num_sql}, book_name = '{escaped_book_name}';\n",
+            entry.page_index
+        ));
+        inserted += 1;
+
+        if inserted % 200 == 0 {
+            if let Err(e) = db.query(&sql).await.and_then(|r| r.check()) {
+                tracing::error!("Failed to insert narrator book mapping batch: {e}");
+            }
+            sql.clear();
+        }
+    }
+    if !sql.is_empty() {
+        if let Err(e) = db.query(&sql).await.and_then(|r| r.check()) {
+            tracing::error!("Failed to insert final narrator book mapping batch: {e}");
+        }
+    }
+    tracing::info!("Inserted {inserted} narrator→book mappings for {book_name}");
+    Ok(())
+}
+
+#[derive(Debug, Deserialize)]
+struct NarratorBookEntry {
+    page_index: u32,
+    entry_num: Option<u32>,
+    #[allow(dead_code)]
+    book_name: Option<String>,
+}
+
 #[derive(Debug, SurrealValue)]
 struct CountResult {
     c: i64,

@@ -1,16 +1,20 @@
 <script lang="ts">
   import { page } from '$app/state';
-  import { getNarrator, getNarratorGraph, updateNarrator, getNarratorIsnadRole } from '$lib/api';
-  import type { NarratorDetailResponse, GraphData, NarratorIsnadRole } from '$lib/types';
+  import { getNarrator, getNarratorGraph, updateNarrator, getNarratorIsnadRole, getNarratorBooks } from '$lib/api';
+  import type { NarratorDetailResponse, GraphData, NarratorIsnadRole, NarratorBookRef } from '$lib/types';
   import NarratorChip from '$lib/components/narrator/NarratorChip.svelte';
   import HadithCard from '$lib/components/hadith/HadithCard.svelte';
   import Badge from '$lib/components/common/Badge.svelte';
   import GraphView from '$lib/components/graph/GraphView.svelte';
   import LoadingSpinner from '$lib/components/common/LoadingSpinner.svelte';
+  import BookViewerModal from '$lib/components/reader/BookViewerModal.svelte';
 
   let data: NarratorDetailResponse | null = $state(null);
   let graphData: GraphData | null = $state(null);
   let isnadRole: NarratorIsnadRole | null = $state(null);
+  let narratorBooks: NarratorBookRef[] = $state([]);
+  let selectedBookRef: NarratorBookRef | null = $state(null);
+  let bookViewerTarget: { bookId: number; pageIndex: number; title: string; subtitle: string } | null = $state(null);
   let loading = $state(true);
   let activeTab: 'network' | 'hadiths' | 'connections' | 'details' = $state('network');
   let saving = $state(false);
@@ -64,6 +68,13 @@
         data = d;
         graphData = g;
         isnadRole = role;
+        // Fetch book references for this narrator
+        getNarratorBooks(id)
+          .then(books => {
+            narratorBooks = books;
+            if (books.length > 0) selectedBookRef = books[0];
+          })
+          .catch(() => {});
         populateForm();
       })
       .catch((e) => console.error('Failed to load narrator:', e))
@@ -174,6 +185,41 @@
 
     {#if data.narrator.bio}
       <div class="bio truncated">{data.narrator.bio}</div>
+    {/if}
+
+    {#if narratorBooks.length > 0}
+      <div class="book-viewer-section">
+        <span class="book-viewer-label">View in Book</span>
+        <div class="book-viewer-controls">
+          {#if narratorBooks.length === 1}
+            <span class="book-viewer-name">{narratorBooks[0].book_name}</span>
+          {:else}
+            <select class="book-viewer-select" onchange={(e) => {
+              const idx = parseInt((e.target as HTMLSelectElement).value);
+              selectedBookRef = narratorBooks[idx] ?? null;
+            }}>
+              {#each narratorBooks as book, i}
+                <option value={i}>{book.book_name}</option>
+              {/each}
+            </select>
+          {/if}
+          <button
+            class="book-viewer-open"
+            onclick={() => {
+              if (selectedBookRef) {
+                bookViewerTarget = {
+                  bookId: selectedBookRef.turath_book_id,
+                  pageIndex: selectedBookRef.page_index,
+                  title: selectedBookRef.book_name,
+                  subtitle: data?.narrator.name_ar || data?.narrator.name_en || ''
+                };
+              }
+            }}
+          >
+            Open
+          </button>
+        </div>
+      </div>
     {/if}
 
     {#if data.narrator.reliability_source}
@@ -307,6 +353,16 @@
   {/if}
 </div>
 
+{#if bookViewerTarget}
+  <BookViewerModal
+    bookId={bookViewerTarget.bookId}
+    pageIndex={bookViewerTarget.pageIndex}
+    title={bookViewerTarget.title}
+    subtitle={bookViewerTarget.subtitle}
+    onclose={() => { bookViewerTarget = null; }}
+  />
+{/if}
+
 <style>
   .narrator-view { padding: 24px; max-width: 1200px; }
   .view-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
@@ -318,6 +374,57 @@
   .location-tag { font-size: 0.75rem; padding: 2px 8px; background: var(--bg-surface); border: 1px solid var(--border); border-radius: 12px; color: var(--text-secondary); }
   .reliability-source { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 16px; font-style: italic; }
   .bio { font-family: var(--font-serif); color: var(--text-secondary); font-size: 0.9rem; line-height: 1.7; padding: 16px; background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 20px; max-height: 200px; overflow: hidden; text-overflow: ellipsis; }
+
+  .book-viewer-section {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 20px;
+  }
+  .book-viewer-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+  .book-viewer-controls { display: flex; align-items: center; gap: 8px; flex: 1; }
+  .book-viewer-name {
+    font-size: 0.85rem;
+    color: var(--text-primary);
+    font-weight: 500;
+  }
+  .book-viewer-select {
+    flex: 1;
+    max-width: 280px;
+    padding: 5px 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-size: 0.82rem;
+    outline: none;
+  }
+  .book-viewer-select:focus { border-color: var(--accent); }
+  .book-viewer-open {
+    padding: 5px 16px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--accent);
+    background: var(--bg-primary);
+    border: 1px solid var(--accent);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all var(--transition);
+    white-space: nowrap;
+  }
+  .book-viewer-open:hover { background: var(--accent-muted); }
+
   .tabs {
     display: flex;
     gap: 4px;
