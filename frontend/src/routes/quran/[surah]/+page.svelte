@@ -8,7 +8,7 @@
   import NoteModal from '$lib/components/notes/NoteModal.svelte';
   import LoadingSpinner from '$lib/components/common/LoadingSpinner.svelte';
   import RecitationPlayer from '$lib/components/quran/RecitationPlayer.svelte';
-  import TafsirModal from '$lib/components/reader/TafsirModal.svelte';
+  import BookViewerModal from '$lib/components/reader/BookViewerModal.svelte';
   import { preferences } from '$lib/stores/preferences';
 
   let data: SurahDetailResponse | null = $state(null);
@@ -135,10 +135,11 @@
 {/if}
 
 {#if tafsirTarget}
-  <TafsirModal
+  <BookViewerModal
     bookId={23604}
     pageIndex={tafsirTarget.pageIndex}
-    ayahRef={tafsirTarget.ayahRef}
+    title="Tafsir Ibn Kathir"
+    subtitle={tafsirTarget.ayahRef}
     onclose={() => { tafsirTarget = null; }}
   />
 {/if}

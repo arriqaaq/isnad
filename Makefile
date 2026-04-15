@@ -1,4 +1,4 @@
-.PHONY: build frontend backend server dev stop download-data blog semantic-download semantic-extract semantic-verify semantic-setup ingest ingest-test ingest-full hadith-full hadith-ingest sanadset-download quran-prepare quran-prepare-deps quran-ingest quran-hadith-refs quran-morphology quran-similar quran quran-full quran-check analyze analyze-families analyze-transmission pipeline-check pipeline-test pipeline-full clean
+.PHONY: build frontend backend server dev stop download-data blog semantic-download semantic-extract semantic-verify semantic-setup ingest ingest-test ingest-full hadith-full hadith-ingest sanadset-download quran-prepare quran-prepare-deps quran-ingest quran-hadith-refs quran-morphology quran-similar quran quran-full quran-check turath-fetch-tafsir turath-fetch-fathulbari turath-fetch turath-mapping turath-ingest-tafsir turath-ingest-fathulbari turath-ingest turath-full turath-check analyze analyze-families analyze-transmission pipeline-check pipeline-test pipeline-full clean
 
 # SurrealDB HNSW index traversal needs extra stack space
 export RUST_MIN_STACK=8388608
@@ -215,6 +215,65 @@ quran: quran-prepare quran-ingest quran-hadith-refs
 quran-full: quran-check quran data/quran-morphology.txt data/morphology-terms-ar.json quran-morphology quran-similar
 
 
+# === Turath book viewer (Tafsir Ibn Kathir + Fath al-Bari) ===
+
+# Fetch Tafsir Ibn Kathir from turath.io API (~7 min, resume-safe)
+turath-fetch-tafsir:
+	python3 scripts/fetch_tafsir.py --pages
+
+# Fetch Fath al-Bari from turath.io API (~15 min, resume-safe)
+turath-fetch-fathulbari:
+	python3 scripts/fetch_fathulbari.py --pages
+
+# Fetch both books (can run in parallel with -j2)
+turath-fetch: turath-fetch-tafsir turath-fetch-fathulbari
+
+# Build hadith→Fath al-Bari page mapping (needs: semantic_hadith.json + fath_al_bari_pages.json)
+turath-mapping:
+	python3 scripts/build_hadith_mapping.py
+
+# Ingest Tafsir Ibn Kathir into SurrealDB (needs: turath-fetch-tafsir)
+turath-ingest-tafsir:
+	cargo run -- ingest-turath \
+		--pages-file data/tafsir_ibn_kathir_pages.json \
+		--headings-file data/tafsir_ibn_kathir_headings.json \
+		--book-id 23604 \
+		--name-ar "تفسير القرآن العظيم" \
+		--name-en "Tafsir Ibn Kathir" \
+		--author-ar "ابن كثير" \
+		--tafsir-mapping data/tafsir_verse_mapping.json
+
+# Ingest Fath al-Bari into SurrealDB (needs: turath-fetch-fathulbari + turath-mapping)
+turath-ingest-fathulbari:
+	cargo run -- ingest-turath \
+		--pages-file data/fath_al_bari_pages.json \
+		--headings-file data/fath_al_bari_headings.json \
+		--book-id 1673 \
+		--name-ar "فتح الباري بشرح البخاري" \
+		--name-en "Fath al-Bari" \
+		--author-ar "ابن حجر العسقلاني" \
+		--sharh-mapping data/fath_al_bari_hadith_mapping.json \
+		--sharh-collection-id 1
+
+# Ingest both books into SurrealDB
+turath-ingest: turath-ingest-tafsir turath-ingest-fathulbari
+
+# Full turath pipeline: fetch → mapping → ingest
+# Note: turath-mapping needs data/semantic_hadith.json (run make semantic-setup first if missing)
+turath-full: turath-fetch turath-mapping turath-ingest
+
+# Check required turath data files
+turath-check:
+	@echo "Checking turath data files..."
+	@ok=true; \
+	test -f data/semantic_hadith.json              && echo "  ✓ data/semantic_hadith.json" || { echo "  ✗ data/semantic_hadith.json (needed for hadith mapping — run: make semantic-setup)"; ok=false; }; \
+	test -f data/tafsir_ibn_kathir_pages.json      && echo "  ✓ data/tafsir_ibn_kathir_pages.json" || echo "  ○ data/tafsir_ibn_kathir_pages.json (will fetch from turath.io)"; \
+	test -f data/tafsir_verse_mapping.json         && echo "  ✓ data/tafsir_verse_mapping.json" || echo "  ○ data/tafsir_verse_mapping.json (built by fetch_tafsir.py)"; \
+	test -f data/fath_al_bari_pages.json           && echo "  ✓ data/fath_al_bari_pages.json" || echo "  ○ data/fath_al_bari_pages.json (will fetch from turath.io)"; \
+	test -f data/fath_al_bari_hadith_mapping.json  && echo "  ✓ data/fath_al_bari_hadith_mapping.json" || echo "  ○ data/fath_al_bari_hadith_mapping.json (built by build_hadith_mapping.py)"; \
+	echo ""; \
+	if $$ok; then echo "Ready. Run: make turath-full"; else echo "⚠  Fix missing files above first"; exit 1; fi
+
 # === Glossary extraction (one-time) ===
 
 # Extract mustalah glossary from PDF (requires: pip install kreuzberg in .venv)
@@ -261,10 +320,11 @@ pipeline-check:
 	echo ""; \
 	if $$ok; then echo "All required files present. Run: make pipeline-full"; else echo "⚠  Download missing files above first"; exit 1; fi
 
-# Full pipeline: hadith + quran (everything from scratch)
+# Full pipeline: hadith + quran + turath books (everything from scratch)
 pipeline-full: pipeline-check
 	$(MAKE) hadith-full
 	$(MAKE) quran-full
+	$(MAKE) turath-full
 	@echo ""
 	@echo "✓ Full pipeline complete. Run: make server"
 

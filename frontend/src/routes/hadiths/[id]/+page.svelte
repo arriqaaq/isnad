@@ -1,7 +1,7 @@
 <script lang="ts">
   import { page } from '$app/state';
-  import { getHadith, getChainGraph } from '$lib/api';
-  import type { HadithDetailResponse, GraphData } from '$lib/types';
+  import { getHadith, getChainGraph, getHadithSharhPages } from '$lib/api';
+  import type { HadithDetailResponse, GraphData, SharhPageRef } from '$lib/types';
   import { stripHtml } from '$lib/utils';
   import { language } from '$lib/stores/language';
   import NarratorChip from '$lib/components/narrator/NarratorChip.svelte';
@@ -10,6 +10,7 @@
   import LoadingSpinner from '$lib/components/common/LoadingSpinner.svelte';
   import NoteModal from '$lib/components/notes/NoteModal.svelte';
   import SavePopover from '$lib/components/notes/SavePopover.svelte';
+  import BookViewerModal from '$lib/components/reader/BookViewerModal.svelte';
 
   let data: HadithDetailResponse | null = $state(null);
   let graphData: GraphData | null = $state(null);
@@ -17,14 +18,28 @@
   let showNotePanel = $state(false);
   let showSavePopover = $state(false);
   let saveBtnEl: HTMLButtonElement | undefined = $state();
+  let sharhPage: SharhPageRef | null = $state(null);
+  let sharhTarget: { bookId: number; pageIndex: number; bookName: string; hadithNumber: number } | null = $state(null);
 
   let id = $derived(page.params.id);
 
   $effect(() => {
     if (!id) return;
     loading = true;
+    sharhPage = null;
     Promise.all([getHadith(id), getChainGraph(id)])
-      .then(([d, g]) => { data = d; graphData = g; })
+      .then(([d, g]) => {
+        data = d; graphData = g;
+        // Fetch sharh mapping for this hadith
+        if (d.hadith.hadith_number && d.hadith.book_id) {
+          getHadithSharhPages(d.hadith.book_id, [d.hadith.hadith_number])
+            .then(res => {
+              const ref = res.mappings[String(d.hadith.hadith_number)];
+              if (ref) sharhPage = ref;
+            })
+            .catch(() => {});
+        }
+      })
       .catch((e) => console.error('Failed to load hadith:', e))
       .finally(() => { loading = false; });
   });
@@ -67,6 +82,15 @@
         <button class="note-btn" onclick={() => { showNotePanel = true; }}>
           &#9998; Note
         </button>
+        {#if sharhPage}
+          {@const sp = sharhPage}
+          <button
+            class="note-btn sharh-btn"
+            onclick={() => { sharhTarget = { bookId: sp.sharh_book_id, pageIndex: sp.page_index, bookName: sp.book_name, hadithNumber: data?.hadith.hadith_number ?? 0 }; }}
+          >
+            Sharh
+          </button>
+        {/if}
       </div>
     </div>
 
@@ -187,6 +211,16 @@
   />
 {/if}
 
+{#if sharhTarget}
+  <BookViewerModal
+    bookId={sharhTarget.bookId}
+    pageIndex={sharhTarget.pageIndex}
+    title={sharhTarget.bookName}
+    subtitle="Hadith {sharhTarget.hadithNumber}"
+    onclose={() => { sharhTarget = null; }}
+  />
+{/if}
+
 <style>
   .hadith-view { padding: 24px; max-width: 900px; }
   .view-header { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; }
@@ -202,6 +236,8 @@
     transition: all var(--transition);
   }
   .note-btn:hover { background: var(--btn-bg-hover); border-color: var(--btn-border-hover); }
+  .sharh-btn { color: var(--accent); border-color: var(--accent); }
+  .sharh-btn:hover { background: var(--accent-muted); }
 
   .narrator-text {
     color: var(--accent);

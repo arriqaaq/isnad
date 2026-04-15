@@ -174,6 +174,10 @@ pub async fn serve(
             "/api/quran/surah/{number}/tafsir-pages",
             axum::routing::get(turath_handlers::surah_tafsir_pages),
         )
+        .route(
+            "/api/hadiths/sharh-pages",
+            axum::routing::get(turath_handlers::hadith_sharh_pages),
+        )
         // Unified Quran & Sunnah routes
         .route(
             "/api/unified/search",

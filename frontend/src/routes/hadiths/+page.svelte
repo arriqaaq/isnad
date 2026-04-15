@@ -1,13 +1,16 @@
 <script lang="ts">
   import { page } from '$app/state';
-  import { getHadiths } from '$lib/api';
-  import type { ApiHadith, PaginatedResponse } from '$lib/types';
+  import { getHadiths, getHadithSharhPages } from '$lib/api';
+  import type { ApiHadith, PaginatedResponse, SharhPageRef } from '$lib/types';
   import HadithCard from '$lib/components/hadith/HadithCard.svelte';
+  import BookViewerModal from '$lib/components/reader/BookViewerModal.svelte';
   import Pagination from '$lib/components/common/Pagination.svelte';
   import LoadingSpinner from '$lib/components/common/LoadingSpinner.svelte';
 
   let result: PaginatedResponse<ApiHadith> | null = $state(null);
   let loading = $state(true);
+  let sharhMappings: Record<string, SharhPageRef> = $state({});
+  let sharhTarget: { bookId: number; pageIndex: number; bookName: string; hadithNumber: number } | null = $state(null);
 
   let currentPage = $derived(Number(page.url.searchParams.get('page')) || 1);
   let bookFilter = $derived(page.url.searchParams.get('book') ? Number(page.url.searchParams.get('book')) : undefined);
@@ -16,6 +19,15 @@
     loading = true;
     try {
       result = await getHadiths({ book: bookFilter, page: currentPage });
+
+      // Fetch sharh mappings for visible hadiths
+      if (result && result.data.length > 0) {
+        const numbers = result.data.map(h => h.hadith_number);
+        const bookId = result.data[0]?.book_id ?? 1;
+        getHadithSharhPages(bookId, numbers)
+          .then(res => { sharhMappings = res.mappings; })
+          .catch(() => {});
+      }
     } catch (e) {
       console.error('Failed to load hadiths:', e);
     } finally {
@@ -24,7 +36,6 @@
   }
 
   $effect(() => {
-    // Re-run when page or book filter changes
     void currentPage;
     void bookFilter;
     load();
@@ -51,7 +62,11 @@
   {:else if result && result.data.length > 0}
     <div class="list">
       {#each result.data as hadith (hadith.id)}
-        <HadithCard {hadith} />
+        <HadithCard
+          {hadith}
+          sharhPage={sharhMappings[String(hadith.hadith_number)]}
+          onopensharh={(info) => { sharhTarget = info; }}
+        />
       {/each}
     </div>
     <Pagination page={result.page} hasMore={result.has_more} onPageChange={changePage} />
@@ -59,6 +74,16 @@
     <div class="empty">No hadiths found.</div>
   {/if}
 </div>
+
+{#if sharhTarget}
+  <BookViewerModal
+    bookId={sharhTarget.bookId}
+    pageIndex={sharhTarget.pageIndex}
+    title={sharhTarget.bookName}
+    subtitle="Hadith {sharhTarget.hadithNumber}"
+    onclose={() => { sharhTarget = null; }}
+  />
+{/if}
 
 <style>
   .hadith-list { padding: 24px; }

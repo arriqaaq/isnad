@@ -32,6 +32,7 @@ import type {
   TurathBookDetail,
   TurathPagesResponse,
   TafsirSurahMappings,
+  SharhBatchResponse,
 } from './types';
 import { getDeviceId } from './stores/deviceId';
 
@@ -373,4 +374,9 @@ export async function getTurathPages(bookId: number, start: number, size: number
 
 export async function getSurahTafsirPages(surahNumber: number): Promise<TafsirSurahMappings> {
   return get(`/quran/surah/${surahNumber}/tafsir-pages`);
+}
+
+export async function getHadithSharhPages(bookId: number, hadithNumbers: number[]): Promise<SharhBatchResponse> {
+  const nums = hadithNumbers.join(',');
+  return get(`/hadiths/sharh-pages?book=${bookId}&numbers=${nums}`);
 }

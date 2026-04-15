@@ -489,3 +489,13 @@ export interface TafsirPageRef {
 export interface TafsirSurahMappings {
   mappings: Record<string, TafsirPageRef>;
 }
+
+export interface SharhPageRef {
+  sharh_book_id: number;
+  page_index: number;
+  book_name: string;
+}
+
+export interface SharhBatchResponse {
+  mappings: Record<string, SharhPageRef>;
+}

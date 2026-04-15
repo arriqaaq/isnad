@@ -111,19 +111,43 @@ enum Commands {
         #[arg(long, default_value = "db_data")]
         db_path: String,
     },
-    /// Ingest Tafsir Ibn Kathir from local JSON files (fetched from turath.io)
+    /// Ingest a turath book (pages + headings) from local JSON files
     IngestTurath {
         /// Path to pages JSON file
-        #[arg(long, default_value = "data/tafsir_ibn_kathir_pages.json")]
+        #[arg(long)]
         pages_file: String,
 
         /// Path to headings JSON file
-        #[arg(long, default_value = "data/tafsir_ibn_kathir_headings.json")]
+        #[arg(long)]
         headings_file: String,
 
-        /// Path to verse mapping JSON file
-        #[arg(long, default_value = "data/tafsir_verse_mapping.json")]
-        mapping_file: String,
+        /// Turath book ID
+        #[arg(long)]
+        book_id: u32,
+
+        /// Book name in Arabic
+        #[arg(long)]
+        name_ar: String,
+
+        /// Book name in English
+        #[arg(long)]
+        name_en: String,
+
+        /// Author name in Arabic
+        #[arg(long)]
+        author_ar: String,
+
+        /// Optional: tafsir ayah mapping file (for Tafsir books)
+        #[arg(long)]
+        tafsir_mapping: Option<String>,
+
+        /// Optional: hadith sharh mapping file (for Sharh books)
+        #[arg(long)]
+        sharh_mapping: Option<String>,
+
+        /// Collection book_id for sharh mapping (e.g. 1 for Bukhari)
+        #[arg(long)]
+        sharh_collection_id: Option<u32>,
 
         /// Path to SurrealDB data directory
         #[arg(long, default_value = "db_data")]
@@ -387,12 +411,44 @@ async fn async_main() -> Result<()> {
         Commands::IngestTurath {
             pages_file,
             headings_file,
-            mapping_file,
+            book_id,
+            name_ar,
+            name_en,
+            author_ar,
+            tafsir_mapping,
+            sharh_mapping,
+            sharh_collection_id,
             db_path,
         } => {
             let db = db::connect(&db_path).await?;
-            ingest::turath::ingest(&db, &pages_file, &headings_file, &mapping_file).await?;
-            tracing::info!("Turath ingestion complete");
+            ingest::turath::ingest_book(
+                &db,
+                &pages_file,
+                &headings_file,
+                book_id,
+                &name_ar,
+                &name_en,
+                &author_ar,
+            )
+            .await?;
+
+            if let Some(tafsir_file) = tafsir_mapping {
+                ingest::turath::ingest_tafsir_mapping(&db, &tafsir_file, book_id).await?;
+            }
+
+            if let Some(sharh_file) = sharh_mapping {
+                let collection_id = sharh_collection_id
+                    .expect("--sharh-collection-id required when --sharh-mapping is provided");
+                ingest::turath::ingest_hadith_sharh_mapping(
+                    &db,
+                    &sharh_file,
+                    collection_id,
+                    book_id,
+                )
+                .await?;
+            }
+
+            tracing::info!("Turath ingestion complete for book {book_id}");
         }
         Commands::Serve {
             port,

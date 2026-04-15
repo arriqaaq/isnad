@@ -545,7 +545,15 @@ DEFINE FIELD IF NOT EXISTS ayah        ON tafsir_ayah_map TYPE int;
 DEFINE FIELD IF NOT EXISTS book_id     ON tafsir_ayah_map TYPE int;
 DEFINE FIELD IF NOT EXISTS page_index  ON tafsir_ayah_map TYPE int;
 DEFINE FIELD IF NOT EXISTS heading     ON tafsir_ayah_map TYPE option<string>;
-DEFINE INDEX IF NOT EXISTS tafsir_ayah_lookup ON tafsir_ayah_map FIELDS surah, ayah UNIQUE
+DEFINE INDEX IF NOT EXISTS tafsir_ayah_lookup ON tafsir_ayah_map FIELDS surah, ayah UNIQUE;
+
+DEFINE TABLE IF NOT EXISTS hadith_sharh_map SCHEMAFULL;
+DEFINE FIELD IF NOT EXISTS hadith_number ON hadith_sharh_map TYPE int;
+DEFINE FIELD IF NOT EXISTS book_id       ON hadith_sharh_map TYPE int;
+DEFINE FIELD IF NOT EXISTS sharh_book_id ON hadith_sharh_map TYPE int;
+DEFINE FIELD IF NOT EXISTS page_index    ON hadith_sharh_map TYPE int;
+DEFINE FIELD IF NOT EXISTS context       ON hadith_sharh_map TYPE option<string>;
+DEFINE INDEX IF NOT EXISTS hadith_sharh_lookup ON hadith_sharh_map FIELDS hadith_number, book_id UNIQUE
 "#;
 
 pub async fn init_turath_schema(db: &Surreal<Db>) -> Result<()> {

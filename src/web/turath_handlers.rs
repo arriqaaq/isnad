@@ -70,7 +70,39 @@ pub struct PaginationParams {
     pub size: Option<u64>,
 }
 
+// ── Sharh response types ──
+
+#[derive(Debug, Serialize)]
+pub struct SharhPageRef {
+    pub sharh_book_id: u64,
+    pub page_index: u64,
+    pub book_name: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct SharhBatchResponse {
+    pub mappings: HashMap<String, SharhPageRef>,
+}
+
+#[derive(Deserialize)]
+pub struct SharhBatchParams {
+    pub book: Option<u64>,
+    pub numbers: Option<String>, // comma-separated hadith numbers
+}
+
 // ── DB row types ──
+
+#[derive(Debug, SurrealValue)]
+struct SharhRow {
+    hadith_number: i64,
+    sharh_book_id: i64,
+    page_index: i64,
+}
+
+#[derive(Debug, SurrealValue)]
+struct NameRow {
+    name_en: String,
+}
 
 #[derive(Debug, SurrealValue)]
 struct BookRow {
@@ -257,6 +289,83 @@ pub async fn surah_tafsir_pages(
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "Failed to get tafsir pages",
+            )
+                .into_response()
+        }
+    }
+}
+
+/// Batch lookup: hadith numbers → sharh page references.
+/// GET /api/hadiths/sharh-pages?book=1&numbers=1,2,3,4,5
+pub async fn hadith_sharh_pages(
+    State(state): State<AppState>,
+    Query(params): Query<SharhBatchParams>,
+) -> impl IntoResponse {
+    let book_id = params.book.unwrap_or(1); // default to Bukhari
+
+    let numbers: Vec<i64> = params
+        .numbers
+        .as_deref()
+        .unwrap_or("")
+        .split(',')
+        .filter_map(|s| s.trim().parse::<i64>().ok())
+        .collect();
+
+    if numbers.is_empty() {
+        return Json(SharhBatchResponse {
+            mappings: HashMap::new(),
+        })
+        .into_response();
+    }
+
+    // Build SQL with IN clause
+    let nums_str = numbers
+        .iter()
+        .map(|n| n.to_string())
+        .collect::<Vec<_>>()
+        .join(",");
+
+    let sql = format!(
+        "SELECT hadith_number, sharh_book_id, page_index FROM hadith_sharh_map \
+         WHERE book_id = {book_id} AND hadith_number IN [{nums_str}]"
+    );
+
+    let result: Result<Vec<SharhRow>, _> = state.db.query(&sql).await.and_then(|mut r| r.take(0));
+
+    // Get sharh book name for display
+    let book_name = match state
+        .db
+        .query("SELECT name_en FROM turath_book WHERE book_id IN (SELECT VALUE sharh_book_id FROM hadith_sharh_map WHERE book_id = $bid LIMIT 1) LIMIT 1")
+        .bind(("bid", book_id as i64))
+        .await
+    {
+        Ok(mut r) => {
+            let row: Option<NameRow> = r.take(0).unwrap_or(None);
+            row.map(|r| r.name_en).unwrap_or_else(|| "Fath al-Bari".to_string())
+        }
+        Err(_) => "Fath al-Bari".to_string(),
+    };
+
+    match result {
+        Ok(rows) => {
+            let mut mappings = HashMap::new();
+            for row in rows {
+                mappings.insert(
+                    row.hadith_number.to_string(),
+                    SharhPageRef {
+                        sharh_book_id: row.sharh_book_id as u64,
+                        page_index: row.page_index as u64,
+                        book_name: book_name.clone(),
+                    },
+                );
+            }
+            Json(SharhBatchResponse { mappings }).into_response()
+        }
+        Err(e) => {
+            tracing::error!("Failed to get sharh pages: {e}");
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Failed to get sharh pages",
             )
                 .into_response()
         }
