@@ -58,9 +58,9 @@ semantic-download:
 	cd /tmp && unzip -o SemanticHadithKGV2.ttl.zip
 	@echo "✓ SemanticHadith TTL extracted to /tmp/SemanticHadithKGV2.ttl"
 
-# Extract TTL to JSON (one-time; rdflib is installed on-the-fly via uvx)
+# Extract TTL to JSON (one-time; rdflib is installed on-the-fly via uv run)
 semantic-extract:
-	uvx --with rdflib python3 scripts/build_semantic_data.py
+	uv run --with rdflib python3 scripts/build_semantic_data.py
 
 # Verify extracted data (stdlib only)
 semantic-verify:
@@ -438,7 +438,7 @@ pipeline-check:
 	@echo "Checking required data files..."
 	@ok=true; \
 	echo "── Hadith ──"; \
-	test -f data/semantic_hadith.json                    && echo "  ✓ data/semantic_hadith.json" || echo "  ○ data/semantic_hadith.json (will auto-build via semantic-setup; uses uvx for rdflib)"; \
+	test -f data/semantic_hadith.json                    && echo "  ✓ data/semantic_hadith.json" || echo "  ○ data/semantic_hadith.json (will auto-build via semantic-setup; uses 'uv run --with rdflib')"; \
 	echo "── Quran ──"; \
 	test -f data/quran.csv                              && echo "  ✓ data/quran.csv" || echo "  ○ data/quran.csv (will auto-generate via quran-prepare)"; \
 	test -f data/quran-morphology.txt                   && echo "  ✓ data/quran-morphology.txt" || echo "  ○ data/quran-morphology.txt (will auto-download)"; \
@@ -493,7 +493,7 @@ pageindex-status: pageindex-deps
 # Full pipeline: hadith + quran + turath books (everything from scratch).
 #
 # Auto-fixed prerequisites (run as Makefile dependencies, no user action):
-#   - data/semantic_hadith.json -> built via semantic-setup (which uses uvx for rdflib)
+#   - data/semantic_hadith.json -> built via semantic-setup (rdflib via 'uv run --with')
 #   - ../PageIndex sibling repo  -> cloned via pageindex-clone
 #
 # Everything else (qul/*.json, UthmanicHafs.woff2) ships with the repo,
