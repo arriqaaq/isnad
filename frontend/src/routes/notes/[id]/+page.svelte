@@ -88,11 +88,11 @@
           onkeydown={(e) => { if (e.key === 'Enter') handleTitleSave(); }}
         />
       {:else}
-        <!-- svelte-ignore a11y_click_events_have_key_events -->
-        <!-- svelte-ignore a11y_no_static_element_interactions -->
-        <h1 class="title" onclick={() => { editingTitle = true; }}>
-          {note.title ?? 'Untitled Note'}
-          <span class="edit-hint">&#9998;</span>
+        <h1 class="title">
+          <button type="button" class="title-btn" onclick={() => { editingTitle = true; }}>
+            {note.title ?? 'Untitled Note'}
+            <span class="edit-hint">&#9998;</span>
+          </button>
         </h1>
       {/if}
       <div class="title-meta">
@@ -147,12 +147,18 @@
     font-family: var(--font-serif);
     font-size: 2rem;
     font-weight: 600;
+    letter-spacing: -0.01em;
+    line-height: 1.3;
+  }
+  .title-btn {
+    all: unset;
     cursor: pointer;
     display: flex;
     align-items: center;
     gap: 10px;
-    letter-spacing: -0.01em;
-    line-height: 1.3;
+    font: inherit;
+    letter-spacing: inherit;
+    color: inherit;
   }
   .edit-hint {
     font-size: 0.8rem;

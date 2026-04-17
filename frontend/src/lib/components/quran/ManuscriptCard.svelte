@@ -24,8 +24,10 @@
 {/if}
 
 {#if showModal}
-  <div class="modal-overlay" onclick={() => showModal = false} role="dialog" aria-modal="true">
-    <div class="modal-content" onclick={(e) => e.stopPropagation()}>
+  <!-- svelte-ignore a11y_interactive_supports_focus -->
+  <div class="modal-overlay" onclick={() => showModal = false} onkeydown={(e) => { if (e.key === 'Escape') showModal = false; }} role="dialog" aria-modal="true">
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div class="modal-content" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()}>
       <button class="modal-close" onclick={() => showModal = false}>&#10005;</button>
       <img class="modal-img" src={imageUrl} alt={manuscript.title} />
       <div class="modal-caption">

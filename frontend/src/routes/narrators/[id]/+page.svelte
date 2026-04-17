@@ -1,17 +1,15 @@
 <script lang="ts">
   import { page } from '$app/state';
-  import { getNarrator, getNarratorGraph, updateNarrator, getNarratorIsnadRole, getNarratorBooks, getTurathPages } from '$lib/api';
-  import type { NarratorDetailResponse, GraphData, NarratorIsnadRole, NarratorBookRef, TurathPage } from '$lib/types';
+  import { getNarrator, getNarratorGraph, updateNarrator, getNarratorBooks, getTurathPages } from '$lib/api';
+  import type { NarratorDetailResponse, GraphData, NarratorBookRef, TurathPage } from '$lib/types';
   import NarratorChip from '$lib/components/narrator/NarratorChip.svelte';
   import HadithCard from '$lib/components/hadith/HadithCard.svelte';
-  import Badge from '$lib/components/common/Badge.svelte';
   import GraphView from '$lib/components/graph/GraphView.svelte';
   import LoadingSpinner from '$lib/components/common/LoadingSpinner.svelte';
   import ReaderPage from '$lib/components/reader/ReaderPage.svelte';
 
   let data: NarratorDetailResponse | null = $state(null);
   let graphData: GraphData | null = $state(null);
-  let isnadRole: NarratorIsnadRole | null = $state(null);
   let narratorBooks: NarratorBookRef[] = $state([]);
   let selectedBookRef: NarratorBookRef | null = $state(null);
   let bioPage: TurathPage | null = $state(null);
@@ -74,8 +72,8 @@
     if (!id) return;
     loading = true;
     activeTab = 'network';
-    Promise.all([getNarrator(id), getNarratorGraph(id), getNarratorIsnadRole(id).catch(() => null)])
-      .then(([d, g, role]) => {
+    Promise.all([getNarrator(id), getNarratorGraph(id)])
+      .then(([d, g]) => {
         const seen = new Set<string>();
         d.hadiths = d.hadiths.filter(h => {
           if (seen.has(h.id)) return false;
@@ -84,7 +82,6 @@
         });
         data = d;
         graphData = g;
-        isnadRole = role;
         // Fetch book references for this narrator
         getNarratorBooks(id)
           .then(books => {
@@ -141,53 +138,41 @@
   {:else if data}
     <div class="hero">
       {#if data.narrator.name_ar}
-        <h1 class="hero-name" dir="rtl">{data.narrator.name_ar}</h1>
+        <h1 class="hero-name">{data.narrator.name_ar}</h1>
       {/if}
       {#if data.narrator.name_en && data.narrator.name_en !== data.narrator.name_ar}
         <h2 class="hero-name-secondary">{data.narrator.name_en}</h2>
       {/if}
 
       <div class="hero-meta">
-        {#if data.narrator.kunya}
-          <span class="meta-item">{data.narrator.kunya}</span>
-        {/if}
         {#if data.narrator.death_year}
-          <span class="meta-dot"></span>
           <span class="meta-item">d. {data.narrator.death_year} {data.narrator.death_calendar === 'gregorian' ? 'CE' : 'AH'}</span>
         {:else if data.narrator.birth_year}
-          <span class="meta-dot"></span>
           <span class="meta-item">b. {data.narrator.birth_year} {data.narrator.birth_calendar === 'gregorian' ? 'CE' : 'AH'}</span>
         {/if}
         {#if data.narrator.generation}
-          <span class="meta-dot"></span>
           <span class="meta-item">Generation {data.narrator.generation}</span>
         {/if}
         {#if data.hadiths.length > 0}
-          <span class="meta-dot"></span>
           <span class="meta-item">{data.hadiths.length} {data.hadiths.length === 1 ? 'hadith' : 'hadiths'}</span>
         {/if}
-        {#if data.narrator.locations && data.narrator.locations.length > 0}
-          <span class="meta-dot"></span>
-          <span class="meta-item">{data.narrator.locations.join(', ')}</span>
+        {#if data.teachers.length > 0}
+          <span class="meta-item meta-teachers">{data.teachers.length} {data.teachers.length === 1 ? 'teacher' : 'teachers'}</span>
         {/if}
-        {#if data.narrator.aliases && data.narrator.aliases.length > 0}
-          <span class="meta-dot"></span>
-          <span class="meta-item meta-aliases">aka {data.narrator.aliases.join(', ')}</span>
+        {#if data.students.length > 0}
+          <span class="meta-item meta-students">{data.students.length} {data.students.length === 1 ? 'student' : 'students'}</span>
+        {/if}
+        {#if data.narrator.locations && data.narrator.locations.length > 0}
+          <span class="meta-item">{data.narrator.locations.join(', ')}</span>
         {/if}
       </div>
 
-      {#if (isnadRole && (isnadRole.pivot_family_count > 0 || isnadRole.bottleneck_family_count > 0)) || data.narrator.gender}
-        <div class="hero-badges">
-          {#if isnadRole && isnadRole.pivot_family_count > 0}
-            <Badge text="Pivot narrator \u00b7 {isnadRole.pivot_family_count} {isnadRole.pivot_family_count === 1 ? 'family' : 'families'}" variant="success" />
-          {/if}
-          {#if isnadRole && isnadRole.bottleneck_family_count > 0}
-            <Badge text="Bottleneck narrator \u00b7 {isnadRole.bottleneck_family_count} {isnadRole.bottleneck_family_count === 1 ? 'family' : 'families'}" variant="warning" />
-          {/if}
-          {#if data.narrator.gender}
-            <Badge text={data.narrator.gender} />
-          {/if}
-        </div>
+      {#if data.narrator.kunya || (data.narrator.aliases && data.narrator.aliases.length > 0)}
+        {@const otherNames = [
+          ...(data.narrator.kunya ? [data.narrator.kunya] : []),
+          ...(data.narrator.aliases ?? [])
+        ]}
+        <p class="hero-also-known">Also known as <span class="known-names">{otherNames.join(' · ')}</span></p>
       {/if}
 
       {#if data.narrator.bio}
@@ -237,8 +222,8 @@
         <div class="readbio-tab">
           {#if narratorBooks.length > 1}
             <div class="bio-book-selector">
-              <label class="bio-book-label">Book</label>
-              <select class="bio-book-select" onchange={(e) => {
+              <label class="bio-book-label" for="bio-book-select">Book</label>
+              <select id="bio-book-select" class="bio-book-select" onchange={(e) => {
                 const idx = parseInt((e.target as HTMLSelectElement).value);
                 const ref = narratorBooks[idx];
                 if (ref) selectBook(ref);
@@ -367,7 +352,7 @@
 <style>
   .narrator-view { padding: 24px; max-width: 1200px; }
 
-  /* Hero header — inspired by usul.ai author pages */
+  /* Hero header */
   .hero { margin-bottom: 28px; }
   .hero-name {
     font-size: 2rem;
@@ -375,52 +360,64 @@
     line-height: 1.2;
     color: var(--text-primary);
     margin: 0;
-    font-family: var(--font-serif, 'Scheherazade New', serif);
+    font-family: 'Scheherazade New', var(--font-serif), serif;
   }
   .hero-name-secondary {
-    font-size: 1.35rem;
+    font-size: 1.25rem;
     font-weight: 500;
     color: var(--text-secondary);
-    margin: 8px 0 0;
+    margin: 6px 0 0;
     line-height: 1.3;
   }
+  /* Horizontal dotted metadata line */
   .hero-meta {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: 0;
-    margin-top: 20px;
-    font-size: 0.92rem;
+    margin-top: 24px;
+    font-size: 0.88rem;
     color: var(--text-secondary);
     line-height: 1.6;
   }
-  .meta-item { white-space: nowrap; }
-  .meta-aliases { white-space: normal; }
-  .meta-dot {
-    width: 4px; height: 4px;
-    border-radius: 50%;
-    background: var(--text-muted);
-    margin: 0 10px;
-    flex-shrink: 0;
+  .meta-item {
+    white-space: nowrap;
   }
-  .hero-badges { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+  .meta-item + .meta-item::before {
+    content: '·';
+    margin: 0 8px;
+    color: var(--text-muted);
+    font-weight: 700;
+  }
+  .meta-teachers { color: var(--graph-teacher); font-weight: 500; }
+  .meta-students { color: var(--graph-student); font-weight: 500; }
+  .hero-also-known {
+    margin: 6px 0 0;
+    font-size: 0.95rem;
+    color: var(--text-muted);
+  }
+  .known-names {
+    font-family: 'Noto Naskh Arabic', var(--font-arabic-text), serif;
+    font-size: 1.05rem;
+    color: var(--text-secondary);
+  }
   .hero-bio {
     color: var(--text-secondary);
-    font-size: 0.95rem;
+    font-size: 0.92rem;
     line-height: 1.7;
-    margin-top: 16px;
-    max-height: 120px;
+    margin-top: 12px;
+    max-height: 100px;
     overflow: hidden;
     text-overflow: ellipsis;
   }
 
   @media (min-width: 768px) {
     .hero-name { font-size: 2.75rem; }
-    .hero-name-secondary { font-size: 1.75rem; }
+    .hero-name-secondary { font-size: 1.5rem; }
   }
   @media (min-width: 1024px) {
     .hero-name { font-size: 3.5rem; }
-    .hero-name-secondary { font-size: 2.25rem; }
+    .hero-name-secondary { font-size: 1.85rem; }
   }
 
   /* Read Bio tab */

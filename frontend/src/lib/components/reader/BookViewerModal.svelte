@@ -16,6 +16,7 @@
   let pages: Map<number, TurathPage> = $state(new Map());
   let headings: TurathHeading[] = $state([]);
   let totalPages = $state(0);
+  // svelte-ignore state_referenced_locally — intentional: one-shot init from prop
   let currentIndex = $state(pageIndex);
   let sidebarOpen = $state(false);
 

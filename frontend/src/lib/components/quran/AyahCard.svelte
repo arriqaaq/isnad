@@ -388,6 +388,5 @@
     .ayah-arabic { padding: 0 12px; }
     .ayah-translation { padding: 0 12px; }
     .ayah-footer { padding: 0 12px; }
-    .hadith-block { margin-left: 12px; margin-right: 12px; }
   }
 </style>

@@ -116,7 +116,6 @@
   .methodology h3 { margin-bottom: 12px; }
   .methodology p { color: var(--text-secondary); font-size: 0.9rem; line-height: 1.6; margin-bottom: 12px; }
   .methodology strong { color: var(--text-primary); }
-  .methodology a { color: var(--accent); }
   .outcome-legend { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 16px; }
   .outcome-item { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: var(--text-secondary); }
   @media (max-width: 768px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } .stats-grid-4 { grid-template-columns: repeat(2, 1fr); } }

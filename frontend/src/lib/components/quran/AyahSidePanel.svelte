@@ -21,7 +21,9 @@
   // Panel position & size state (centered like BookViewerModal)
   let panelW = $state(Math.min(700, window.innerWidth - 40));
   let panelH = $state(Math.min(window.innerHeight * 0.85, window.innerHeight - 40));
+  // svelte-ignore state_referenced_locally — intentional: captures initial size for centering
   let panelX = $state(Math.max(20, (window.innerWidth - panelW) / 2));
+  // svelte-ignore state_referenced_locally
   let panelY = $state(Math.max(20, (window.innerHeight - panelH) / 2));
 
   // Drag state

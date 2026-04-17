@@ -79,9 +79,10 @@
   {/if}
 
   <div class="page-navigator">
-    <label class="nav-label">Go to page</label>
+    <label class="nav-label" for="reader-page-nav">Go to page</label>
     <div class="nav-input-row">
       <input
+        id="reader-page-nav"
         type="number"
         class="nav-input"
         placeholder="Page #"

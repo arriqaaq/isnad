@@ -13,9 +13,13 @@
 
   const COLORS = ['yellow', 'green', 'blue', 'pink', 'purple'] as const;
 
+  // svelte-ignore state_referenced_locally — intentional: one-shot init from props
   let expanded = $state(!!note || startExpanded);
+  // svelte-ignore state_referenced_locally
   let content = $state(note?.content ?? initialContent);
+  // svelte-ignore state_referenced_locally
   let selectedColor: typeof COLORS[number] = $state(note?.color as typeof COLORS[number] ?? 'yellow');
+  // svelte-ignore state_referenced_locally
   let tags = $state<string[]>(note?.tags ?? []);
 
   function handleColorClick(color: typeof COLORS[number]) {

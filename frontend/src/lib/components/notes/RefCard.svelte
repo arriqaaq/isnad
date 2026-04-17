@@ -8,7 +8,9 @@
     onremove?: () => void;
   } = $props();
 
+  // svelte-ignore state_referenced_locally — intentional: one-shot init from prop
   let showAnnotation = $state(!!ref.annotation);
+  // svelte-ignore state_referenced_locally
   let annotationText = $state(ref.annotation ?? '');
 
   function handleAnnotationSave() {

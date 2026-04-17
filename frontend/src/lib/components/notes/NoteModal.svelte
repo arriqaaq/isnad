@@ -15,6 +15,7 @@
 
   let existingNotes: UserNote[] = $state([]);
   let loadingExisting = $state(false);
+  // svelte-ignore state_referenced_locally — intentional: one-shot init from prop
   let showCreateForm = $state(!refType); // If no ref, go straight to create
   let editingNote: UserNote | null = $state(null);
   let newTitle = $state('');

@@ -31,6 +31,7 @@
   const atomComponents = new WeakMap<HTMLElement, ReturnType<typeof mount>>();
 
   // Track last value we serialized ourselves, to avoid re-rendering on own changes
+  // svelte-ignore state_referenced_locally — intentional: captures initial value for diffing
   let lastEmittedValue = value;
 
   // Observer to clean up removed atoms
@@ -282,6 +283,7 @@
     bind:this={editorEl}
     contenteditable="true"
     role="textbox"
+    tabindex="0"
     data-placeholder={placeholder}
     class:is-empty={isEmpty}
     oninput={handleInput}
