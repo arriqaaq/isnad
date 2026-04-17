@@ -10,8 +10,20 @@
   import RecitationPlayer from '$lib/components/quran/RecitationPlayer.svelte';
   import BookViewerModal from '$lib/components/reader/BookViewerModal.svelte';
   import SurahSidebar from '$lib/components/quran/SurahSidebar.svelte';
+  import SidebarTabs from '$lib/components/reader/SidebarTabs.svelte';
+  import BookChat from '$lib/components/reader/BookChat.svelte';
   import ResizeHandle from '$lib/components/layout/ResizeHandle.svelte';
+  import { loadTurathConfig, getBookConfig } from '$lib/stores/turath';
+  import type { TurathBooksConfig } from '$lib/types';
   import { preferences } from '$lib/stores/preferences';
+
+  let turathConfig: TurathBooksConfig | null = $state(null);
+  let tafsirBookId: number | null = $derived(turathConfig?.tafsir_book_id ?? null);
+  let tafsirBookConfig = $derived(
+    tafsirBookId && turathConfig ? getBookConfig(turathConfig, tafsirBookId) : undefined
+  );
+  let tafsirBookName = $derived(tafsirBookConfig?.name_en ?? 'Tafsir');
+  let tafsirDefaultQuestions = $derived(tafsirBookConfig?.default_questions ?? []);
 
   let data: SurahDetailResponse | null = $state(null);
   let loading = $state(true);
@@ -48,6 +60,10 @@
         if (typeof saved.width === 'number') rightWidth = Math.max(RIGHT_MIN, Math.min(saved.width, RIGHT_MAX));
       } catch { /* ignore */ }
     }
+  });
+
+  $effect(() => {
+    loadTurathConfig().then((c) => { turathConfig = c; });
   });
 
   $effect(() => {
@@ -174,12 +190,25 @@
               </button>
             </div>
             <div class="sidebar-scroll">
-              <SurahSidebar
-                surah={data.surah}
-                totalAyahs={data.surah.ayah_count}
-                onNavigateAyah={handleAyahChange}
-                onClose={toggleRight}
-              />
+              <SidebarTabs>
+                {#snippet content()}
+                  <SurahSidebar
+                    surah={data.surah}
+                    totalAyahs={data.surah.ayah_count}
+                    onNavigateAyah={handleAyahChange}
+                    onClose={toggleRight}
+                  />
+                {/snippet}
+                {#snippet chat()}
+                  <BookChat
+                    bookId={tafsirBookId ?? 0}
+                    bookName={tafsirBookName}
+                    currentPageIndex={0}
+                    onNavigate={() => {}}
+                    defaultQuestions={tafsirDefaultQuestions}
+                  />
+                {/snippet}
+              </SidebarTabs>
             </div>
           </div>
         {/if}
@@ -197,12 +226,24 @@
     {#if mobileDrawerOpen}
       <button class="mobile-backdrop" onclick={() => { mobileDrawerOpen = false; }} aria-label="Close panel"></button>
       <div class="mobile-drawer">
-        <SurahSidebar
-          surah={data.surah}
-          totalAyahs={data.surah.ayah_count}
-          onNavigateAyah={(ayah) => { mobileDrawerOpen = false; handleAyahChange(ayah); }}
-          onClose={() => { mobileDrawerOpen = false; }}
-        />
+        <SidebarTabs>
+          {#snippet content()}
+            <SurahSidebar
+              surah={data.surah}
+              totalAyahs={data.surah.ayah_count}
+              onNavigateAyah={(ayah) => { mobileDrawerOpen = false; handleAyahChange(ayah); }}
+              onClose={() => { mobileDrawerOpen = false; }}
+            />
+          {/snippet}
+          {#snippet chat()}
+            <BookChat
+              bookId={TAFSIR_BOOK_ID}
+              bookName="Tafsir Ibn Kathir"
+              currentPageIndex={0}
+              onNavigate={() => { mobileDrawerOpen = false; }}
+            />
+          {/snippet}
+        </SidebarTabs>
       </div>
     {/if}
   {/if}
@@ -223,9 +264,9 @@
 
 {#if tafsirTarget}
   <BookViewerModal
-    bookId={23604}
+    bookId={tafsirBookId ?? 23604}
     pageIndex={tafsirTarget.pageIndex}
-    title="Tafsir Ibn Kathir"
+    title={tafsirBookName}
     subtitle={tafsirTarget.ayahRef}
     onclose={() => { tafsirTarget = null; }}
   />

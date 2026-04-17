@@ -1,5 +1,6 @@
 pub mod agentic_rag;
 pub mod analysis;
+pub mod book_chat;
 pub mod classify;
 pub mod db;
 pub mod embed;

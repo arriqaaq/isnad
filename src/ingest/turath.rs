@@ -91,6 +91,8 @@ pub async fn ingest_book(
     name_ar: &str,
     name_en: &str,
     author_ar: &str,
+    category: Option<&str>,
+    book_type: Option<&str>,
 ) -> Result<()> {
     crate::db::init_turath_schema(db).await?;
 
@@ -136,10 +138,16 @@ pub async fn ingest_book(
     let escaped_name_en = name_en.replace('\'', "\\'");
     let escaped_author = author_ar.replace('\'', "\\'");
     let escaped_headings = headings_str.replace('\'', "\\'");
+    let cat_clause = category
+        .map(|c| format!(", category = '{c}'"))
+        .unwrap_or_default();
+    let type_clause = book_type
+        .map(|t| format!(", book_type = '{t}'"))
+        .unwrap_or_default();
     db.query(&format!(
         "CREATE turath_book SET book_id = {book_id}, name_ar = '{escaped_name_ar}', \
          name_en = '{escaped_name_en}', author_ar = '{escaped_author}', \
-         total_pages = {total_pages}, headings = '{escaped_headings}'"
+         total_pages = {total_pages}, headings = '{escaped_headings}'{cat_clause}{type_clause}"
     ))
     .await?
     .check()?;

@@ -501,6 +501,8 @@ DEFINE FIELD IF NOT EXISTS name_en     ON turath_book TYPE string;
 DEFINE FIELD IF NOT EXISTS author_ar   ON turath_book TYPE string;
 DEFINE FIELD IF NOT EXISTS total_pages ON turath_book TYPE int;
 DEFINE FIELD IF NOT EXISTS headings    ON turath_book TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS category    ON turath_book TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS book_type   ON turath_book TYPE option<string>;
 DEFINE INDEX IF NOT EXISTS turath_book_id ON turath_book FIELDS book_id UNIQUE;
 
 DEFINE TABLE IF NOT EXISTS turath_page SCHEMAFULL;

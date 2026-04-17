@@ -1,11 +1,14 @@
+use axum::body::Body;
 use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
-use axum::response::{IntoResponse, Json};
+use axum::response::{IntoResponse, Json, Response};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use surrealdb::types::SurrealValue;
 
 use super::AppState;
+use crate::book_chat;
+use crate::rag::ChatChunk;
 
 // ── Response types ──
 
@@ -90,7 +93,57 @@ pub struct SharhBatchParams {
     pub numbers: Option<String>, // comma-separated hadith numbers
 }
 
+// ── Books config response ──
+
+#[derive(Debug, Serialize)]
+pub struct TurathBookConfigEntry {
+    pub book_id: u64,
+    pub name_ar: String,
+    pub name_en: String,
+    pub category: Option<String>,
+    pub book_type: Option<String>,
+    pub chat_enabled: bool,
+    pub default_questions: Vec<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct TurathBooksConfigResponse {
+    pub books: Vec<TurathBookConfigEntry>,
+    pub tafsir_book_id: Option<u64>,
+}
+
+fn default_questions_for_type(book_type: Option<&str>) -> Vec<String> {
+    match book_type {
+        Some("tafsir") => vec![
+            "ما تفسير بسم الله الرحمن الرحيم؟".into(),
+            "ما تفسير آية الكرسي؟".into(),
+        ],
+        Some("sharh") => vec![
+            "ما هو بدء الوحي؟".into(),
+            "ما هي المواضيع التي يتناولها هذا الكتاب؟".into(),
+        ],
+        Some("collection") => vec![
+            "ما هي أبواب هذا الكتاب؟".into(),
+            "ما أول حديث في هذا الكتاب؟".into(),
+        ],
+        Some("biography") => vec![
+            "من هم أشهر الرواة في هذا الكتاب؟".into(),
+            "ما ترجمة أبي هريرة؟".into(),
+        ],
+        _ => vec!["ما هي المواضيع التي يتناولها هذا الكتاب؟".into()],
+    }
+}
+
 // ── DB row types ──
+
+#[derive(Debug, SurrealValue)]
+struct ConfigBookRow {
+    book_id: i64,
+    name_ar: String,
+    name_en: String,
+    category: Option<String>,
+    book_type: Option<String>,
+}
 
 #[derive(Debug, SurrealValue)]
 struct SharhRow {
@@ -151,6 +204,57 @@ struct CountResult {
 }
 
 // ── Handlers ──
+
+/// GET /api/turath/books/config
+/// Returns book metadata with categories, types, chat status, and default questions.
+pub async fn books_config(State(state): State<AppState>) -> impl IntoResponse {
+    let result: Result<Vec<ConfigBookRow>, _> = state
+        .db
+        .query("SELECT book_id, name_ar, name_en, category, book_type FROM turath_book")
+        .await
+        .and_then(|mut r| r.take(0));
+
+    let chat_book_ids: std::collections::HashSet<u64> = state
+        .book_trees
+        .as_ref()
+        .map(|trees| trees.keys().copied().collect())
+        .unwrap_or_default();
+
+    match result {
+        Ok(rows) => {
+            let mut tafsir_book_id: Option<u64> = None;
+            let books: Vec<TurathBookConfigEntry> = rows
+                .into_iter()
+                .map(|b| {
+                    let bid = b.book_id as u64;
+                    let bt = b.book_type.as_deref();
+                    if bt == Some("tafsir") {
+                        tafsir_book_id = Some(bid);
+                    }
+                    TurathBookConfigEntry {
+                        book_id: bid,
+                        name_ar: b.name_ar,
+                        name_en: b.name_en,
+                        category: b.category,
+                        book_type: b.book_type.clone(),
+                        chat_enabled: chat_book_ids.contains(&bid),
+                        default_questions: default_questions_for_type(bt),
+                    }
+                })
+                .collect();
+
+            Json(TurathBooksConfigResponse {
+                books,
+                tafsir_book_id,
+            })
+            .into_response()
+        }
+        Err(e) => {
+            tracing::error!("Failed to fetch books config: {e}");
+            (StatusCode::INTERNAL_SERVER_ERROR, "Failed to fetch config").into_response()
+        }
+    }
+}
 
 pub async fn list_books(State(state): State<AppState>) -> impl IntoResponse {
     let result: Result<Vec<BookRow>, _> = state
@@ -432,4 +536,160 @@ pub async fn narrator_books(
                 .into_response()
         }
     }
+}
+
+// ── Book Chat (PageIndex-style agentic retrieval) ──
+
+#[derive(Debug, Deserialize)]
+pub struct BookChatRequest {
+    pub question: String,
+}
+
+/// POST /api/turath/books/{book_id}/chat
+///
+/// Streams an SSE response immediately — the user sees "navigating" status
+/// while the LLM processes. Uses two-phase navigation and caching.
+pub async fn book_chat(
+    State(state): State<AppState>,
+    Path(book_id): Path<u64>,
+    Json(body): Json<BookChatRequest>,
+) -> Result<Response, StatusCode> {
+    let question = body.question.trim().to_string();
+    if question.is_empty() {
+        return Err(StatusCode::BAD_REQUEST);
+    }
+
+    let ollama = state.ollama.as_ref().ok_or_else(|| {
+        tracing::error!("Ollama client not configured");
+        StatusCode::SERVICE_UNAVAILABLE
+    })?;
+
+    let book_trees = state.book_trees.as_ref().ok_or_else(|| {
+        tracing::error!("Book trees not loaded (--pageindex-dir not set)");
+        StatusCode::SERVICE_UNAVAILABLE
+    })?;
+
+    let book = book_trees.get(&book_id).ok_or_else(|| {
+        tracing::error!("Book {book_id} not found in PageIndex data");
+        StatusCode::NOT_FOUND
+    })?;
+
+    let ollama = ollama.clone();
+    let book = book.clone();
+    let nav_cache = state.nav_cache.clone();
+
+    // Build the SSE stream — work happens inside, so status events are sent immediately
+    let sse_stream = async_stream::stream! {
+        use futures::StreamExt;
+
+        // Step 1: Navigate (two-phase, with cache)
+        yield Ok::<_, std::io::Error>(
+            bytes::Bytes::from("data: {\"status\":\"navigating\"}\n\n")
+        );
+
+        // Check cache first
+        let ranges = if let Some(cached) = nav_cache.get(book.book_id, &question) {
+            tracing::info!("Nav cache hit for book {} q={}", book.book_id, &question[..question.len().min(40)]);
+            cached
+        } else {
+            match book_chat::navigate_two_phase(&ollama, &book, &question).await {
+                Ok(r) => {
+                    nav_cache.put(book.book_id, &question, r.clone());
+                    r
+                }
+                Err(e) => {
+                    tracing::error!("navigate_two_phase failed: {e}");
+                    yield Ok(bytes::Bytes::from(format!(
+                        "data: {}\n\n",
+                        serde_json::json!({"error": format!("Navigation failed: {e}")})
+                    )));
+                    return;
+                }
+            }
+        };
+
+        // Step 2: Fetch sections
+        yield Ok(bytes::Bytes::from(format!(
+            "data: {}\n\n",
+            serde_json::json!({"status": "reading", "sections": ranges})
+        )));
+
+        let sections = match book_chat::fetch_sections(&book, &ranges) {
+            Ok(s) => s,
+            Err(e) => {
+                tracing::error!("fetch_sections failed: {e}");
+                Vec::new()
+            }
+        };
+
+        let sources = book_chat::build_sources(&book, &ranges);
+        yield Ok(bytes::Bytes::from(format!(
+            "data: {}\n\n",
+            serde_json::to_string(&serde_json::json!({"sources": sources})).unwrap()
+        )));
+
+        // Step 3: Stream answer
+        let answer_prompt = book_chat::build_answer_prompt(&book.name_en, &sections);
+
+        let byte_stream = match ollama
+            .chat_stream(&answer_prompt, &question, None)
+            .await
+        {
+            Ok(s) => s,
+            Err(e) => {
+                tracing::error!("answer stream failed: {e}");
+                yield Ok(bytes::Bytes::from(format!(
+                    "data: {}\n\n",
+                    serde_json::json!({"error": format!("Answer generation failed: {e}")})
+                )));
+                return;
+            }
+        };
+
+        let mut byte_stream = std::pin::pin!(byte_stream);
+        while let Some(chunk) = byte_stream.next().await {
+            match chunk {
+                Ok(raw) => {
+                    let mut sse = String::new();
+                    for line in raw.split(|&b| b == b'\n') {
+                        if line.is_empty() {
+                            continue;
+                        }
+                        if let Ok(parsed) = serde_json::from_slice::<ChatChunk>(line) {
+                            if let Some(msg) = parsed.message
+                                && !msg.content.is_empty()
+                            {
+                                sse.push_str(&format!(
+                                    "data: {}\n\n",
+                                    serde_json::to_string(
+                                        &serde_json::json!({"text": msg.content})
+                                    )
+                                    .unwrap()
+                                ));
+                            }
+                            if parsed.done {
+                                sse.push_str("data: {\"done\":true}\n\n");
+                            }
+                        }
+                    }
+                    if !sse.is_empty() {
+                        yield Ok(bytes::Bytes::from(sse));
+                    }
+                }
+                Err(e) => {
+                    yield Ok(bytes::Bytes::from(format!(
+                        "data: {}\n\n",
+                        serde_json::json!({"error": e.to_string()})
+                    )));
+                }
+            }
+        }
+    };
+
+    Ok(Response::builder()
+        .header("Content-Type", "text/event-stream")
+        .header("Cache-Control", "no-cache")
+        .header("Connection", "keep-alive")
+        .body(Body::from_stream(sse_stream))
+        .unwrap())
 }

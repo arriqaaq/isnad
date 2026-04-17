@@ -153,6 +153,14 @@ enum Commands {
         #[arg(long)]
         narrator_mapping: Option<String>,
 
+        /// Book category: quran, hadith, narrator
+        #[arg(long)]
+        category: Option<String>,
+
+        /// Book type: tafsir, sharh, collection, biography
+        #[arg(long)]
+        book_type: Option<String>,
+
         /// Force re-ingestion (delete existing data for this book first)
         #[arg(long)]
         force: bool,
@@ -183,6 +191,10 @@ enum Commands {
         /// Embedding model: e5-small is faster, bge-m3 is higher quality but slower
         #[arg(long, default_value = "bge-m3", value_enum)]
         embed_model: EmbedModel,
+
+        /// Path to PageIndex workspace directory (enables book chat feature)
+        #[arg(long, env = "PAGEINDEX_DIR", default_value = "data/pageindex")]
+        pageindex_dir: Option<String>,
     },
 }
 
@@ -427,6 +439,8 @@ async fn async_main() -> Result<()> {
             sharh_mapping,
             sharh_collection_id,
             narrator_mapping,
+            category,
+            book_type,
             force,
             db_path,
         } => {
@@ -463,6 +477,8 @@ async fn async_main() -> Result<()> {
                 &name_ar,
                 &name_en,
                 &author_ar,
+                category.as_deref(),
+                book_type.as_deref(),
             )
             .await?;
 
@@ -500,6 +516,7 @@ async fn async_main() -> Result<()> {
             ollama_url,
             ollama_model,
             embed_model,
+            pageindex_dir,
         } => {
             let db = db::connect(&db_path).await?;
             let dim = embed_model.dimension();
@@ -514,7 +531,15 @@ async fn async_main() -> Result<()> {
             db::init_link_preview_schema(&db).await?;
             quran::audio::init_reciters(&db).await?;
             embed::check_embedding_dimension(&db, embed_model.dimension()).await?;
-            web::serve(db, port, ollama_url, ollama_model, embed_model).await?;
+            web::serve(
+                db,
+                port,
+                ollama_url,
+                ollama_model,
+                embed_model,
+                pageindex_dir,
+            )
+            .await?;
         }
     }
 

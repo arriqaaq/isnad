@@ -5,8 +5,18 @@
   import ReaderContent from '$lib/components/reader/ReaderContent.svelte';
   import ReaderHeader from '$lib/components/reader/ReaderHeader.svelte';
   import ReaderSidebar from '$lib/components/reader/ReaderSidebar.svelte';
+  import SidebarTabs from '$lib/components/reader/SidebarTabs.svelte';
+  import BookChat from '$lib/components/reader/BookChat.svelte';
   import ResizeHandle from '$lib/components/layout/ResizeHandle.svelte';
   import LoadingSpinner from '$lib/components/common/LoadingSpinner.svelte';
+  import { loadTurathConfig, getBookConfig } from '$lib/stores/turath';
+  import type { TurathBooksConfig } from '$lib/types';
+
+  let turathConfig: TurathBooksConfig | null = $state(null);
+  let bookConfig = $derived(
+    turathConfig ? getBookConfig(turathConfig, bookId) : undefined
+  );
+  let chatDefaultQuestions = $derived(bookConfig?.default_questions ?? []);
 
   let bookId = $derived(Number((page.params as Record<string, string>).bookId));
   let initialPage = $derived(Number(page.url.searchParams.get('page')) || 0);
@@ -21,7 +31,7 @@
   let rightCollapsed = $state(false);
   let rightWidth = $state(300);
   const RIGHT_MIN = 220;
-  const RIGHT_MAX = 450;
+  const RIGHT_MAX = 700;
   const RIGHT_COLLAPSED_W = 40;
 
   // Mobile drawer state
@@ -48,6 +58,10 @@
       fetchedRanges.delete(rangeKey);
     }
   }
+
+  $effect(() => {
+    loadTurathConfig().then((c) => { turathConfig = c; });
+  });
 
   $effect(() => {
     loading = true;
@@ -163,13 +177,26 @@
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
             </button>
           {:else}
-            <ReaderSidebar
-              headings={book.headings}
-              {currentPageIndex}
-              totalPages={book.total_pages}
-              onNavigate={handleSidebarNavigate}
-              onClose={toggleRight}
-            />
+            <SidebarTabs>
+              {#snippet content()}
+                <ReaderSidebar
+                  headings={book.headings}
+                  {currentPageIndex}
+                  totalPages={book.total_pages}
+                  onNavigate={handleSidebarNavigate}
+                  onClose={toggleRight}
+                />
+              {/snippet}
+              {#snippet chat()}
+                <BookChat
+                  {bookId}
+                  bookName={book.name_en}
+                  {currentPageIndex}
+                  onNavigate={handleSidebarNavigate}
+                  defaultQuestions={chatDefaultQuestions}
+                />
+              {/snippet}
+            </SidebarTabs>
           {/if}
         </div>
       </div>
@@ -184,13 +211,25 @@
     {#if mobileDrawerOpen}
       <button class="mobile-backdrop" onclick={() => { mobileDrawerOpen = false; }} aria-label="Close sidebar"></button>
       <div class="mobile-drawer">
-        <ReaderSidebar
-          headings={book.headings}
-          {currentPageIndex}
-          totalPages={book.total_pages}
-          onNavigate={(idx) => { mobileDrawerOpen = false; handleSidebarNavigate(idx); }}
-          onClose={() => { mobileDrawerOpen = false; }}
-        />
+        <SidebarTabs>
+          {#snippet content()}
+            <ReaderSidebar
+              headings={book.headings}
+              {currentPageIndex}
+              totalPages={book.total_pages}
+              onNavigate={(idx) => { mobileDrawerOpen = false; handleSidebarNavigate(idx); }}
+              onClose={() => { mobileDrawerOpen = false; }}
+            />
+          {/snippet}
+          {#snippet chat()}
+            <BookChat
+              {bookId}
+              bookName={book.name_en}
+              {currentPageIndex}
+              onNavigate={(idx) => { mobileDrawerOpen = false; handleSidebarNavigate(idx); }}
+            />
+          {/snippet}
+        </SidebarTabs>
       </div>
     {/if}
   </div>

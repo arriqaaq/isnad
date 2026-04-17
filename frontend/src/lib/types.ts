@@ -443,6 +443,23 @@ export interface NoteRefsIndicator {
   [refId: string]: { color: string; count: number };
 }
 
+// ── Turath Books Config ──
+
+export interface TurathBookConfig {
+  book_id: number;
+  name_ar: string;
+  name_en: string;
+  category: string | null;
+  book_type: string | null;
+  chat_enabled: boolean;
+  default_questions: string[];
+}
+
+export interface TurathBooksConfig {
+  books: TurathBookConfig[];
+  tafsir_book_id: number | null;
+}
+
 // ── Turath Book Viewer ──
 
 export interface TurathBook {

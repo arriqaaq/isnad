@@ -12,6 +12,7 @@ use tokio::net::TcpListener;
 use tower_http::cors::{Any, CorsLayer};
 use tower_http::services::{ServeDir, ServeFile};
 
+use crate::book_chat::{BookTree, NavCache};
 use crate::db::Db;
 use crate::embed::{EmbedModel, Embedder};
 use crate::rag::OllamaClient;
@@ -21,6 +22,8 @@ pub struct AppState {
     pub db: Surreal<Db>,
     pub embedder: Arc<Embedder>,
     pub ollama: Option<Arc<OllamaClient>>,
+    pub book_trees: Option<Arc<std::collections::HashMap<u64, BookTree>>>,
+    pub nav_cache: Arc<NavCache>,
 }
 
 pub async fn serve(
@@ -29,14 +32,33 @@ pub async fn serve(
     ollama_url: Option<String>,
     ollama_model: Option<String>,
     embed_model: EmbedModel,
+    pageindex_dir: Option<String>,
 ) -> Result<()> {
     let embedder = Arc::new(Embedder::new(embed_model)?);
     let ollama = Some(Arc::new(OllamaClient::new(ollama_url, ollama_model)));
+
+    let book_trees = if let Some(dir) = pageindex_dir {
+        let path = std::path::Path::new(&dir);
+        match crate::book_chat::load_book_trees(path) {
+            Ok(trees) => {
+                tracing::info!("Loaded {} books from PageIndex", trees.len());
+                Some(Arc::new(trees))
+            }
+            Err(e) => {
+                tracing::warn!("Failed to load PageIndex book trees: {e}");
+                None
+            }
+        }
+    } else {
+        None
+    };
 
     let state = AppState {
         db,
         embedder,
         ollama,
+        book_trees,
+        nav_cache: Arc::new(NavCache::new()),
     };
 
     let cors = CorsLayer::new()
@@ -159,6 +181,10 @@ pub async fn serve(
         )
         // Turath book viewer routes
         .route(
+            "/api/turath/books/config",
+            axum::routing::get(turath_handlers::books_config),
+        )
+        .route(
             "/api/turath/books",
             axum::routing::get(turath_handlers::list_books),
         )
@@ -181,6 +207,10 @@ pub async fn serve(
         .route(
             "/api/narrators/{id}/books",
             axum::routing::get(turath_handlers::narrator_books),
+        )
+        .route(
+            "/api/turath/books/{book_id}/chat",
+            axum::routing::post(turath_handlers::book_chat),
         )
         // Unified Quran & Sunnah routes
         .route(

@@ -29,6 +29,7 @@ import type {
   LinkPreview,
   NoteRefsIndicator,
   TurathBook,
+  TurathBooksConfig,
   TurathBookDetail,
   TurathPagesResponse,
   TafsirSurahMappings,
@@ -362,6 +363,10 @@ export async function fetchLinkPreview(url: string): Promise<LinkPreview> {
 }
 
 // ── Turath Book Viewer ──
+
+export async function getTurathBooksConfig(): Promise<TurathBooksConfig> {
+  return get('/turath/books/config');
+}
 
 export async function getTurathBooks(): Promise<TurathBook[]> {
   return get('/turath/books');

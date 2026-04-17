@@ -1,4 +1,4 @@
-.PHONY: build frontend backend server dev stop download-data blog semantic-download semantic-extract semantic-verify semantic-setup ingest ingest-test ingest-full hadith-full hadith-ingest sanadset-download quran-prepare quran-prepare-deps quran-ingest quran-hadith-refs quran-morphology quran-similar quran quran-full quran-check turath-fetch-tafsir turath-fetch-fathulbari turath-fetch-nawawi turath-fetch-tuhfat turath-fetch-nasai turath-fetch-awnmabud turath-fetch-ibnmajah turath-fetch-tahdhib turath-fetch turath-mapping turath-mapping-narrators turath-ingest-tafsir turath-ingest-fathulbari turath-ingest-nawawi turath-ingest-tuhfat turath-ingest-nasai turath-ingest-awnmabud turath-ingest-ibnmajah turath-ingest-tahdhib turath-ingest turath-full turath-check analyze analyze-families analyze-transmission pipeline-check pipeline-test pipeline-full clean
+.PHONY: build frontend backend server dev stop download-data blog semantic-download semantic-extract semantic-verify semantic-setup ingest ingest-test ingest-full hadith-full hadith-ingest sanadset-download quran-prepare quran-prepare-deps quran-ingest quran-hadith-refs quran-morphology quran-similar quran quran-full quran-check turath-fetch-tafsir turath-fetch-fathulbari turath-fetch-nawawi turath-fetch-tuhfat turath-fetch-nasai turath-fetch-awnmabud turath-fetch-ibnmajah turath-fetch-tahdhib turath-fetch turath-mapping turath-mapping-narrators turath-ingest-tafsir turath-ingest-fathulbari turath-ingest-nawawi turath-ingest-tuhfat turath-ingest-nasai turath-ingest-awnmabud turath-ingest-ibnmajah turath-ingest-tahdhib turath-ingest turath-full turath-check pageindex-deps pageindex-build pageindex-build-with-summaries pageindex-build-test pageindex-status analyze analyze-families analyze-transmission pipeline-check pipeline-test pipeline-full clean
 
 # SurrealDB HNSW index traversal needs extra stack space
 export RUST_MIN_STACK=8388608
@@ -274,7 +274,8 @@ turath-ingest-tafsir:
 		--name-ar "تفسير القرآن العظيم" \
 		--name-en "Tafsir Ibn Kathir" \
 		--author-ar "ابن كثير" \
-		--tafsir-mapping data/tafsir_verse_mapping.json
+		--tafsir-mapping data/tafsir_verse_mapping.json \
+		--category quran --book-type tafsir
 
 # Ingest Fath al-Bari into SurrealDB (needs: turath-fetch-fathulbari + turath-mapping)
 turath-ingest-fathulbari:
@@ -286,7 +287,8 @@ turath-ingest-fathulbari:
 		--name-en "Fath al-Bari" \
 		--author-ar "ابن حجر العسقلاني" \
 		--sharh-mapping data/fath_al_bari_hadith_mapping.json \
-		--sharh-collection-id 1
+		--sharh-collection-id 1 \
+		--category hadith --book-type sharh
 
 # Ingest Sharh Nawawi into SurrealDB (needs: turath-fetch-nawawi + turath-mapping)
 turath-ingest-nawawi:
@@ -298,7 +300,8 @@ turath-ingest-nawawi:
 		--name-en "Sharh Nawawi on Muslim" \
 		--author-ar "النووي" \
 		--sharh-mapping data/nawawi_on_muslim_hadith_mapping.json \
-		--sharh-collection-id 2
+		--sharh-collection-id 2 \
+		--category hadith --book-type sharh
 
 # Ingest Tuhfat al-Ahwadhi into SurrealDB (needs: turath-fetch-tuhfat + turath-mapping)
 turath-ingest-tuhfat:
@@ -310,7 +313,8 @@ turath-ingest-tuhfat:
 		--name-en "Tuhfat al-Ahwadhi" \
 		--author-ar "المباركفوري" \
 		--sharh-mapping data/tuhfat_ahwadhi_hadith_mapping.json \
-		--sharh-collection-id 4
+		--sharh-collection-id 4 \
+		--category hadith --book-type sharh
 
 # Ingest Sahih Sunan al-Nasa'i into SurrealDB
 turath-ingest-nasai:
@@ -322,7 +326,8 @@ turath-ingest-nasai:
 		--name-en "Sahih Sunan al-Nasai" \
 		--author-ar "الألباني" \
 		--sharh-mapping data/sahih_nasai_hadith_mapping.json \
-		--sharh-collection-id 5
+		--sharh-collection-id 5 \
+		--category hadith --book-type collection
 
 # Ingest Awn al-Ma'bud into SurrealDB
 turath-ingest-awnmabud:
@@ -334,7 +339,8 @@ turath-ingest-awnmabud:
 		--name-en "Awn al-Mabud" \
 		--author-ar "العظيم آبادي" \
 		--sharh-mapping data/awn_mabud_hadith_mapping.json \
-		--sharh-collection-id 3
+		--sharh-collection-id 3 \
+		--category hadith --book-type sharh
 
 # Ingest Sunan Ibn Majah into SurrealDB
 turath-ingest-ibnmajah:
@@ -346,7 +352,8 @@ turath-ingest-ibnmajah:
 		--name-en "Sunan Ibn Majah" \
 		--author-ar "ابن ماجه" \
 		--sharh-mapping data/ibn_majah_hadith_mapping.json \
-		--sharh-collection-id 6
+		--sharh-collection-id 6 \
+		--category hadith --book-type collection
 
 # Ingest Tahdhib al-Tahdhib (narrator bios) into SurrealDB
 turath-ingest-tahdhib:
@@ -357,7 +364,8 @@ turath-ingest-tahdhib:
 		--name-ar "تهذيب التهذيب" \
 		--name-en "Tahdhib al-Tahdhib" \
 		--author-ar "ابن حجر العسقلاني" \
-		--narrator-mapping data/tahdhib_narrator_mapping.json
+		--narrator-mapping data/tahdhib_narrator_mapping.json \
+		--category narrator --book-type biography
 
 # Ingest all books into SurrealDB
 turath-ingest: turath-ingest-tafsir turath-ingest-fathulbari turath-ingest-nawawi turath-ingest-tuhfat turath-ingest-nasai turath-ingest-awnmabud turath-ingest-ibnmajah turath-ingest-tahdhib
@@ -435,6 +443,28 @@ pipeline-check:
 	test -d data/corpus-coranicum-tei                    && echo "  ✓ data/corpus-coranicum-tei/" || echo "  ○ data/corpus-coranicum-tei/ (will auto-clone from GitHub)"; \
 	echo ""; \
 	if $$ok; then echo "All required files present. Run: make pipeline-full"; else echo "⚠  Download missing files above first"; exit 1; fi
+
+# === PageIndex book chat (markdown conversion + tree building) ===
+
+# Install PageIndex Python dependencies into .venv (one-time)
+pageindex-deps: .venv/bin/python3
+	$(VENV_PIP) install -r ../PageIndex/requirements.txt
+
+# Build PageIndex trees from Turath JSON data (fast, no LLM needed)
+pageindex-build: pageindex-deps
+	$(VENV_PYTHON) scripts/index_books.py
+
+# Build with Ollama-generated summaries (slower, better retrieval)
+pageindex-build-with-summaries: pageindex-deps
+	$(VENV_PYTHON) scripts/index_books.py --with-summaries
+
+# Build a single book (for testing)
+pageindex-build-test: pageindex-deps
+	$(VENV_PYTHON) scripts/index_books.py --book-id 1673
+
+# Show build status
+pageindex-status: pageindex-deps
+	$(VENV_PYTHON) scripts/index_books.py --status
 
 # Full pipeline: hadith + quran + turath books (everything from scratch)
 pipeline-full: pipeline-check
