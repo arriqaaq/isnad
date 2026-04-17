@@ -68,7 +68,7 @@ pub async fn serve(
 
     let api = Router::new()
         .route("/api/stats", axum::routing::get(handlers::stats))
-        .route("/api/books", axum::routing::get(handlers::books))
+        .route("/api/collections", axum::routing::get(handlers::books))
         .route("/api/search", axum::routing::get(handlers::search))
         .route("/api/hadiths", axum::routing::get(handlers::hadith_list))
         .route(

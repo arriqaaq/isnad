@@ -24,8 +24,8 @@
   {:else}
     <div class="books-grid">
       {#each books as book (book.id)}
-        <a href="/hadiths?book={book.book_number}" class="book-card">
-          <div class="book-number">{book.book_number}</div>
+        <a href="/hadiths?book={book.collection_id}" class="book-card">
+          <div class="book-number">{book.collection_id}</div>
           <h3 class="book-title arabic" dir="rtl">{book.name_ar || book.name_en}</h3>
           {#if book.name_ar && book.name_en}
             <span class="book-en">{book.name_en}</span>

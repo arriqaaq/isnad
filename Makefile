@@ -1,4 +1,4 @@
-.PHONY: build frontend backend server dev stop download-data blog semantic-download semantic-extract semantic-verify semantic-setup ingest ingest-test ingest-full hadith-full hadith-ingest sanadset-download quran-prepare quran-prepare-deps quran-ingest quran-hadith-refs quran-morphology quran-similar quran quran-full quran-check turath-fetch-tafsir turath-fetch-fathulbari turath-fetch-nawawi turath-fetch-tuhfat turath-fetch-nasai turath-fetch-awnmabud turath-fetch-ibnmajah turath-fetch-tahdhib turath-fetch turath-mapping turath-mapping-narrators book-ingest-tafsir book-ingest-fathulbari book-ingest-nawawi book-ingest-tuhfat book-ingest-nasai book-ingest-awnmabud book-ingest-ibnmajah book-ingest-tahdhib book-ingest book-full pageindex-deps pageindex-build pageindex-build-with-summaries pageindex-build-test pageindex-status analyze analyze-families analyze-transmission pipeline-check pipeline-test pipeline-full clean
+.PHONY: build frontend backend server dev stop download-data blog semantic-download semantic-extract semantic-verify semantic-setup ingest ingest-test ingest-full hadith-full hadith-ingest sanadset-download quran-prepare quran-prepare-deps quran-ingest quran-hadith-refs quran-morphology quran-similar quran quran-full quran-check turath-fetch-tafsir turath-fetch-fathulbari turath-fetch-nawawi turath-fetch-tuhfat turath-fetch-nasai turath-fetch-awnmabud turath-fetch-ibnmajah turath-fetch-tahdhib turath-fetch turath-mapping turath-mapping-narrators book-ingest-tafsir book-ingest-fathulbari book-ingest-nawawi book-ingest-tuhfat book-ingest-nasai book-ingest-awnmabud book-ingest-ibnmajah book-ingest-tahdhib book-ingest book-full pageindex-clone pageindex-deps pageindex-build pageindex-build-with-summaries pageindex-build-test pageindex-status analyze analyze-families analyze-transmission pipeline-check pipeline-test pipeline-full clean
 
 # SurrealDB HNSW index traversal needs extra stack space
 export RUST_MIN_STACK=8388608
@@ -58,16 +58,22 @@ semantic-download:
 	cd /tmp && unzip -o SemanticHadithKGV2.ttl.zip
 	@echo "✓ SemanticHadith TTL extracted to /tmp/SemanticHadithKGV2.ttl"
 
-# Extract TTL to JSON (one-time, requires rdflib: pip install rdflib)
+# Extract TTL to JSON (one-time; rdflib is installed on-the-fly via uvx)
 semantic-extract:
-	python3 scripts/build_semantic_data.py
+	uvx --with rdflib python3 scripts/build_semantic_data.py
 
-# Verify extracted data
+# Verify extracted data (stdlib only)
 semantic-verify:
 	python3 scripts/verify_semantic_data.py
 
 # Full SemanticHadith setup (download + extract + verify)
 semantic-setup: semantic-download semantic-extract semantic-verify
+
+# File-based target: auto-builds data/semantic_hadith.json by running the full
+# semantic-setup chain when missing. Used as a dependency by pipeline-full so
+# a fresh user doesn't have to know about semantic-setup at all.
+data/semantic_hadith.json:
+	$(MAKE) semantic-setup
 
 # === Hadith ingestion ===
 
@@ -267,7 +273,7 @@ turath-mapping:
 
 # Ingest Tafsir Ibn Kathir (needs: turath-fetch-tafsir)
 book-ingest-tafsir:
-	cargo run -- ingest-turath \
+	cargo run -- ingest-book \
 		--pages-file data/tafsir_ibn_kathir_pages.json \
 		--headings-file data/tafsir_ibn_kathir_headings.json \
 		--book-id 23604 \
@@ -279,7 +285,7 @@ book-ingest-tafsir:
 
 # Ingest Fath al-Bari (needs: turath-fetch-fathulbari + turath-mapping)
 book-ingest-fathulbari:
-	cargo run -- ingest-turath \
+	cargo run -- ingest-book \
 		--pages-file data/fath_al_bari_pages.json \
 		--headings-file data/fath_al_bari_headings.json \
 		--book-id 1673 \
@@ -292,7 +298,7 @@ book-ingest-fathulbari:
 
 # Ingest Sharh Nawawi (needs: turath-fetch-nawawi + turath-mapping)
 book-ingest-nawawi:
-	cargo run -- ingest-turath \
+	cargo run -- ingest-book \
 		--pages-file data/nawawi_on_muslim_pages.json \
 		--headings-file data/nawawi_on_muslim_headings.json \
 		--book-id 1711 \
@@ -305,7 +311,7 @@ book-ingest-nawawi:
 
 # Ingest Tuhfat al-Ahwadhi (needs: turath-fetch-tuhfat + turath-mapping)
 book-ingest-tuhfat:
-	cargo run -- ingest-turath \
+	cargo run -- ingest-book \
 		--pages-file data/tuhfat_ahwadhi_pages.json \
 		--headings-file data/tuhfat_ahwadhi_headings.json \
 		--book-id 21662 \
@@ -318,7 +324,7 @@ book-ingest-tuhfat:
 
 # Ingest Sahih Sunan al-Nasa'i
 book-ingest-nasai:
-	cargo run -- ingest-turath \
+	cargo run -- ingest-book \
 		--pages-file data/sahih_nasai_pages.json \
 		--headings-file data/sahih_nasai_headings.json \
 		--book-id 1147 \
@@ -331,7 +337,7 @@ book-ingest-nasai:
 
 # Ingest Awn al-Ma'bud
 book-ingest-awnmabud:
-	cargo run -- ingest-turath \
+	cargo run -- ingest-book \
 		--pages-file data/awn_mabud_pages.json \
 		--headings-file data/awn_mabud_headings.json \
 		--book-id 5760 \
@@ -344,7 +350,7 @@ book-ingest-awnmabud:
 
 # Ingest Sunan Ibn Majah
 book-ingest-ibnmajah:
-	cargo run -- ingest-turath \
+	cargo run -- ingest-book \
 		--pages-file data/ibn_majah_pages.json \
 		--headings-file data/ibn_majah_headings.json \
 		--book-id 98138 \
@@ -357,7 +363,7 @@ book-ingest-ibnmajah:
 
 # Ingest Tahdhib al-Tahdhib (narrator bios)
 book-ingest-tahdhib:
-	cargo run -- ingest-turath \
+	cargo run -- ingest-book \
 		--pages-file data/tahdhib_pages.json \
 		--headings-file data/tahdhib_headings.json \
 		--book-id 1278 \
@@ -426,28 +432,46 @@ pipeline-test:
 
 # === Full pipeline (everything from scratch) ===
 
-# Preflight check for entire pipeline
+# Preflight check for entire pipeline.
+# Legend: ✓ present, ○ will be auto-fetched/built, ✗ MUST be downloaded manually.
 pipeline-check:
 	@echo "Checking required data files..."
 	@ok=true; \
 	echo "── Hadith ──"; \
-	test -f data/semantic_hadith.json                    && echo "  ✓ data/semantic_hadith.json" || { echo "  ✗ data/semantic_hadith.json (run: make semantic-setup)"; ok=false; }; \
+	test -f data/semantic_hadith.json                    && echo "  ✓ data/semantic_hadith.json" || echo "  ○ data/semantic_hadith.json (will auto-build via semantic-setup; uses uvx for rdflib)"; \
 	echo "── Quran ──"; \
 	test -f data/quran.csv                              && echo "  ✓ data/quran.csv" || echo "  ○ data/quran.csv (will auto-generate via quran-prepare)"; \
 	test -f data/quran-morphology.txt                   && echo "  ✓ data/quran-morphology.txt" || echo "  ○ data/quran-morphology.txt (will auto-download)"; \
-	echo "── QUL (manual download from qul.tarteel.ai) ──"; \
-	test -f qul/colored-english-wbw-translation.json    && echo "  ✓ qul/colored-english-wbw-translation.json" || { echo "  ✗ qul/colored-english-wbw-translation.json — download from qul.tarteel.ai/resources/translation (Colored English wbw translation → JSON)"; ok=false; }; \
-	test -f qul/phrases.json                            && echo "  ✓ qul/phrases.json" || { echo "  ✗ qul/phrases.json — download from qul.tarteel.ai/resources/mutashabihat (JSON)"; ok=false; }; \
-	test -f qul/matching-ayah.json                      && echo "  ✓ qul/matching-ayah.json" || { echo "  ✗ qul/matching-ayah.json — download from qul.tarteel.ai/resources/similar-ayah (JSON)"; ok=false; }; \
+	echo "── QUL (committed to repo; sourced from qul.tarteel.ai) ──"; \
+	test -f qul/qpc-hafs.json                           && echo "  ✓ qul/qpc-hafs.json" || { echo "  ✗ qul/qpc-hafs.json missing — should ship with repo; restore via: git checkout HEAD -- qul/qpc-hafs.json"; ok=false; }; \
+	test -f qul/en-sahih-international-simple.json      && echo "  ✓ qul/en-sahih-international-simple.json" || { echo "  ✗ qul/en-sahih-international-simple.json missing — restore via: git checkout HEAD -- qul/en-sahih-international-simple.json"; ok=false; }; \
+	test -f qul/en-tafisr-ibn-kathir.json               && echo "  ✓ qul/en-tafisr-ibn-kathir.json" || { echo "  ✗ qul/en-tafisr-ibn-kathir.json missing — restore via: git checkout HEAD -- qul/en-tafisr-ibn-kathir.json"; ok=false; }; \
+	test -f qul/colored-english-wbw-translation.json    && echo "  ✓ qul/colored-english-wbw-translation.json" || { echo "  ✗ qul/colored-english-wbw-translation.json missing — restore via: git checkout HEAD -- qul/colored-english-wbw-translation.json"; ok=false; }; \
+	test -f qul/phrases.json                            && echo "  ✓ qul/phrases.json" || { echo "  ✗ qul/phrases.json missing — restore via: git checkout HEAD -- qul/phrases.json"; ok=false; }; \
+	test -f qul/matching-ayah.json                      && echo "  ✓ qul/matching-ayah.json" || { echo "  ✗ qul/matching-ayah.json missing — restore via: git checkout HEAD -- qul/matching-ayah.json"; ok=false; }; \
+	echo "── Quran fonts (committed to repo) ──"; \
+	test -f frontend/static/fonts/UthmanicHafs.woff2    && echo "  ✓ frontend/static/fonts/UthmanicHafs.woff2" || { echo "  ✗ frontend/static/fonts/UthmanicHafs.woff2 missing — restore via: git checkout HEAD -- frontend/static/fonts/UthmanicHafs.woff2"; ok=false; }; \
 	echo "── Corpus Coranicum ──"; \
 	test -d data/corpus-coranicum-tei                    && echo "  ✓ data/corpus-coranicum-tei/" || echo "  ○ data/corpus-coranicum-tei/ (will auto-clone from GitHub)"; \
+	echo "── PageIndex (sibling repo) ──"; \
+	test -d ../PageIndex                                 && echo "  ✓ ../PageIndex" || echo "  ○ ../PageIndex (will auto-clone via pageindex-clone)"; \
 	echo ""; \
-	if $$ok; then echo "All required files present. Run: make pipeline-full"; else echo "⚠  Download missing files above first"; exit 1; fi
+	if $$ok; then echo "All required files present. Run: make pipeline-full"; else echo "⚠  Download missing files marked ✗ above before running make pipeline-full"; exit 1; fi
 
 # === PageIndex book chat (markdown conversion + tree building) ===
 
+# Auto-clone the VectifyAI/PageIndex repo into a sibling directory if missing.
+# index_books.py adds ../PageIndex to sys.path and imports from it.
+pageindex-clone:
+	@if [ ! -d ../PageIndex ]; then \
+		echo "Cloning PageIndex into ../PageIndex (one-time)..."; \
+		git clone https://github.com/VectifyAI/PageIndex.git ../PageIndex; \
+	else \
+		echo "../PageIndex already present, skipping clone."; \
+	fi
+
 # Install PageIndex Python dependencies into .venv (one-time)
-pageindex-deps: .venv/bin/python3
+pageindex-deps: .venv/bin/python3 pageindex-clone
 	$(VENV_PIP) install -r ../PageIndex/requirements.txt
 
 # Build PageIndex trees from Turath JSON data (fast, no LLM needed)
@@ -466,8 +490,17 @@ pageindex-build-test: pageindex-deps
 pageindex-status: pageindex-deps
 	$(VENV_PYTHON) scripts/index_books.py --status
 
-# Full pipeline: hadith + quran + turath books (everything from scratch)
-pipeline-full: pipeline-check
+# Full pipeline: hadith + quran + turath books (everything from scratch).
+#
+# Auto-fixed prerequisites (run as Makefile dependencies, no user action):
+#   - data/semantic_hadith.json -> built via semantic-setup (which uses uvx for rdflib)
+#   - ../PageIndex sibling repo  -> cloned via pageindex-clone
+#
+# Everything else (qul/*.json, UthmanicHafs.woff2) ships with the repo,
+# so a fresh `git clone` followed by `make pipeline-full` should just work.
+# pipeline-check is a defensive sanity check; it only fails if a tracked
+# file was deleted locally.
+pipeline-full: data/semantic_hadith.json pageindex-clone pipeline-check
 	$(MAKE) hadith-full
 	$(MAKE) quran-full
 	$(MAKE) book-full
