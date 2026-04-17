@@ -32,8 +32,13 @@ stop:
 # === Download pre-built data (skip ingestion) ===
 
 # Build blog: convert articles/*.md to site HTML
+# Requires markdown package: pip install markdown (or uvx runs it automatically)
 blog:
-	uv run --with markdown python3 scripts/build_blog.py
+	@if command -v uv >/dev/null 2>&1; then \
+		uv run --with markdown python3 scripts/build_blog.py; \
+	else \
+		python3 scripts/build_blog.py; \
+	fi
 
 # === SemanticHadith KG data preparation (one-time) ===
 
