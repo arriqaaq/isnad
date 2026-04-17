@@ -267,7 +267,7 @@ turath-mapping:
 
 # Ingest Tafsir Ibn Kathir (needs: turath-fetch-tafsir)
 book-ingest-tafsir:
-	cargo run -- ingest-book \
+	cargo run -- ingest-turath \
 		--pages-file data/tafsir_ibn_kathir_pages.json \
 		--headings-file data/tafsir_ibn_kathir_headings.json \
 		--book-id 23604 \
@@ -275,12 +275,11 @@ book-ingest-tafsir:
 		--name-en "Tafsir Ibn Kathir" \
 		--author-ar "ابن كثير" \
 		--tafsir-mapping data/tafsir_verse_mapping.json \
-		--category quran --book-type tafsir \
-		--source turath --source-id 23604
+		--category quran --book-type tafsir
 
 # Ingest Fath al-Bari (needs: turath-fetch-fathulbari + turath-mapping)
 book-ingest-fathulbari:
-	cargo run -- ingest-book \
+	cargo run -- ingest-turath \
 		--pages-file data/fath_al_bari_pages.json \
 		--headings-file data/fath_al_bari_headings.json \
 		--book-id 1673 \
@@ -289,12 +288,11 @@ book-ingest-fathulbari:
 		--author-ar "ابن حجر العسقلاني" \
 		--sharh-mapping data/fath_al_bari_hadith_mapping.json \
 		--sharh-collection-id 1 \
-		--category hadith --book-type sharh \
-		--source turath --source-id 1673
+		--category hadith --book-type sharh
 
 # Ingest Sharh Nawawi (needs: turath-fetch-nawawi + turath-mapping)
 book-ingest-nawawi:
-	cargo run -- ingest-book \
+	cargo run -- ingest-turath \
 		--pages-file data/nawawi_on_muslim_pages.json \
 		--headings-file data/nawawi_on_muslim_headings.json \
 		--book-id 1711 \
@@ -303,12 +301,11 @@ book-ingest-nawawi:
 		--author-ar "النووي" \
 		--sharh-mapping data/nawawi_on_muslim_hadith_mapping.json \
 		--sharh-collection-id 2 \
-		--category hadith --book-type sharh \
-		--source turath --source-id 1711
+		--category hadith --book-type sharh
 
 # Ingest Tuhfat al-Ahwadhi (needs: turath-fetch-tuhfat + turath-mapping)
 book-ingest-tuhfat:
-	cargo run -- ingest-book \
+	cargo run -- ingest-turath \
 		--pages-file data/tuhfat_ahwadhi_pages.json \
 		--headings-file data/tuhfat_ahwadhi_headings.json \
 		--book-id 21662 \
@@ -317,12 +314,11 @@ book-ingest-tuhfat:
 		--author-ar "المباركفوري" \
 		--sharh-mapping data/tuhfat_ahwadhi_hadith_mapping.json \
 		--sharh-collection-id 4 \
-		--category hadith --book-type sharh \
-		--source turath --source-id 21662
+		--category hadith --book-type sharh
 
 # Ingest Sahih Sunan al-Nasa'i
 book-ingest-nasai:
-	cargo run -- ingest-book \
+	cargo run -- ingest-turath \
 		--pages-file data/sahih_nasai_pages.json \
 		--headings-file data/sahih_nasai_headings.json \
 		--book-id 1147 \
@@ -331,12 +327,11 @@ book-ingest-nasai:
 		--author-ar "الألباني" \
 		--sharh-mapping data/sahih_nasai_hadith_mapping.json \
 		--sharh-collection-id 5 \
-		--category hadith --book-type collection \
-		--source turath --source-id 1147
+		--category hadith --book-type collection
 
 # Ingest Awn al-Ma'bud
 book-ingest-awnmabud:
-	cargo run -- ingest-book \
+	cargo run -- ingest-turath \
 		--pages-file data/awn_mabud_pages.json \
 		--headings-file data/awn_mabud_headings.json \
 		--book-id 5760 \
@@ -345,12 +340,11 @@ book-ingest-awnmabud:
 		--author-ar "العظيم آبادي" \
 		--sharh-mapping data/awn_mabud_hadith_mapping.json \
 		--sharh-collection-id 3 \
-		--category hadith --book-type sharh \
-		--source turath --source-id 5760
+		--category hadith --book-type sharh
 
 # Ingest Sunan Ibn Majah
 book-ingest-ibnmajah:
-	cargo run -- ingest-book \
+	cargo run -- ingest-turath \
 		--pages-file data/ibn_majah_pages.json \
 		--headings-file data/ibn_majah_headings.json \
 		--book-id 98138 \
@@ -359,12 +353,11 @@ book-ingest-ibnmajah:
 		--author-ar "ابن ماجه" \
 		--sharh-mapping data/ibn_majah_hadith_mapping.json \
 		--sharh-collection-id 6 \
-		--category hadith --book-type collection \
-		--source turath --source-id 98138
+		--category hadith --book-type collection
 
 # Ingest Tahdhib al-Tahdhib (narrator bios)
 book-ingest-tahdhib:
-	cargo run -- ingest-book \
+	cargo run -- ingest-turath \
 		--pages-file data/tahdhib_pages.json \
 		--headings-file data/tahdhib_headings.json \
 		--book-id 1278 \
@@ -372,8 +365,7 @@ book-ingest-tahdhib:
 		--name-en "Tahdhib al-Tahdhib" \
 		--author-ar "ابن حجر العسقلاني" \
 		--narrator-mapping data/tahdhib_narrator_mapping.json \
-		--category narrator --book-type biography \
-		--source turath --source-id 1278
+		--category narrator --book-type biography
 
 # Ingest all books
 book-ingest: book-ingest-tafsir book-ingest-fathulbari book-ingest-nawawi book-ingest-tuhfat book-ingest-nasai book-ingest-awnmabud book-ingest-ibnmajah book-ingest-tahdhib
