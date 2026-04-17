@@ -63,11 +63,13 @@ export async function searchAll(
 
 export async function getHadiths(params: {
   book?: number;
+  number?: number;
   page?: number;
   limit?: number;
 }): Promise<PaginatedResponse<ApiHadith>> {
   const sp = new URLSearchParams();
   if (params.book) sp.set('book', String(params.book));
+  if (params.number) sp.set('number', String(params.number));
   if (params.page) sp.set('page', String(params.page));
   if (params.limit) sp.set('limit', String(params.limit));
   return get(`/hadiths?${sp}`);

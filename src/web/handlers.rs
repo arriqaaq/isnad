@@ -36,6 +36,7 @@ pub struct SearchParams {
 #[derive(Deserialize)]
 pub struct ListParams {
     pub book: Option<i64>,
+    pub number: Option<i64>,
     pub page: Option<usize>,
     pub limit: Option<usize>,
     pub q: Option<String>,
@@ -154,17 +155,22 @@ pub async fn hadith_list(
     let limit = params.limit.unwrap_or(20);
     let offset = (page - 1) * limit;
 
-    let query = if let Some(book_id) = params.book {
-        format!(
-            "SELECT {HADITH_FIELDS} FROM hadith WHERE book_id = {book_id} \
-             ORDER BY hadith_number ASC LIMIT {limit} START {offset}"
-        )
+    let mut conditions: Vec<String> = Vec::new();
+    if let Some(book_id) = params.book {
+        conditions.push(format!("book_id = {book_id}"));
+    }
+    if let Some(number) = params.number {
+        conditions.push(format!("hadith_number = {number}"));
+    }
+    let where_clause = if conditions.is_empty() {
+        String::new()
     } else {
-        format!(
-            "SELECT {HADITH_FIELDS} FROM hadith ORDER BY hadith_number ASC \
-             LIMIT {limit} START {offset}"
-        )
+        format!("WHERE {}", conditions.join(" AND "))
     };
+    let query = format!(
+        "SELECT {HADITH_FIELDS} FROM hadith {where_clause} \
+         ORDER BY hadith_number ASC LIMIT {limit} START {offset}"
+    );
 
     let hadiths: Vec<Hadith> = match state.db.query(&query).await {
         Ok(mut r) => r.take(0).unwrap_or_default(),

@@ -45,6 +45,7 @@
         { path: '/narrators', label: 'Narrators', icon: '◎' },
         { path: '/books', label: 'Books', icon: '▤' },
         { path: '/families', label: 'Families', icon: '⬡' },
+        { path: '/diff', label: 'Diff', icon: '⇄' },
         { path: '/search', label: 'Search', icon: '⌕' },
         { path: '/analysis', label: 'Analysis', icon: '△' },
       ],

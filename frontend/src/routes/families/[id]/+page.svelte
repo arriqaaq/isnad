@@ -6,6 +6,7 @@
   import Badge from '$lib/components/common/Badge.svelte';
   import GlossaryTooltip from '$lib/components/hadith/GlossaryTooltip.svelte';
   import LoadingSpinner from '$lib/components/common/LoadingSpinner.svelte';
+  import DiffViewer from '$lib/components/hadith/DiffViewer.svelte';
 
   let data: FamilyDetailResponse | null = $state(null);
   let mustalah: MustalahFamilyResponse | null = $state(null);
@@ -279,27 +280,7 @@
           </button>
         </div>
         {#if diffResult}
-          <div class="diff-result">
-            <div class="diff-similarity">Similarity: {(diffResult.similarity_ratio * 100).toFixed(1)}%</div>
-            <div class="diff-panels">
-              <div class="diff-panel">
-                <h4>Hadith A</h4>
-                <div class="diff-text" dir="rtl">
-                  {#each diffResult.segments_a as seg}
-                    <span class="seg seg-{seg.kind.toLowerCase()}">{seg.text} </span>
-                  {/each}
-                </div>
-              </div>
-              <div class="diff-panel">
-                <h4>Hadith B</h4>
-                <div class="diff-text" dir="rtl">
-                  {#each diffResult.segments_b as seg}
-                    <span class="seg seg-{seg.kind.toLowerCase()}">{seg.text} </span>
-                  {/each}
-                </div>
-              </div>
-            </div>
-          </div>
+          <DiffViewer result={diffResult} />
         {/if}
       {/if}
     </div>
@@ -338,14 +319,6 @@
   .diff-controls select { padding: 8px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-primary); color: var(--text-primary); }
   .diff-btn { padding: 8px 20px; background: var(--accent); color: white; border: none; border-radius: var(--radius); cursor: pointer; white-space: nowrap; }
   .diff-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-  .diff-similarity { font-size: 0.9rem; color: var(--accent); margin-bottom: 12px; font-weight: 600; }
-  .diff-panels { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  .diff-panel { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
-  .diff-panel h4 { margin-bottom: 10px; color: var(--text-secondary); font-size: 0.85rem; }
-  .diff-text { line-height: 2; font-size: 1.1rem; }
-  .seg-unchanged { color: var(--text-primary); }
-  .seg-missing { color: var(--error); background: var(--bg-hover); border-radius: 2px; padding: 1px 2px; }
-  .seg-added { color: var(--success); background: var(--bg-hover); border-radius: 2px; padding: 1px 2px; }
 
   /* Mustalah analysis */
   .mustalah-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin-bottom: 20px; }
@@ -381,6 +354,5 @@
   .loading-text { color: var(--text-muted); font-size: 0.8rem; }
 
   @media (max-width: 768px) {
-    .diff-panels { grid-template-columns: 1fr; }
   }
 </style>
