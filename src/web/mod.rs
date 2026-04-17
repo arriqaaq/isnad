@@ -1,7 +1,7 @@
+pub mod book_handlers;
 pub mod handlers;
 pub mod note_handlers;
 pub mod quran_handlers;
-pub mod turath_handlers;
 
 use std::sync::Arc;
 
@@ -179,38 +179,38 @@ pub async fn serve(
             "/api/quran/phrases/{id}",
             axum::routing::get(quran_handlers::phrase_detail),
         )
-        // Turath book viewer routes
+        // Book viewer routes
         .route(
-            "/api/turath/books/config",
-            axum::routing::get(turath_handlers::books_config),
+            "/api/books/config",
+            axum::routing::get(book_handlers::books_config),
         )
         .route(
-            "/api/turath/books",
-            axum::routing::get(turath_handlers::list_books),
+            "/api/books/list",
+            axum::routing::get(book_handlers::list_books),
         )
         .route(
-            "/api/turath/books/{book_id}",
-            axum::routing::get(turath_handlers::get_book),
+            "/api/books/{book_id}",
+            axum::routing::get(book_handlers::get_book),
         )
         .route(
-            "/api/turath/books/{book_id}/pages",
-            axum::routing::get(turath_handlers::get_pages),
+            "/api/books/{book_id}/pages",
+            axum::routing::get(book_handlers::get_pages),
         )
         .route(
             "/api/quran/surah/{number}/tafsir-pages",
-            axum::routing::get(turath_handlers::surah_tafsir_pages),
+            axum::routing::get(book_handlers::surah_tafsir_pages),
         )
         .route(
             "/api/hadiths/sharh-pages",
-            axum::routing::get(turath_handlers::hadith_sharh_pages),
+            axum::routing::get(book_handlers::hadith_sharh_pages),
         )
         .route(
             "/api/narrators/{id}/books",
-            axum::routing::get(turath_handlers::narrator_books),
+            axum::routing::get(book_handlers::narrator_books),
         )
         .route(
-            "/api/turath/books/{book_id}/chat",
-            axum::routing::post(turath_handlers::book_chat),
+            "/api/books/{book_id}/chat",
+            axum::routing::post(book_handlers::book_chat),
         )
         // Unified Quran & Sunnah routes
         .route(

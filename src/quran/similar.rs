@@ -7,6 +7,7 @@ use surrealdb::Surreal;
 use surrealdb::types::{RecordId, SurrealValue};
 
 use crate::db::Db;
+use crate::ingest::batch::{Batch, batch_size_from_env};
 
 fn rid(table: &str, key: &str) -> RecordId {
     RecordId::new(table, key)
@@ -15,6 +16,16 @@ fn rid(table: &str, key: &str) -> RecordId {
 /// Convert QUL verse_key "2:255" to our record key "2_255".
 fn verse_key_to_record_key(vk: &str) -> String {
     vk.replace(':', "_")
+}
+
+/// Validate that a record key looks like `<i64>_<i64>` so the RELATE
+/// targets can't punch a hole in a transaction (similar_to / shares_phrase
+/// have strict typed schemas — a single bad ref aborts the whole batch).
+fn valid_ayah_key(rk: &str) -> bool {
+    let mut parts = rk.split('_');
+    let s = parts.next().and_then(|s| s.parse::<i64>().ok());
+    let a = parts.next().and_then(|a| a.parse::<i64>().ok());
+    s.is_some() && a.is_some() && parts.next().is_none()
 }
 
 /// Ingest shared phrases (mutashabihat) and similar ayahs from QUL JSON files.
@@ -50,67 +61,78 @@ async fn ingest_phrases(db: &Surreal<Db>, qul_dir: &str) -> Result<()> {
             .unwrap(),
     );
 
-    for (phrase_id, entry) in &data {
-        let occurrence = entry["count"].as_i64().unwrap_or(0);
-        let verses_count = entry["ayahs"].as_i64().unwrap_or(0);
-        let chapters_count = entry["surahs"].as_i64().unwrap_or(0);
+    // Materialise into a Vec so we can chunk it deterministically.
+    let entries: Vec<(&String, &serde_json::Value)> = data.iter().collect();
+    // Phrases bring 1 CREATE + N RELATEs each (typically a few RELATEs); 100
+    // phrases per batch keeps the SurrealQL size sane.
+    let batch_size = batch_size_from_env(100);
 
-        // Try to get text from source ayah
-        let source_key = entry["source"]["key"].as_str().unwrap_or("");
-        let source_from = entry["source"]["from"].as_i64().unwrap_or(0);
-        let source_to = entry["source"]["to"].as_i64().unwrap_or(0);
+    for chunk in entries.chunks(batch_size) {
+        let mut b = Batch::new();
+        for (phrase_id, entry) in chunk {
+            let occurrence = entry["count"].as_i64().unwrap_or(0);
+            let verses_count = entry["ayahs"].as_i64().unwrap_or(0);
+            let chapters_count = entry["surahs"].as_i64().unwrap_or(0);
 
-        // Build a text placeholder from the source ayah words
-        let text_ar = if !source_key.is_empty() {
-            let rk = verse_key_to_record_key(source_key);
-            // Try to extract word range from the source ayah
-            let words_text = get_phrase_text(db, &rk, source_from, source_to).await;
-            words_text.unwrap_or_else(|| format!("phrase_{phrase_id}"))
-        } else {
-            format!("phrase_{phrase_id}")
-        };
+            // Try to get text from source ayah
+            let source_key = entry["source"]["key"].as_str().unwrap_or("");
+            let source_from = entry["source"]["from"].as_i64().unwrap_or(0);
+            let source_to = entry["source"]["to"].as_i64().unwrap_or(0);
 
-        // Create phrase node
-        db.query(
-            "CREATE $rid CONTENT { \
-             text_ar: $text_ar, text_ar_simple: NONE, \
-             occurrence: $occurrence, verses_count: $verses_count, \
-             chapters_count: $chapters_count }",
-        )
-        .bind(("rid", rid("quran_phrase", phrase_id)))
-        .bind(("text_ar", text_ar))
-        .bind(("occurrence", occurrence))
-        .bind(("verses_count", verses_count))
-        .bind(("chapters_count", chapters_count))
-        .await?
-        .check()?;
+            // Build a text placeholder from the source ayah words. This SELECT
+            // stays per-phrase (small + indexed); only writes are batched.
+            let text_ar = if !source_key.is_empty() {
+                let rk = verse_key_to_record_key(source_key);
+                let words_text = get_phrase_text(db, &rk, source_from, source_to).await;
+                words_text.unwrap_or_else(|| format!("phrase_{phrase_id}"))
+            } else {
+                format!("phrase_{phrase_id}")
+            };
 
-        // Create edges for each ayah in this phrase
-        if let Some(ayah_map) = entry["ayah"].as_object() {
-            for (vk, ranges) in ayah_map {
-                let ayah_rk = verse_key_to_record_key(vk);
-                if let Some(range_arr) = ranges.as_array() {
-                    for range in range_arr {
-                        if let Some(pair) = range.as_array() {
-                            let from = pair.first().and_then(|v| v.as_i64()).unwrap_or(0);
-                            let to = pair.get(1).and_then(|v| v.as_i64()).unwrap_or(0);
+            // Create phrase node first so the RELATEs below resolve within
+            // the same transaction.
+            let p_phrase_rid = b.param(rid("quran_phrase", phrase_id));
+            let p_text_ar = b.param(text_ar);
+            let p_occurrence = b.param(occurrence);
+            let p_verses_count = b.param(verses_count);
+            let p_chapters_count = b.param(chapters_count);
+            b.push(format!(
+                "CREATE {p_phrase_rid} CONTENT {{ \
+                 text_ar: {p_text_ar}, text_ar_simple: NONE, \
+                 occurrence: {p_occurrence}, verses_count: {p_verses_count}, \
+                 chapters_count: {p_chapters_count} }}"
+            ));
 
-                            db.query(
-                                "RELATE $in -> shares_phrase -> $out SET word_from = $from, word_to = $to",
-                            )
-                            .bind(("in", rid("ayah", &ayah_rk)))
-                            .bind(("out", rid("quran_phrase", phrase_id)))
-                            .bind(("from", from))
-                            .bind(("to", to))
-                            .await?
-                            .check()?;
+            // Reuse the phrase param for every RELATE in this iteration.
+            if let Some(ayah_map) = entry["ayah"].as_object() {
+                for (vk, ranges) in ayah_map {
+                    let ayah_rk = verse_key_to_record_key(vk);
+                    // shares_phrase is RELATION IN ayah OUT quran_phrase — skip
+                    // junk keys instead of poisoning the whole batch.
+                    if !valid_ayah_key(&ayah_rk) {
+                        continue;
+                    }
+                    if let Some(range_arr) = ranges.as_array() {
+                        for range in range_arr {
+                            if let Some(pair) = range.as_array() {
+                                let from = pair.first().and_then(|v| v.as_i64()).unwrap_or(0);
+                                let to = pair.get(1).and_then(|v| v.as_i64()).unwrap_or(0);
+
+                                let p_in = b.param(rid("ayah", &ayah_rk));
+                                let p_from = b.param(from);
+                                let p_to = b.param(to);
+                                b.push(format!(
+                                    "RELATE {p_in} -> shares_phrase -> {p_phrase_rid} \
+                                     SET word_from = {p_from}, word_to = {p_to}"
+                                ));
+                            }
                         }
                     }
                 }
             }
         }
-
-        pb.inc(1);
+        b.commit(db).await?;
+        pb.inc(chunk.len() as u64);
     }
     pb.finish_with_message("done");
     println!("   {} shared phrases ingested", data.len());
@@ -203,36 +225,58 @@ async fn ingest_similar_ayahs(db: &Surreal<Db>, qul_dir: &str) -> Result<()> {
             .unwrap(),
     );
 
+    // Flatten (from_rk, m) pairs and drop ones with unparseable keys up-front;
+    // similar_to is RELATION IN ayah OUT ayah, so a single bad RELATE in a
+    // batch would roll back the whole transaction.
+    let mut pairs: Vec<(String, String, &serde_json::Value)> = Vec::with_capacity(total);
+    let mut skipped = 0usize;
     for (vk, matches) in &data {
         let from_rk = verse_key_to_record_key(vk);
-
+        if !valid_ayah_key(&from_rk) {
+            skipped += matches.len();
+            continue;
+        }
         for m in matches {
             let matched_key = m["matched_ayah_key"].as_str().unwrap_or("");
             if matched_key.is_empty() {
-                pb.inc(1);
+                skipped += 1;
                 continue;
             }
             let to_rk = verse_key_to_record_key(matched_key);
-            let score = m["score"].as_i64().unwrap_or(0);
-            let coverage = m["coverage"].as_i64().unwrap_or(0);
-
-            let positions_json = m.get("match_words").map(|v| v.to_string());
-
-            db.query(
-                "RELATE $in -> similar_to -> $out SET score = $score, coverage = $coverage, matched_positions = $positions",
-            )
-            .bind(("in", rid("ayah", &from_rk)))
-            .bind(("out", rid("ayah", &to_rk)))
-            .bind(("score", score))
-            .bind(("coverage", coverage))
-            .bind(("positions", positions_json))
-            .await?
-            .check()?;
-
-            pb.inc(1);
+            if !valid_ayah_key(&to_rk) {
+                skipped += 1;
+                continue;
+            }
+            pairs.push((from_rk.clone(), to_rk, m));
         }
     }
+    if skipped > 0 {
+        println!("   ⚠ skipped {skipped} pairs with invalid ayah keys");
+    }
+
+    // Tiny RELATE statements — bigger chunks than the default work well.
+    let batch_size = batch_size_from_env(500);
+    for chunk in pairs.chunks(batch_size) {
+        let mut b = Batch::new();
+        for (from_rk, to_rk, m) in chunk {
+            let score = m["score"].as_i64().unwrap_or(0);
+            let coverage = m["coverage"].as_i64().unwrap_or(0);
+            let positions_json = m.get("match_words").map(|v| v.to_string());
+
+            let p_in = b.param(rid("ayah", from_rk));
+            let p_out = b.param(rid("ayah", to_rk));
+            let p_score = b.param(score);
+            let p_coverage = b.param(coverage);
+            let p_positions = b.param(positions_json);
+            b.push(format!(
+                "RELATE {p_in} -> similar_to -> {p_out} \
+                 SET score = {p_score}, coverage = {p_coverage}, matched_positions = {p_positions}"
+            ));
+        }
+        b.commit(db).await?;
+        pb.inc(chunk.len() as u64);
+    }
     pb.finish_with_message("done");
-    println!("   {} similar ayah edges ingested", total);
+    println!("   {} similar ayah edges ingested", pairs.len());
     Ok(())
 }

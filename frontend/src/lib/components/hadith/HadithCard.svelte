@@ -39,7 +39,7 @@
     <div class="card-actions">
       <button
         class="sharh-btn"
-        onclick={() => onopensharh({ bookId: sharhPage.sharh_book_id, pageIndex: sharhPage.page_index, bookName: sharhPage.book_name, hadithNumber: hadith.hadith_number })}
+        onclick={() => onopensharh({ bookId: sharhPage.book_id, pageIndex: sharhPage.page_index, bookName: sharhPage.book_name, hadithNumber: hadith.hadith_number })}
         title="View {sharhPage.book_name}"
       >
         Sharh

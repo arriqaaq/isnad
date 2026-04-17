@@ -11,7 +11,7 @@
   let rootResult: RootSearchResponse | null = $state(null);
   let loading = $state(false);
   let query = $state('');
-  let searchType: 'text' | 'semantic' | 'hybrid' | 'tafsir' | 'root' = $state('text');
+  let searchType: 'text' | 'semantic' | 'hybrid' | 'root' = $state('text');
   let currentPage = $state(1);
 
   let urlQuery = $derived(page.url.searchParams.get('q') || '');
@@ -36,7 +36,7 @@
       if (searchType === 'root') {
         rootResult = await searchByRoot(query);
       } else {
-        result = await searchQuran(query, searchType as 'text' | 'semantic' | 'hybrid' | 'tafsir', 20, currentPage);
+        result = await searchQuran(query, searchType as 'text' | 'semantic' | 'hybrid', 20, currentPage);
       }
     } catch (e) {
       console.error('Quran search failed:', e);
@@ -77,7 +77,6 @@
       <button type="button" class="toggle-btn" class:active={searchType === 'text'} onclick={() => searchType = 'text'}>Text</button>
       <button type="button" class="toggle-btn" class:active={searchType === 'semantic'} onclick={() => searchType = 'semantic'}>Semantic</button>
       <button type="button" class="toggle-btn" class:active={searchType === 'hybrid'} onclick={() => searchType = 'hybrid'}>Hybrid</button>
-      <button type="button" class="toggle-btn" class:active={searchType === 'tafsir'} onclick={() => searchType = 'tafsir'}>Tafsir</button>
       <button type="button" class="toggle-btn" class:active={searchType === 'root'} onclick={() => searchType = 'root'}>Root</button>
     </div>
     <button type="submit" class="search-btn">Search</button>

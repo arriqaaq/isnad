@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { getTurathBook, getTurathPages } from '$lib/api';
-  import type { TurathPage, TurathHeading } from '$lib/types';
+  import { getBook, getBookPages } from '$lib/api';
+  import type { BookPage, BookHeading } from '$lib/types';
   import ReaderPage from './ReaderPage.svelte';
 
   let { bookId, pageIndex, ayahRef, onclose }: {
@@ -12,8 +12,8 @@
   } = $props();
 
   let loading = $state(true);
-  let pages: Map<number, TurathPage> = $state(new Map());
-  let headings: TurathHeading[] = $state([]);
+  let pages: Map<number, BookPage> = $state(new Map());
+  let headings: BookHeading[] = $state([]);
   let totalPages = $state(0);
   // svelte-ignore state_referenced_locally — intentional: one-shot init from prop
   let currentIndex = $state(pageIndex);
@@ -56,7 +56,7 @@
 
   // Build sidebar tree (level 1 = parents, level 2+ = children)
   interface HeadingNode {
-    heading: TurathHeading;
+    heading: BookHeading;
     children: HeadingNode[];
   }
   let headingTree = $derived.by(() => {
@@ -85,7 +85,7 @@
 
     // Fetch book metadata (for headings) and initial pages
     Promise.all([
-      getTurathBook(bookId),
+      getBook(bookId),
       fetchAround(pageIndex),
     ]).then(([book]) => {
       headings = book.headings;
@@ -106,7 +106,7 @@
   async function fetchAround(center: number) {
     const start = Math.max(0, center - 2);
     try {
-      const res = await getTurathPages(bookId, start, 7);
+      const res = await getBookPages(bookId, start, 7);
       const next = new Map(pages);
       for (const p of res.pages) next.set(p.page_index, p);
       pages = next;

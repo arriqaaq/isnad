@@ -1,5 +1,5 @@
 import type {
-  ApiBook,
+  ApiCollection,
   ApiHadithFamily,
   ApiMatnDiff,
   ApiReciter,
@@ -28,10 +28,10 @@ import type {
   NoteRef,
   LinkPreview,
   NoteRefsIndicator,
-  TurathBook,
-  TurathBooksConfig,
-  TurathBookDetail,
-  TurathPagesResponse,
+  Book,
+  BooksConfig,
+  BookDetail,
+  BookPagesResponse,
   TafsirSurahMappings,
   SharhBatchResponse,
   NarratorBookRef,
@@ -50,8 +50,8 @@ export async function getStats(): Promise<StatsResponse> {
   return get('/stats');
 }
 
-export async function getBooks(): Promise<ApiBook[]> {
-  return get('/books');
+export async function getCollections(): Promise<ApiCollection[]> {
+  return get('/collections');
 }
 
 export async function searchAll(
@@ -170,7 +170,7 @@ export async function getSurah(number: number): Promise<SurahDetailResponse> {
 
 export async function searchQuran(
   q: string,
-  type: 'text' | 'semantic' | 'hybrid' | 'tafsir' = 'text',
+  type: 'text' | 'semantic' | 'hybrid' = 'text',
   limit = 20,
   page = 1
 ): Promise<QuranSearchResponse> {
@@ -362,22 +362,22 @@ export async function fetchLinkPreview(url: string): Promise<LinkPreview> {
   return get(`/link-preview?url=${encodeURIComponent(url)}`);
 }
 
-// ── Turath Book Viewer ──
+// ── Book Viewer ──
 
-export async function getTurathBooksConfig(): Promise<TurathBooksConfig> {
-  return get('/turath/books/config');
+export async function getBooksConfig(): Promise<BooksConfig> {
+  return get('/books/config');
 }
 
-export async function getTurathBooks(): Promise<TurathBook[]> {
-  return get('/turath/books');
+export async function getBooksList(): Promise<Book[]> {
+  return get('/books/list');
 }
 
-export async function getTurathBook(bookId: number): Promise<TurathBookDetail> {
-  return get(`/turath/books/${bookId}`);
+export async function getBook(bookId: number): Promise<BookDetail> {
+  return get(`/books/${bookId}`);
 }
 
-export async function getTurathPages(bookId: number, start: number, size: number): Promise<TurathPagesResponse> {
-  return get(`/turath/books/${bookId}/pages?start=${start}&size=${size}`);
+export async function getBookPages(bookId: number, start: number, size: number): Promise<BookPagesResponse> {
+  return get(`/books/${bookId}/pages?start=${start}&size=${size}`);
 }
 
 export async function getSurahTafsirPages(surahNumber: number): Promise<TafsirSurahMappings> {

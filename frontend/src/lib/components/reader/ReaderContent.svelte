@@ -1,9 +1,9 @@
 <script lang="ts">
-  import type { TurathPage } from '$lib/types';
+  import type { BookPage } from '$lib/types';
   import ReaderPage from './ReaderPage.svelte';
 
   let { pages, currentPageIndex = $bindable(0), onNeedMore }: {
-    pages: Map<number, TurathPage>;
+    pages: Map<number, BookPage>;
     currentPageIndex: number;
     onNeedMore: (startIndex: number) => void;
     totalPages: number;

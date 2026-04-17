@@ -43,7 +43,7 @@ pub struct Narrator {
 pub struct Hadith {
     pub id: Option<RecordId>,
     pub hadith_number: i64,
-    pub book_id: i64,
+    pub collection_id: i64,
     pub chapter_id: i64,
     pub text_ar: Option<String>,
     pub text_en: Option<String>,
@@ -59,17 +59,17 @@ pub struct Hadith {
 }
 
 /// Hadith fields excluding `embedding` — use instead of `SELECT *`.
-pub const HADITH_FIELDS: &str = "id, hadith_number, book_id, chapter_id, text_ar, text_en, \
+pub const HADITH_FIELDS: &str = "id, hadith_number, collection_id, chapter_id, text_ar, text_en, \
     narrator_text, grade, book_name, matn, hadith_type, topics, quran_verses, chapter_name, family_id";
 
 /// Subset for search results (lighter weight).
 pub const HADITH_SEARCH_FIELDS: &str =
-    "id, hadith_number, book_id, text_ar, text_en, narrator_text";
+    "id, hadith_number, collection_id, text_ar, text_en, narrator_text";
 
 #[derive(Debug, SurrealValue, Serialize, Clone)]
-pub struct Book {
+pub struct Collection {
     pub id: Option<RecordId>,
-    pub book_number: i64,
+    pub collection_id: i64,
     pub name_en: String,
     pub name_ar: Option<String>,
 }
@@ -106,7 +106,7 @@ impl From<HadithFamily> for ApiHadithFamily {
 pub struct HadithSearchResult {
     pub id: Option<RecordId>,
     pub hadith_number: i64,
-    pub book_id: i64,
+    pub collection_id: i64,
     pub text_ar: Option<String>,
     pub text_en: Option<String>,
     pub narrator_text: Option<String>,
@@ -209,7 +209,7 @@ impl From<Narrator> for ApiNarrator {
 pub struct ApiHadith {
     pub id: String,
     pub hadith_number: i64,
-    pub book_id: i64,
+    pub collection_id: i64,
     pub chapter_id: i64,
     pub text_ar: Option<String>,
     pub text_en: Option<String>,
@@ -228,7 +228,7 @@ impl From<Hadith> for ApiHadith {
         Self {
             id: h.id.as_ref().map(record_id_key_string).unwrap_or_default(),
             hadith_number: h.hadith_number,
-            book_id: h.book_id,
+            collection_id: h.collection_id,
             chapter_id: h.chapter_id,
             text_ar: h.text_ar,
             text_en: h.text_en,
@@ -245,18 +245,18 @@ impl From<Hadith> for ApiHadith {
 }
 
 #[derive(Debug, Serialize)]
-pub struct ApiBook {
+pub struct ApiCollection {
     pub id: String,
-    pub book_number: i64,
+    pub collection_id: i64,
     pub name_en: String,
     pub name_ar: Option<String>,
 }
 
-impl From<Book> for ApiBook {
-    fn from(b: Book) -> Self {
+impl From<Collection> for ApiCollection {
+    fn from(b: Collection) -> Self {
         Self {
             id: b.id.as_ref().map(record_id_key_string).unwrap_or_default(),
-            book_number: b.book_number,
+            collection_id: b.collection_id,
             name_en: b.name_en,
             name_ar: b.name_ar,
         }
@@ -279,7 +279,7 @@ pub struct ApiNarratorWithCount {
 pub struct ApiHadithSearchResult {
     pub id: String,
     pub hadith_number: i64,
-    pub book_id: i64,
+    pub collection_id: i64,
     pub text_ar: Option<String>,
     pub text_en: Option<String>,
     pub narrator_text: Option<String>,
@@ -291,7 +291,7 @@ impl From<HadithSearchResult> for ApiHadithSearchResult {
         Self {
             id: h.id.as_ref().map(record_id_key_string).unwrap_or_default(),
             hadith_number: h.hadith_number,
-            book_id: h.book_id,
+            collection_id: h.collection_id,
             text_ar: h.text_ar,
             text_en: h.text_en,
             narrator_text: h.narrator_text,

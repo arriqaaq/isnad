@@ -13,7 +13,7 @@ use crate::rag::ChatChunk;
 // ── Response types ──
 
 #[derive(Debug, Serialize)]
-pub struct TurathBookSummary {
+pub struct BookSummary {
     pub book_id: u64,
     pub name_ar: String,
     pub name_en: String,
@@ -22,24 +22,24 @@ pub struct TurathBookSummary {
 }
 
 #[derive(Debug, Serialize)]
-pub struct TurathBookDetail {
+pub struct BookDetail {
     pub book_id: u64,
     pub name_ar: String,
     pub name_en: String,
     pub author_ar: String,
     pub total_pages: u64,
-    pub headings: Vec<TurathHeading>,
+    pub headings: Vec<BookHeading>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct TurathHeading {
+pub struct BookHeading {
     pub title: String,
     pub level: u32,
     pub page_index: u32,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct TurathPage {
+pub struct BookPage {
     pub page_index: u64,
     pub text: String,
     pub vol: String,
@@ -47,8 +47,8 @@ pub struct TurathPage {
 }
 
 #[derive(Debug, Serialize)]
-pub struct TurathPagesResponse {
-    pub pages: Vec<TurathPage>,
+pub struct BookPagesResponse {
+    pub pages: Vec<BookPage>,
     pub total: u64,
     pub start: u64,
     pub size: u64,
@@ -96,7 +96,7 @@ pub struct SharhBatchParams {
 // ── Books config response ──
 
 #[derive(Debug, Serialize)]
-pub struct TurathBookConfigEntry {
+pub struct BookConfigEntry {
     pub book_id: u64,
     pub name_ar: String,
     pub name_en: String,
@@ -107,8 +107,8 @@ pub struct TurathBookConfigEntry {
 }
 
 #[derive(Debug, Serialize)]
-pub struct TurathBooksConfigResponse {
-    pub books: Vec<TurathBookConfigEntry>,
+pub struct BooksConfigResponse {
+    pub books: Vec<BookConfigEntry>,
     pub tafsir_book_id: Option<u64>,
 }
 
@@ -205,7 +205,7 @@ struct CountResult {
 
 // ── Handlers ──
 
-/// GET /api/turath/books/config
+/// GET /api/books/config
 /// Returns book metadata with categories, types, chat status, and default questions.
 pub async fn books_config(State(state): State<AppState>) -> impl IntoResponse {
     let result: Result<Vec<ConfigBookRow>, _> = state
@@ -223,7 +223,7 @@ pub async fn books_config(State(state): State<AppState>) -> impl IntoResponse {
     match result {
         Ok(rows) => {
             let mut tafsir_book_id: Option<u64> = None;
-            let books: Vec<TurathBookConfigEntry> = rows
+            let books: Vec<BookConfigEntry> = rows
                 .into_iter()
                 .map(|b| {
                     let bid = b.book_id as u64;
@@ -231,7 +231,7 @@ pub async fn books_config(State(state): State<AppState>) -> impl IntoResponse {
                     if bt == Some("tafsir") {
                         tafsir_book_id = Some(bid);
                     }
-                    TurathBookConfigEntry {
+                    BookConfigEntry {
                         book_id: bid,
                         name_ar: b.name_ar,
                         name_en: b.name_en,
@@ -243,7 +243,7 @@ pub async fn books_config(State(state): State<AppState>) -> impl IntoResponse {
                 })
                 .collect();
 
-            Json(TurathBooksConfigResponse {
+            Json(BooksConfigResponse {
                 books,
                 tafsir_book_id,
             })
@@ -265,9 +265,9 @@ pub async fn list_books(State(state): State<AppState>) -> impl IntoResponse {
 
     match result {
         Ok(books) => {
-            let summaries: Vec<TurathBookSummary> = books
+            let summaries: Vec<BookSummary> = books
                 .into_iter()
-                .map(|b| TurathBookSummary {
+                .map(|b| BookSummary {
                     book_id: b.book_id as u64,
                     name_ar: b.name_ar,
                     name_en: b.name_en,
@@ -297,13 +297,13 @@ pub async fn get_book(
 
     match result {
         Ok(Some(book)) => {
-            let headings: Vec<TurathHeading> = book
+            let headings: Vec<BookHeading> = book
                 .headings
                 .as_deref()
                 .and_then(|s| serde_json::from_str(s).ok())
                 .unwrap_or_default();
 
-            Json(TurathBookDetail {
+            Json(BookDetail {
                 book_id: book.book_id as u64,
                 name_ar: book.name_ar,
                 name_en: book.name_en,
@@ -353,10 +353,10 @@ pub async fn get_pages(
     match result {
         Ok(mut res) => {
             let pages: Vec<PageRow> = res.take(0).unwrap_or_default();
-            let response = TurathPagesResponse {
+            let response = BookPagesResponse {
                 pages: pages
                     .into_iter()
-                    .map(|p| TurathPage {
+                    .map(|p| BookPage {
                         page_index: p.page_index as u64,
                         text: p.text,
                         vol: p.vol,
@@ -415,13 +415,13 @@ pub async fn surah_tafsir_pages(
     }
 }
 
-/// Batch lookup: hadith numbers → sharh page references.
+/// Batch lookup: hadith numbers -> sharh page references.
 /// GET /api/hadiths/sharh-pages?book=1&numbers=1,2,3,4,5
 pub async fn hadith_sharh_pages(
     State(state): State<AppState>,
     Query(params): Query<SharhBatchParams>,
 ) -> impl IntoResponse {
-    let book_id = params.book.unwrap_or(1); // default to Bukhari
+    let collection_id = params.book.unwrap_or(1); // default to Bukhari
 
     let numbers: Vec<i64> = params
         .numbers
@@ -447,7 +447,7 @@ pub async fn hadith_sharh_pages(
 
     let sql = format!(
         "SELECT hadith_number, book_id, page_index FROM hadith_sharh_map \
-         WHERE collection_id = {book_id} AND hadith_number IN [{nums_str}]"
+         WHERE collection_id = {collection_id} AND hadith_number IN [{nums_str}]"
     );
 
     let result: Result<Vec<SharhRow>, _> = state.db.query(&sql).await.and_then(|mut r| r.take(0));
@@ -456,7 +456,7 @@ pub async fn hadith_sharh_pages(
     let book_name = match state
         .db
         .query("SELECT name_en FROM book WHERE book_id IN (SELECT VALUE book_id FROM hadith_sharh_map WHERE collection_id = $bid LIMIT 1) LIMIT 1")
-        .bind(("bid", book_id as i64))
+        .bind(("bid", collection_id as i64))
         .await
     {
         Ok(mut r) => {
@@ -545,7 +545,7 @@ pub struct BookChatRequest {
     pub question: String,
 }
 
-/// POST /api/turath/books/{book_id}/chat
+/// POST /api/books/{book_id}/chat
 ///
 /// Streams an SSE response immediately — the user sees "navigating" status
 /// while the LLM processes. Uses two-phase navigation and caching.

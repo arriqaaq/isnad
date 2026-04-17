@@ -65,7 +65,7 @@
           {#each result.hadiths as h}
             <a href="/hadiths/{h.id}" class="result-card">
               <div class="result-header">
-                <Badge text="Book {h.book_id}" />
+                <Badge text="Book {h.collection_id}" />
                 <span class="hadith-num mono">#{h.hadith_number}</span>
                 {#if h.score}<span class="score mono">{formatScore(h.score)}</span>{/if}
               </div>

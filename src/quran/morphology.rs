@@ -12,6 +12,7 @@ use surrealdb::Surreal;
 use surrealdb::types::RecordId;
 
 use crate::db::Db;
+use crate::ingest::batch::{Batch, batch_size_from_env};
 use crate::quran::ingest::strip_arabic_diacritics;
 
 fn rid(table: &str, key: &str) -> RecordId {
@@ -330,55 +331,58 @@ pub async fn ingest_morphology(db: &Surreal<Db>, morph_path: &str, qul_dir: &str
             .unwrap(),
     );
 
-    for word in &words {
-        let key = format!("{}_{}_{}", word.surah, word.ayah, word.word_pos);
-        let text_ar_simple = strip_arabic_diacritics(&word.text_ar);
+    let batch_size = batch_size_from_env(200);
+    for chunk in words.chunks(batch_size) {
+        let mut b = Batch::new();
+        for word in chunk {
+            let key = format!("{}_{}_{}", word.surah, word.ayah, word.word_pos);
+            let text_ar_simple = strip_arabic_diacritics(&word.text_ar);
 
-        // Look up QUL word translation: key format "surah:ayah:word"
-        // Value may contain HTML spans like "<span class='n'>name</span>" — strip them
-        let translation = word_translations.as_ref().and_then(|wt| {
-            let k = format!("{}:{}:{}", word.surah, word.ayah, word.word_pos);
-            wt.get(&k).and_then(|v| v.as_str()).map(strip_html_tags)
-        });
+            // Look up QUL word translation: key format "surah:ayah:word"
+            // Value may contain HTML spans like "<span class='n'>name</span>" — strip them
+            let translation = word_translations.as_ref().and_then(|wt| {
+                let k = format!("{}:{}:{}", word.surah, word.ayah, word.word_pos);
+                wt.get(&k).and_then(|v| v.as_str()).map(strip_html_tags)
+            });
 
-        // Look up QUL transliteration: key format "surah:ayah" (ayah-level, not word)
-        // We store the full ayah transliteration on word_pos=1 only to avoid duplication
-        let transliteration = if word.word_pos == 1 {
-            transliterations.as_ref().and_then(|tl| {
-                let k = format!("{}:{}", word.surah, word.ayah);
-                tl.get(&k).and_then(|v| v.as_str()).map(|s| s.to_string())
-            })
-        } else {
-            None
-        };
+            // Look up QUL transliteration: key format "surah:ayah" (ayah-level, not word)
+            // We store the full ayah transliteration on word_pos=1 only to avoid duplication
+            let transliteration = if word.word_pos == 1 {
+                transliterations.as_ref().and_then(|tl| {
+                    let k = format!("{}:{}", word.surah, word.ayah);
+                    tl.get(&k).and_then(|v| v.as_str()).map(|s| s.to_string())
+                })
+            } else {
+                None
+            };
 
-        let segments_json = serde_json::to_string(&word.segments)?;
+            let segments_json = serde_json::to_string(&word.segments)?;
 
-        db.query(
-            "CREATE $rid CONTENT { \
-             surah_number: $surah, ayah_number: $ayah, word_position: $word_pos, \
-             text_ar: $text_ar, text_ar_simple: $text_ar_simple, \
-             translation: $translation, transliteration: $transliteration, \
-             pos: $pos, root: $root, lemma: $lemma, \
-             features: $features, segments: $segments }",
-        )
-        .bind(("rid", rid("quran_word", &key)))
-        .bind(("surah", word.surah))
-        .bind(("ayah", word.ayah))
-        .bind(("word_pos", word.word_pos))
-        .bind(("text_ar", word.text_ar.clone()))
-        .bind(("text_ar_simple", text_ar_simple))
-        .bind(("translation", translation))
-        .bind(("transliteration", transliteration))
-        .bind(("pos", word.pos.clone()))
-        .bind(("root", word.root.clone()))
-        .bind(("lemma", word.lemma.clone()))
-        .bind(("features", word.features.clone()))
-        .bind(("segments", segments_json))
-        .await?
-        .check()?;
+            let p_rid = b.param(rid("quran_word", &key));
+            let p_surah = b.param(word.surah);
+            let p_ayah = b.param(word.ayah);
+            let p_word_pos = b.param(word.word_pos);
+            let p_text_ar = b.param(word.text_ar.clone());
+            let p_text_ar_simple = b.param(text_ar_simple);
+            let p_translation = b.param(translation);
+            let p_transliteration = b.param(transliteration);
+            let p_pos = b.param(word.pos.clone());
+            let p_root = b.param(word.root.clone());
+            let p_lemma = b.param(word.lemma.clone());
+            let p_features = b.param(word.features.clone());
+            let p_segments = b.param(segments_json);
 
-        pb.inc(1);
+            b.push(format!(
+                "CREATE {p_rid} CONTENT {{ \
+                 surah_number: {p_surah}, ayah_number: {p_ayah}, word_position: {p_word_pos}, \
+                 text_ar: {p_text_ar}, text_ar_simple: {p_text_ar_simple}, \
+                 translation: {p_translation}, transliteration: {p_transliteration}, \
+                 pos: {p_pos}, root: {p_root}, lemma: {p_lemma}, \
+                 features: {p_features}, segments: {p_segments} }}"
+            ));
+        }
+        b.commit(db).await?;
+        pb.inc(chunk.len() as u64);
     }
     pb.finish_with_message("done");
     println!("   ✓ {} words ingested", total);
@@ -432,15 +436,19 @@ pub async fn build_ayah_lemma_text(db: &Surreal<Db>) -> Result<()> {
             .unwrap(),
     );
 
-    for ((surah, ayah), lemmas) in &ayah_lemmas {
-        let lemma_text = lemmas.join(" ");
-        let key = format!("{}_{}", surah, ayah);
-        db.query("UPDATE $rid SET text_ar_lemma = $lemma_text")
-            .bind(("rid", rid("ayah", &key)))
-            .bind(("lemma_text", lemma_text))
-            .await?
-            .check()?;
-        pb.inc(1);
+    let lemma_entries: Vec<((i64, i64), Vec<String>)> = ayah_lemmas.into_iter().collect();
+    let batch_size = batch_size_from_env(200);
+    for chunk in lemma_entries.chunks(batch_size) {
+        let mut b = Batch::new();
+        for ((surah, ayah), lemmas) in chunk {
+            let lemma_text = lemmas.join(" ");
+            let key = format!("{}_{}", surah, ayah);
+            let p_rid = b.param(rid("ayah", &key));
+            let p_lemma_text = b.param(lemma_text);
+            b.push(format!("UPDATE {p_rid} SET text_ar_lemma = {p_lemma_text}"));
+        }
+        b.commit(db).await?;
+        pb.inc(chunk.len() as u64);
     }
 
     pb.finish_with_message("done");

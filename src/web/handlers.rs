@@ -9,8 +9,8 @@ use surrealdb::types::{RecordId, SurrealValue};
 
 use crate::analysis;
 use crate::models::{
-    ApiBook, ApiHadith, ApiHadithFamily, ApiHadithSearchResult, ApiNarrator,
-    ApiNarratorSearchResult, ApiNarratorWithCount, Book, GraphData, GraphEdge, GraphEdgeData,
+    ApiCollection, ApiHadith, ApiHadithFamily, ApiHadithSearchResult, ApiNarrator,
+    ApiNarratorSearchResult, ApiNarratorWithCount, Collection, GraphData, GraphEdge, GraphEdgeData,
     GraphNode, GraphNodeData, HADITH_FIELDS, Hadith, HadithFamily, Narrator, PaginatedResponse,
     StatsResponse, record_id_key_string, record_id_string,
 };
@@ -57,7 +57,7 @@ pub async fn stats(State(state): State<AppState>) -> impl IntoResponse {
         .query(
             "SELECT count() AS c FROM hadith GROUP ALL; \
              SELECT count() AS c FROM narrator GROUP ALL; \
-             SELECT count() AS c FROM book GROUP ALL;",
+             SELECT count() AS c FROM collection GROUP ALL;",
         )
         .await;
 
@@ -86,9 +86,9 @@ pub async fn stats(State(state): State<AppState>) -> impl IntoResponse {
 }
 
 pub async fn books(State(state): State<AppState>) -> impl IntoResponse {
-    let books: Vec<Book> = match state
+    let books: Vec<Collection> = match state
         .db
-        .query("SELECT * FROM book ORDER BY book_number ASC")
+        .query("SELECT * FROM collection ORDER BY collection_id ASC")
         .await
     {
         Ok(mut r) => r.take(0).unwrap_or_default(),
@@ -98,7 +98,12 @@ pub async fn books(State(state): State<AppState>) -> impl IntoResponse {
         }
     };
 
-    Json(books.into_iter().map(ApiBook::from).collect::<Vec<_>>())
+    Json(
+        books
+            .into_iter()
+            .map(ApiCollection::from)
+            .collect::<Vec<_>>(),
+    )
 }
 
 pub async fn search(
@@ -157,7 +162,7 @@ pub async fn hadith_list(
 
     let mut conditions: Vec<String> = Vec::new();
     if let Some(book_id) = params.book {
-        conditions.push(format!("book_id = {book_id}"));
+        conditions.push(format!("collection_id = {book_id}"));
     }
     if let Some(number) = params.number {
         conditions.push(format!("hadith_number = {number}"));

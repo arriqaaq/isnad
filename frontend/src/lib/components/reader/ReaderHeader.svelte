@@ -1,8 +1,8 @@
 <script lang="ts">
-  import type { TurathBook } from '$lib/types';
+  import type { Book } from '$lib/types';
 
   let { book, currentPage, totalPages, onToggleSidebar }: {
-    book: TurathBook;
+    book: Book;
     currentPage: number;
     totalPages: number;
     onToggleSidebar: () => void;

@@ -1,14 +1,14 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { getBooks } from '$lib/api';
-  import type { ApiBook } from '$lib/types';
+  import { getCollections } from '$lib/api';
+  import type { ApiCollection } from '$lib/types';
   import LoadingSpinner from '$lib/components/common/LoadingSpinner.svelte';
 
-  let books: ApiBook[] = $state([]);
+  let books: ApiCollection[] = $state([]);
   let loading = $state(true);
 
   onMount(async () => {
-    try { books = await getBooks(); }
+    try { books = await getCollections(); }
     catch (e) { console.error('Failed to load books:', e); }
     finally { loading = false; }
   });

@@ -57,7 +57,7 @@ DEFINE INDEX IF NOT EXISTS narrator_name ON TABLE narrator FIELDS name_en;
 
 DEFINE TABLE IF NOT EXISTS hadith SCHEMAFULL;
 DEFINE FIELD IF NOT EXISTS hadith_number ON hadith TYPE int;
-DEFINE FIELD IF NOT EXISTS book_id       ON hadith TYPE int;
+DEFINE FIELD IF NOT EXISTS collection_id ON hadith TYPE int;
 DEFINE FIELD IF NOT EXISTS chapter_id    ON hadith TYPE int;
 DEFINE FIELD IF NOT EXISTS text_ar       ON hadith TYPE option<string>;
 DEFINE FIELD IF NOT EXISTS text_en       ON hadith TYPE option<string>;
@@ -71,15 +71,13 @@ DEFINE FIELD IF NOT EXISTS quran_verses  ON hadith TYPE option<array<string>>;
 DEFINE FIELD IF NOT EXISTS chapter_name  ON hadith TYPE option<string>;
 DEFINE FIELD IF NOT EXISTS embedding     ON hadith TYPE option<array<float>>;
 DEFINE INDEX IF NOT EXISTS hadith_vec    ON TABLE hadith FIELDS embedding HNSW DIMENSION 1024 DIST COSINE;
-DEFINE INDEX IF NOT EXISTS hadith_book   ON TABLE hadith FIELDS book_id;
+DEFINE INDEX IF NOT EXISTS hadith_collection ON TABLE hadith FIELDS collection_id;
 
-DEFINE TABLE IF NOT EXISTS book SCHEMAFULL;
-DEFINE FIELD IF NOT EXISTS book_number ON book TYPE int;
-DEFINE FIELD IF NOT EXISTS name_en     ON book TYPE string;
-DEFINE FIELD IF NOT EXISTS name_ar     ON book TYPE option<string>;
-
--- Similar hadith edges (from SemanticHadith KG)
-DEFINE TABLE IF NOT EXISTS similar_to SCHEMALESS;
+DEFINE TABLE IF NOT EXISTS collection SCHEMAFULL;
+DEFINE FIELD IF NOT EXISTS collection_id ON collection TYPE int;
+DEFINE FIELD IF NOT EXISTS name_en       ON collection TYPE string;
+DEFINE FIELD IF NOT EXISTS name_ar       ON collection TYPE option<string>;
+DEFINE INDEX IF NOT EXISTS collection_id_idx ON collection FIELDS collection_id UNIQUE;
 
 -- === ANALYSIS TABLES ===
 
@@ -123,12 +121,7 @@ DEFINE FIELD IF NOT EXISTS collector_diversity ON narrator_pivot TYPE int;
 DEFINE FIELD IF NOT EXISTS bypass_count ON narrator_pivot TYPE int;
 DEFINE FIELD IF NOT EXISTS is_bottleneck ON narrator_pivot TYPE bool;
 DEFINE INDEX IF NOT EXISTS pivot_family_idx ON TABLE narrator_pivot FIELDS family;
-
-DEFINE TABLE IF NOT EXISTS narrator_alias SCHEMAFULL;
-DEFINE FIELD IF NOT EXISTS canonical ON narrator_alias TYPE record<narrator>;
-DEFINE FIELD IF NOT EXISTS alias_name ON narrator_alias TYPE string;
-DEFINE FIELD IF NOT EXISTS alias_type ON narrator_alias TYPE string;
-DEFINE INDEX IF NOT EXISTS alias_name_idx ON TABLE narrator_alias FIELDS alias_name;
+DEFINE INDEX IF NOT EXISTS pivot_narrator_idx ON TABLE narrator_pivot FIELDS narrator;
 
 -- === EDGES (graph relations) ===
 
@@ -146,8 +139,8 @@ DEFINE FIELD IF NOT EXISTS chain_position ON narrates TYPE option<int>;
 DEFINE INDEX IF NOT EXISTS narrates_in_idx ON TABLE narrates FIELDS in;
 DEFINE INDEX IF NOT EXISTS narrates_out_idx ON TABLE narrates FIELDS out;
 
--- "Hadith belongs_to Book"
-DEFINE TABLE IF NOT EXISTS belongs_to TYPE RELATION FROM hadith TO book;
+-- "Hadith belongs_to Collection"
+DEFINE TABLE IF NOT EXISTS belongs_to TYPE RELATION FROM hadith TO collection;
 DEFINE INDEX IF NOT EXISTS belongs_to_in_idx ON TABLE belongs_to FIELDS in;
 "#;
 
@@ -309,39 +302,6 @@ pub async fn init_quran_similar_schema(db: &Surreal<Db>) -> Result<()> {
     Ok(())
 }
 
-// ── Tafsir Chunk Schema ──
-
-const TAFSIR_CHUNK_SCHEMA: &str = r#"
-DEFINE TABLE IF NOT EXISTS tafsir_chunk SCHEMAFULL;
-DEFINE FIELD IF NOT EXISTS ayah_id      ON tafsir_chunk TYPE record<ayah>;
-DEFINE FIELD IF NOT EXISTS chunk_index  ON tafsir_chunk TYPE int;
-DEFINE FIELD IF NOT EXISTS chunk_text   ON tafsir_chunk TYPE string;
-DEFINE FIELD IF NOT EXISTS embedding    ON tafsir_chunk TYPE option<array<float>>;
-DEFINE INDEX IF NOT EXISTS tafsir_chunk_vec ON TABLE tafsir_chunk FIELDS embedding HNSW DIMENSION 1024 DIST COSINE;
-DEFINE INDEX IF NOT EXISTS tafsir_chunk_ayah ON TABLE tafsir_chunk FIELDS ayah_id
-"#;
-
-pub async fn init_tafsir_chunk_schema(db: &Surreal<Db>, embed_dim: usize) -> Result<()> {
-    let schema = TAFSIR_CHUNK_SCHEMA.replace("DIMENSION 1024", &format!("DIMENSION {embed_dim}"));
-    for (i, stmt) in schema
-        .split(';')
-        .map(|s| s.trim())
-        .filter(|s| !s.is_empty() && !s.starts_with("--"))
-        .enumerate()
-    {
-        let sql = format!("{stmt};");
-        if let Err(e) = db.query(&sql).await.and_then(|r| r.check()) {
-            tracing::error!(
-                "Tafsir chunk schema statement {i} failed: {e}\n  SQL: {}",
-                stmt.chars().take(120).collect::<String>()
-            );
-            return Err(e.into());
-        }
-    }
-    tracing::info!("Tafsir chunk schema initialized");
-    Ok(())
-}
-
 pub async fn init_quran_schema(db: &Surreal<Db>, embed_dim: usize) -> Result<()> {
     let schema = QURAN_SCHEMA.replace("DIMENSION 1024", &format!("DIMENSION {embed_dim}"));
     for (i, stmt) in schema
@@ -374,7 +334,10 @@ pub async fn init_quran_fulltext_indexes(db: &Surreal<Db>) -> Result<()> {
         "DEFINE INDEX IF NOT EXISTS ayah_text_en_search ON TABLE ayah FIELDS text_en FULLTEXT ANALYZER en_analyzer BM25 HIGHLIGHTS",
         "DEFINE INDEX IF NOT EXISTS ayah_text_ar_search ON TABLE ayah FIELDS text_ar_simple FULLTEXT ANALYZER ar_analyzer BM25 HIGHLIGHTS",
         "DEFINE INDEX IF NOT EXISTS ayah_text_ar_lemma_search ON TABLE ayah FIELDS text_ar_lemma FULLTEXT ANALYZER ar_analyzer BM25 HIGHLIGHTS",
-        "DEFINE INDEX IF NOT EXISTS ayah_tafsir_en_search ON TABLE ayah FIELDS tafsir_en FULLTEXT ANALYZER en_analyzer BM25 HIGHLIGHTS",
+        // ayah_tafsir_en_search index dropped — tafsir search retired.
+        // Existing deployments keep the index on disk; run
+        //   REMOVE INDEX ayah_tafsir_en_search ON TABLE ayah;
+        // to reclaim space.
     ];
     for (i, stmt) in stmts.iter().enumerate() {
         if let Err(e) = db.query(*stmt).await.and_then(|r| r.check()) {
@@ -491,27 +454,30 @@ pub async fn init_link_preview_schema(db: &Surreal<Db>) -> Result<()> {
     Ok(())
 }
 
-// ── Turath Book Viewer Schema ──
+// ── Book Schema (source-agnostic: turath, shamela, openiti, etc.) ──
 
-const TURATH_SCHEMA: &str = r#"
-DEFINE TABLE IF NOT EXISTS turath_book SCHEMAFULL;
-DEFINE FIELD IF NOT EXISTS book_id     ON turath_book TYPE int;
-DEFINE FIELD IF NOT EXISTS name_ar     ON turath_book TYPE string;
-DEFINE FIELD IF NOT EXISTS name_en     ON turath_book TYPE string;
-DEFINE FIELD IF NOT EXISTS author_ar   ON turath_book TYPE string;
-DEFINE FIELD IF NOT EXISTS total_pages ON turath_book TYPE int;
-DEFINE FIELD IF NOT EXISTS headings    ON turath_book TYPE option<string>;
-DEFINE FIELD IF NOT EXISTS category    ON turath_book TYPE option<string>;
-DEFINE FIELD IF NOT EXISTS book_type   ON turath_book TYPE option<string>;
-DEFINE INDEX IF NOT EXISTS turath_book_id ON turath_book FIELDS book_id UNIQUE;
+const BOOK_SCHEMA: &str = r#"
+DEFINE TABLE IF NOT EXISTS book SCHEMAFULL;
+DEFINE FIELD IF NOT EXISTS book_id     ON book TYPE int;
+DEFINE FIELD IF NOT EXISTS name_ar     ON book TYPE string;
+DEFINE FIELD IF NOT EXISTS name_en     ON book TYPE string;
+DEFINE FIELD IF NOT EXISTS author_ar   ON book TYPE string;
+DEFINE FIELD IF NOT EXISTS total_pages ON book TYPE int;
+DEFINE FIELD IF NOT EXISTS headings    ON book TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS category    ON book TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS book_type   ON book TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS source      ON book TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS source_id   ON book TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS tags        ON book TYPE option<array<string>>;
+DEFINE INDEX IF NOT EXISTS book_id_idx ON book FIELDS book_id UNIQUE;
 
-DEFINE TABLE IF NOT EXISTS turath_page SCHEMAFULL;
-DEFINE FIELD IF NOT EXISTS book_id     ON turath_page TYPE int;
-DEFINE FIELD IF NOT EXISTS page_index  ON turath_page TYPE int;
-DEFINE FIELD IF NOT EXISTS text        ON turath_page TYPE string;
-DEFINE FIELD IF NOT EXISTS vol         ON turath_page TYPE string;
-DEFINE FIELD IF NOT EXISTS page_num    ON turath_page TYPE int;
-DEFINE INDEX IF NOT EXISTS turath_page_lookup ON turath_page FIELDS book_id, page_index UNIQUE;
+DEFINE TABLE IF NOT EXISTS book_page SCHEMAFULL;
+DEFINE FIELD IF NOT EXISTS book_id     ON book_page TYPE int;
+DEFINE FIELD IF NOT EXISTS page_index  ON book_page TYPE int;
+DEFINE FIELD IF NOT EXISTS text        ON book_page TYPE string;
+DEFINE FIELD IF NOT EXISTS vol         ON book_page TYPE string;
+DEFINE FIELD IF NOT EXISTS page_num    ON book_page TYPE int;
+DEFINE INDEX IF NOT EXISTS book_page_lookup ON book_page FIELDS book_id, page_index UNIQUE;
 
 DEFINE TABLE IF NOT EXISTS tafsir_ayah_map SCHEMAFULL;
 DEFINE FIELD IF NOT EXISTS surah       ON tafsir_ayah_map TYPE int;
@@ -523,23 +489,23 @@ DEFINE INDEX IF NOT EXISTS tafsir_ayah_lookup ON tafsir_ayah_map FIELDS surah, a
 
 DEFINE TABLE IF NOT EXISTS hadith_sharh_map SCHEMAFULL;
 DEFINE FIELD IF NOT EXISTS hadith_number ON hadith_sharh_map TYPE int;
+DEFINE FIELD IF NOT EXISTS collection_id ON hadith_sharh_map TYPE int;
 DEFINE FIELD IF NOT EXISTS book_id       ON hadith_sharh_map TYPE int;
-DEFINE FIELD IF NOT EXISTS sharh_book_id ON hadith_sharh_map TYPE int;
 DEFINE FIELD IF NOT EXISTS page_index    ON hadith_sharh_map TYPE int;
 DEFINE FIELD IF NOT EXISTS context       ON hadith_sharh_map TYPE option<string>;
-DEFINE INDEX IF NOT EXISTS hadith_sharh_lookup ON hadith_sharh_map FIELDS hadith_number, book_id UNIQUE;
+DEFINE INDEX IF NOT EXISTS hadith_sharh_lookup ON hadith_sharh_map FIELDS hadith_number, collection_id UNIQUE;
 
 DEFINE TABLE IF NOT EXISTS narrator_book_map SCHEMAFULL;
-DEFINE FIELD IF NOT EXISTS narrator_id    ON narrator_book_map TYPE string;
-DEFINE FIELD IF NOT EXISTS turath_book_id ON narrator_book_map TYPE int;
-DEFINE FIELD IF NOT EXISTS page_index     ON narrator_book_map TYPE int;
-DEFINE FIELD IF NOT EXISTS entry_num      ON narrator_book_map TYPE option<int>;
-DEFINE FIELD IF NOT EXISTS book_name      ON narrator_book_map TYPE string;
-DEFINE INDEX IF NOT EXISTS narrator_book_lookup ON narrator_book_map FIELDS narrator_id, turath_book_id UNIQUE
+DEFINE FIELD IF NOT EXISTS narrator_id ON narrator_book_map TYPE string;
+DEFINE FIELD IF NOT EXISTS book_id     ON narrator_book_map TYPE int;
+DEFINE FIELD IF NOT EXISTS page_index  ON narrator_book_map TYPE int;
+DEFINE FIELD IF NOT EXISTS entry_num   ON narrator_book_map TYPE option<int>;
+DEFINE FIELD IF NOT EXISTS book_name   ON narrator_book_map TYPE string;
+DEFINE INDEX IF NOT EXISTS narrator_book_lookup ON narrator_book_map FIELDS narrator_id, book_id UNIQUE
 "#;
 
-pub async fn init_turath_schema(db: &Surreal<Db>) -> Result<()> {
-    for (i, stmt) in TURATH_SCHEMA
+pub async fn init_book_schema(db: &Surreal<Db>) -> Result<()> {
+    for (i, stmt) in BOOK_SCHEMA
         .split(';')
         .map(|s| s.trim())
         .filter(|s| !s.is_empty() && !s.starts_with("--"))
@@ -548,13 +514,13 @@ pub async fn init_turath_schema(db: &Surreal<Db>) -> Result<()> {
         let sql = format!("{stmt};");
         if let Err(e) = db.query(&sql).await.and_then(|r| r.check()) {
             tracing::error!(
-                "Turath schema statement {i} failed: {e}\n  SQL: {}",
+                "Book schema statement {i} failed: {e}\n  SQL: {}",
                 stmt.chars().take(120).collect::<String>()
             );
             return Err(e.into());
         }
     }
-    tracing::info!("Turath book viewer schema initialized");
+    tracing::info!("Book schema initialized");
     Ok(())
 }
 

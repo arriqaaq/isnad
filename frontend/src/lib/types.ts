@@ -1,7 +1,7 @@
 export interface ApiHadith {
   id: string;
   hadith_number: number;
-  book_id: number;
+  collection_id: number;
   chapter_id: number;
   text_ar: string | null;
   text_en: string | null;
@@ -32,9 +32,9 @@ export interface ApiNarrator {
   tags: string[] | null;
 }
 
-export interface ApiBook {
+export interface ApiCollection {
   id: string;
-  book_number: number;
+  collection_id: number;
   name_en: string;
   name_ar: string | null;
 }
@@ -53,7 +53,7 @@ export interface ApiNarratorWithCount {
 export interface ApiHadithSearchResult {
   id: string;
   hadith_number: number;
-  book_id: number;
+  collection_id: number;
   text_ar: string | null;
   text_en: string | null;
   narrator_text: string | null;
@@ -300,7 +300,7 @@ export interface UnifiedSearchItemHadith {
   source: 'hadith';
   id: string;
   hadith_number: number;
-  book_id: number;
+  collection_id: number;
   text_ar: string | null;
   text_en: string | null;
   narrator_text: string | null;
@@ -443,9 +443,9 @@ export interface NoteRefsIndicator {
   [refId: string]: { color: string; count: number };
 }
 
-// ── Turath Books Config ──
+// ── Books Config ──
 
-export interface TurathBookConfig {
+export interface BookConfig {
   book_id: number;
   name_ar: string;
   name_en: string;
@@ -455,14 +455,14 @@ export interface TurathBookConfig {
   default_questions: string[];
 }
 
-export interface TurathBooksConfig {
-  books: TurathBookConfig[];
+export interface BooksConfig {
+  books: BookConfig[];
   tafsir_book_id: number | null;
 }
 
-// ── Turath Book Viewer ──
+// ── Book Viewer ──
 
-export interface TurathBook {
+export interface Book {
   book_id: number;
   name_ar: string;
   name_en: string;
@@ -470,25 +470,25 @@ export interface TurathBook {
   total_pages: number;
 }
 
-export interface TurathBookDetail extends TurathBook {
-  headings: TurathHeading[];
+export interface BookDetail extends Book {
+  headings: BookHeading[];
 }
 
-export interface TurathHeading {
+export interface BookHeading {
   title: string;
   level: number;
   page_index: number;
 }
 
-export interface TurathPage {
+export interface BookPage {
   page_index: number;
   text: string;
   vol: string;
   page_num: number;
 }
 
-export interface TurathPagesResponse {
-  pages: TurathPage[];
+export interface BookPagesResponse {
+  pages: BookPage[];
   total: number;
   start: number;
   size: number;
@@ -504,7 +504,7 @@ export interface TafsirSurahMappings {
 }
 
 export interface SharhPageRef {
-  sharh_book_id: number;
+  book_id: number;
   page_index: number;
   book_name: string;
 }
@@ -514,7 +514,7 @@ export interface SharhBatchResponse {
 }
 
 export interface NarratorBookRef {
-  turath_book_id: number;
+  book_id: number;
   page_index: number;
   entry_num: number | null;
   book_name: string;

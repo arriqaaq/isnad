@@ -105,7 +105,7 @@
     loading = true;
 
     try {
-      const res = await fetch(`/api/turath/books/${bookId}/chat`, {
+      const res = await fetch(`/api/books/${bookId}/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ question }),

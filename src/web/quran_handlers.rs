@@ -160,16 +160,7 @@ pub async fn quran_search(
             )
             .await
         }
-        "tafsir" => {
-            crate::quran::search::search_ayahs_tafsir(
-                &state.db,
-                &state.embedder,
-                &query,
-                limit,
-                offset,
-            )
-            .await
-        }
+        // "tafsir" search type retired — falls through to text search.
         _ => crate::quran::search::search_ayahs_text(&state.db, &query, limit, offset).await,
     };
 

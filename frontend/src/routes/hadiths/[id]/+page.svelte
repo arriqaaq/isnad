@@ -31,8 +31,8 @@
       .then(([d, g]) => {
         data = d; graphData = g;
         // Fetch sharh mapping for this hadith
-        if (d.hadith.hadith_number && d.hadith.book_id) {
-          getHadithSharhPages(d.hadith.book_id, [d.hadith.hadith_number])
+        if (d.hadith.hadith_number && d.hadith.collection_id) {
+          getHadithSharhPages(d.hadith.collection_id, [d.hadith.hadith_number])
             .then(res => {
               const ref = res.mappings[String(d.hadith.hadith_number)];
               if (ref) sharhPage = ref;
@@ -64,7 +64,7 @@
         {#if data.hadith.book_name}
           <Badge text={data.hadith.book_name} variant="accent" />
         {:else}
-          <Badge text="Book {data.hadith.book_id}" />
+          <Badge text="Book {data.hadith.collection_id}" />
         {/if}
         {#if data.hadith.hadith_type}
           <Badge text={data.hadith.hadith_type} variant="default" />
@@ -86,7 +86,7 @@
           {@const sp = sharhPage}
           <button
             class="note-btn sharh-btn"
-            onclick={() => { sharhTarget = { bookId: sp.sharh_book_id, pageIndex: sp.page_index, bookName: sp.book_name, hadithNumber: data?.hadith.hadith_number ?? 0 }; }}
+            onclick={() => { sharhTarget = { bookId: sp.book_id, pageIndex: sp.page_index, bookName: sp.book_name, hadithNumber: data?.hadith.hadith_number ?? 0 }; }}
           >
             Sharh
           </button>

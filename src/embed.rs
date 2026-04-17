@@ -169,13 +169,20 @@ pub async fn embed_all_hadiths(db: &Surreal<Db>, embedder: &Embedder) -> Result<
         let text_refs: Vec<&str> = texts.iter().map(|s| s.as_str()).collect();
         let embeddings = embedder.embed(&text_refs)?;
 
-        for (hadith, embedding) in chunk.iter().zip(embeddings.into_iter()) {
-            if let Some(id) = &hadith.id {
-                db.query("UPDATE $id SET embedding = $embedding")
-                    .bind(("id", id.clone()))
-                    .bind(("embedding", embedding))
-                    .await?;
-            }
+        let futs: Vec<_> = chunk
+            .iter()
+            .zip(embeddings.into_iter())
+            .filter_map(|(hadith, embedding)| {
+                hadith.id.as_ref().map(|id| {
+                    db.query("UPDATE $id SET embedding = $embedding")
+                        .bind(("id", id.clone()))
+                        .bind(("embedding", embedding))
+                })
+            })
+            .collect();
+
+        for fut in futs {
+            fut.await?;
         }
 
         pb.inc(chunk.len() as u64);

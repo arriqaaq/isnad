@@ -1,8 +1,8 @@
 <script lang="ts">
-  import type { TurathHeading } from '$lib/types';
+  import type { BookHeading } from '$lib/types';
 
   let { headings, currentPageIndex, totalPages, onNavigate, onClose }: {
-    headings: TurathHeading[];
+    headings: BookHeading[];
     currentPageIndex: number;
     totalPages: number;
     onNavigate: (pageIndex: number) => void;
@@ -14,7 +14,7 @@
 
   // Build tree: level 1 headings are parents, level 2+ are children
   interface HeadingNode {
-    heading: TurathHeading;
+    heading: BookHeading;
     index: number;
     children: HeadingNode[];
   }

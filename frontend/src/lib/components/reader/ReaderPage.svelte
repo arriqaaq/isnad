@@ -1,8 +1,8 @@
 <script lang="ts">
-  import type { TurathPage } from '$lib/types';
+  import type { BookPage } from '$lib/types';
   import { convertPageToHtml } from '$lib/utils';
 
-  let { page }: { page: TurathPage } = $props();
+  let { page }: { page: BookPage } = $props();
 
   let html = $derived(convertPageToHtml(page.text));
 </script>

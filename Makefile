@@ -1,4 +1,4 @@
-.PHONY: build frontend backend server dev stop download-data blog semantic-download semantic-extract semantic-verify semantic-setup ingest ingest-test ingest-full hadith-full hadith-ingest sanadset-download quran-prepare quran-prepare-deps quran-ingest quran-hadith-refs quran-morphology quran-similar quran quran-full quran-check turath-fetch-tafsir turath-fetch-fathulbari turath-fetch-nawawi turath-fetch-tuhfat turath-fetch-nasai turath-fetch-awnmabud turath-fetch-ibnmajah turath-fetch-tahdhib turath-fetch turath-mapping turath-mapping-narrators turath-ingest-tafsir turath-ingest-fathulbari turath-ingest-nawawi turath-ingest-tuhfat turath-ingest-nasai turath-ingest-awnmabud turath-ingest-ibnmajah turath-ingest-tahdhib turath-ingest turath-full turath-check pageindex-deps pageindex-build pageindex-build-with-summaries pageindex-build-test pageindex-status analyze analyze-families analyze-transmission pipeline-check pipeline-test pipeline-full clean
+.PHONY: build frontend backend server dev stop download-data blog semantic-download semantic-extract semantic-verify semantic-setup ingest ingest-test ingest-full hadith-full hadith-ingest sanadset-download quran-prepare quran-prepare-deps quran-ingest quran-hadith-refs quran-morphology quran-similar quran quran-full quran-check turath-fetch-tafsir turath-fetch-fathulbari turath-fetch-nawawi turath-fetch-tuhfat turath-fetch-nasai turath-fetch-awnmabud turath-fetch-ibnmajah turath-fetch-tahdhib turath-fetch turath-mapping turath-mapping-narrators book-ingest-tafsir book-ingest-fathulbari book-ingest-nawawi book-ingest-tuhfat book-ingest-nasai book-ingest-awnmabud book-ingest-ibnmajah book-ingest-tahdhib book-ingest book-full pageindex-deps pageindex-build pageindex-build-with-summaries pageindex-build-test pageindex-status analyze analyze-families analyze-transmission pipeline-check pipeline-test pipeline-full clean
 
 # SurrealDB HNSW index traversal needs extra stack space
 export RUST_MIN_STACK=8388608
@@ -265,9 +265,9 @@ turath-mapping:
 	python3 scripts/build_abu_dawud_mapping.py
 	python3 scripts/build_ibn_majah_mapping.py
 
-# Ingest Tafsir Ibn Kathir into SurrealDB (needs: turath-fetch-tafsir)
-turath-ingest-tafsir:
-	cargo run -- ingest-turath \
+# Ingest Tafsir Ibn Kathir (needs: turath-fetch-tafsir)
+book-ingest-tafsir:
+	cargo run -- ingest-book \
 		--pages-file data/tafsir_ibn_kathir_pages.json \
 		--headings-file data/tafsir_ibn_kathir_headings.json \
 		--book-id 23604 \
@@ -275,11 +275,12 @@ turath-ingest-tafsir:
 		--name-en "Tafsir Ibn Kathir" \
 		--author-ar "ابن كثير" \
 		--tafsir-mapping data/tafsir_verse_mapping.json \
-		--category quran --book-type tafsir
+		--category quran --book-type tafsir \
+		--source turath --source-id 23604
 
-# Ingest Fath al-Bari into SurrealDB (needs: turath-fetch-fathulbari + turath-mapping)
-turath-ingest-fathulbari:
-	cargo run -- ingest-turath \
+# Ingest Fath al-Bari (needs: turath-fetch-fathulbari + turath-mapping)
+book-ingest-fathulbari:
+	cargo run -- ingest-book \
 		--pages-file data/fath_al_bari_pages.json \
 		--headings-file data/fath_al_bari_headings.json \
 		--book-id 1673 \
@@ -288,11 +289,12 @@ turath-ingest-fathulbari:
 		--author-ar "ابن حجر العسقلاني" \
 		--sharh-mapping data/fath_al_bari_hadith_mapping.json \
 		--sharh-collection-id 1 \
-		--category hadith --book-type sharh
+		--category hadith --book-type sharh \
+		--source turath --source-id 1673
 
-# Ingest Sharh Nawawi into SurrealDB (needs: turath-fetch-nawawi + turath-mapping)
-turath-ingest-nawawi:
-	cargo run -- ingest-turath \
+# Ingest Sharh Nawawi (needs: turath-fetch-nawawi + turath-mapping)
+book-ingest-nawawi:
+	cargo run -- ingest-book \
 		--pages-file data/nawawi_on_muslim_pages.json \
 		--headings-file data/nawawi_on_muslim_headings.json \
 		--book-id 1711 \
@@ -301,11 +303,12 @@ turath-ingest-nawawi:
 		--author-ar "النووي" \
 		--sharh-mapping data/nawawi_on_muslim_hadith_mapping.json \
 		--sharh-collection-id 2 \
-		--category hadith --book-type sharh
+		--category hadith --book-type sharh \
+		--source turath --source-id 1711
 
-# Ingest Tuhfat al-Ahwadhi into SurrealDB (needs: turath-fetch-tuhfat + turath-mapping)
-turath-ingest-tuhfat:
-	cargo run -- ingest-turath \
+# Ingest Tuhfat al-Ahwadhi (needs: turath-fetch-tuhfat + turath-mapping)
+book-ingest-tuhfat:
+	cargo run -- ingest-book \
 		--pages-file data/tuhfat_ahwadhi_pages.json \
 		--headings-file data/tuhfat_ahwadhi_headings.json \
 		--book-id 21662 \
@@ -314,11 +317,12 @@ turath-ingest-tuhfat:
 		--author-ar "المباركفوري" \
 		--sharh-mapping data/tuhfat_ahwadhi_hadith_mapping.json \
 		--sharh-collection-id 4 \
-		--category hadith --book-type sharh
+		--category hadith --book-type sharh \
+		--source turath --source-id 21662
 
-# Ingest Sahih Sunan al-Nasa'i into SurrealDB
-turath-ingest-nasai:
-	cargo run -- ingest-turath \
+# Ingest Sahih Sunan al-Nasa'i
+book-ingest-nasai:
+	cargo run -- ingest-book \
 		--pages-file data/sahih_nasai_pages.json \
 		--headings-file data/sahih_nasai_headings.json \
 		--book-id 1147 \
@@ -327,11 +331,12 @@ turath-ingest-nasai:
 		--author-ar "الألباني" \
 		--sharh-mapping data/sahih_nasai_hadith_mapping.json \
 		--sharh-collection-id 5 \
-		--category hadith --book-type collection
+		--category hadith --book-type collection \
+		--source turath --source-id 1147
 
-# Ingest Awn al-Ma'bud into SurrealDB
-turath-ingest-awnmabud:
-	cargo run -- ingest-turath \
+# Ingest Awn al-Ma'bud
+book-ingest-awnmabud:
+	cargo run -- ingest-book \
 		--pages-file data/awn_mabud_pages.json \
 		--headings-file data/awn_mabud_headings.json \
 		--book-id 5760 \
@@ -340,11 +345,12 @@ turath-ingest-awnmabud:
 		--author-ar "العظيم آبادي" \
 		--sharh-mapping data/awn_mabud_hadith_mapping.json \
 		--sharh-collection-id 3 \
-		--category hadith --book-type sharh
+		--category hadith --book-type sharh \
+		--source turath --source-id 5760
 
-# Ingest Sunan Ibn Majah into SurrealDB
-turath-ingest-ibnmajah:
-	cargo run -- ingest-turath \
+# Ingest Sunan Ibn Majah
+book-ingest-ibnmajah:
+	cargo run -- ingest-book \
 		--pages-file data/ibn_majah_pages.json \
 		--headings-file data/ibn_majah_headings.json \
 		--book-id 98138 \
@@ -353,11 +359,12 @@ turath-ingest-ibnmajah:
 		--author-ar "ابن ماجه" \
 		--sharh-mapping data/ibn_majah_hadith_mapping.json \
 		--sharh-collection-id 6 \
-		--category hadith --book-type collection
+		--category hadith --book-type collection \
+		--source turath --source-id 98138
 
-# Ingest Tahdhib al-Tahdhib (narrator bios) into SurrealDB
-turath-ingest-tahdhib:
-	cargo run -- ingest-turath \
+# Ingest Tahdhib al-Tahdhib (narrator bios)
+book-ingest-tahdhib:
+	cargo run -- ingest-book \
 		--pages-file data/tahdhib_pages.json \
 		--headings-file data/tahdhib_headings.json \
 		--book-id 1278 \
@@ -365,14 +372,15 @@ turath-ingest-tahdhib:
 		--name-en "Tahdhib al-Tahdhib" \
 		--author-ar "ابن حجر العسقلاني" \
 		--narrator-mapping data/tahdhib_narrator_mapping.json \
-		--category narrator --book-type biography
+		--category narrator --book-type biography \
+		--source turath --source-id 1278
 
-# Ingest all books into SurrealDB
-turath-ingest: turath-ingest-tafsir turath-ingest-fathulbari turath-ingest-nawawi turath-ingest-tuhfat turath-ingest-nasai turath-ingest-awnmabud turath-ingest-ibnmajah turath-ingest-tahdhib
+# Ingest all books
+book-ingest: book-ingest-tafsir book-ingest-fathulbari book-ingest-nawawi book-ingest-tuhfat book-ingest-nasai book-ingest-awnmabud book-ingest-ibnmajah book-ingest-tahdhib
 
-# Full turath pipeline: fetch → mapping → ingest
+# Full book pipeline: fetch → mapping → ingest
 # Note: turath-mapping needs data/semantic_hadith.json (run make semantic-setup first if missing)
-turath-full: turath-fetch turath-mapping turath-mapping-narrators turath-ingest
+book-full: turath-fetch turath-mapping turath-mapping-narrators book-ingest
 
 # Check required turath data files
 turath-check:
@@ -470,7 +478,8 @@ pageindex-status: pageindex-deps
 pipeline-full: pipeline-check
 	$(MAKE) hadith-full
 	$(MAKE) quran-full
-	$(MAKE) turath-full
+	$(MAKE) book-full
+	$(MAKE) pageindex-build
 	@echo ""
 	@echo "✓ Full pipeline complete. Run: make server"
 

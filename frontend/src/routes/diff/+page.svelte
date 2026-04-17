@@ -57,7 +57,7 @@
         hadiths = res.data.map(h => ({
           id: h.id,
           hadith_number: h.hadith_number,
-          book_id: h.book_id,
+          collection_id: h.collection_id,
           text_ar: h.text_ar,
           text_en: h.text_en,
           narrator_text: h.narrator_text,
@@ -68,7 +68,7 @@
         const res = await searchAll(query, 'text', 15);
         hadiths = res.hadiths;
         if (book > 0) {
-          hadiths = hadiths.filter(h => h.book_id === book);
+          hadiths = hadiths.filter(h => h.collection_id === book);
         }
       }
 
@@ -147,7 +147,7 @@
         <div class="selected-card">
           <div class="selected-info">
             <span class="selected-ref">#{selectedA.hadith_number}</span>
-            <span class="selected-book">{selectedA.text_ar ? bookName(selectedA.book_id) : ''}</span>
+            <span class="selected-book">{selectedA.text_ar ? bookName(selectedA.collection_id) : ''}</span>
           </div>
           <div class="selected-preview" dir="rtl">{truncate(selectedA.text_ar, 80)}</div>
           <button class="clear-btn" onclick={() => { selectedA = null; diffResult = null; }}>Change</button>
@@ -175,7 +175,7 @@
             <div class="results-list">
               {#each resultsA as h}
                 <button class="result-item" onclick={() => selectA(h)}>
-                  <span class="result-ref">#{h.hadith_number} — {bookName(h.book_id)}</span>
+                  <span class="result-ref">#{h.hadith_number} — {bookName(h.collection_id)}</span>
                   <span class="result-text" dir="rtl">{truncate(h.text_ar, 60)}</span>
                 </button>
               {/each}
@@ -192,7 +192,7 @@
         <div class="selected-card">
           <div class="selected-info">
             <span class="selected-ref">#{selectedB.hadith_number}</span>
-            <span class="selected-book">{selectedB.text_ar ? bookName(selectedB.book_id) : ''}</span>
+            <span class="selected-book">{selectedB.text_ar ? bookName(selectedB.collection_id) : ''}</span>
           </div>
           <div class="selected-preview" dir="rtl">{truncate(selectedB.text_ar, 80)}</div>
           <button class="clear-btn" onclick={() => { selectedB = null; diffResult = null; }}>Change</button>
@@ -220,7 +220,7 @@
             <div class="results-list">
               {#each resultsB as h}
                 <button class="result-item" onclick={() => selectB(h)}>
-                  <span class="result-ref">#{h.hadith_number} — {bookName(h.book_id)}</span>
+                  <span class="result-ref">#{h.hadith_number} — {bookName(h.collection_id)}</span>
                   <span class="result-text" dir="rtl">{truncate(h.text_ar, 60)}</span>
                 </button>
               {/each}

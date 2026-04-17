@@ -118,7 +118,7 @@
               <div class="source-tag hadith-tag">Hadith</div>
               <a href="/hadiths/{item.id}" class="result-card">
                 <div class="result-header">
-                  <Badge text="Book {item.book_id}" />
+                  <Badge text="Book {item.collection_id}" />
                   <span class="hadith-num mono">#{item.hadith_number}</span>
                   {#if item.score}<span class="score mono">{item.score.toFixed(3)}</span>{/if}
                 </div>

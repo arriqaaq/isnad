@@ -23,7 +23,7 @@
       // Fetch sharh mappings for visible hadiths
       if (result && result.data.length > 0) {
         const numbers = result.data.map(h => h.hadith_number);
-        const bookId = result.data[0]?.book_id ?? 1;
+        const bookId = result.data[0]?.collection_id ?? 1;
         getHadithSharhPages(bookId, numbers)
           .then(res => { sharhMappings = res.mappings; })
           .catch(() => {});

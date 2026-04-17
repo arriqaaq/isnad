@@ -81,7 +81,7 @@ fn parse_meta(raw: &serde_json::Value) -> PageMeta {
     }
 }
 
-/// Ingest a turath book (pages + headings) into SurrealDB.
+/// Ingest a book (pages + headings) into SurrealDB.
 /// Works for any book — just pass the right book_id, name, and author.
 pub async fn ingest_book(
     db: &Surreal<Db>,
@@ -93,17 +93,19 @@ pub async fn ingest_book(
     author_ar: &str,
     category: Option<&str>,
     book_type: Option<&str>,
+    source: Option<&str>,
+    source_id: Option<&str>,
 ) -> Result<()> {
-    crate::db::init_turath_schema(db).await?;
+    crate::db::init_book_schema(db).await?;
 
     // Check if this specific book is already ingested
     let count: Option<CountResult> = db
-        .query("SELECT count() AS c FROM turath_page WHERE book_id = $bid GROUP ALL")
+        .query("SELECT count() AS c FROM book_page WHERE book_id = $bid GROUP ALL")
         .bind(("bid", book_id as i64))
         .await?
         .take(0)?;
     if count.map(|c| c.c as u64).unwrap_or(0) > 0 {
-        tracing::info!("Turath book {book_id} already ingested, skipping");
+        tracing::info!("Book {book_id} already ingested, skipping");
         return Ok(());
     }
 
@@ -133,25 +135,25 @@ pub async fn ingest_book(
     let total_pages = pages.len() as u32;
     tracing::info!("Loaded {total_pages} pages for book {book_id}");
 
-    // Insert book record
-    let escaped_name_ar = name_ar.replace('\'', "\\'");
-    let escaped_name_en = name_en.replace('\'', "\\'");
-    let escaped_author = author_ar.replace('\'', "\\'");
-    let escaped_headings = headings_str.replace('\'', "\\'");
-    let cat_clause = category
-        .map(|c| format!(", category = '{c}'"))
-        .unwrap_or_default();
-    let type_clause = book_type
-        .map(|t| format!(", book_type = '{t}'"))
-        .unwrap_or_default();
-    db.query(&format!(
-        "CREATE turath_book SET book_id = {book_id}, name_ar = '{escaped_name_ar}', \
-         name_en = '{escaped_name_en}', author_ar = '{escaped_author}', \
-         total_pages = {total_pages}, headings = '{escaped_headings}'{cat_clause}{type_clause}"
-    ))
+    // Insert book record using bind params (safe for Arabic text)
+    db.query(
+        "CREATE book SET book_id = $bid, name_ar = $name_ar, name_en = $name_en, \
+         author_ar = $author_ar, total_pages = $total_pages, headings = $headings, \
+         category = $category, book_type = $book_type, source = $source, source_id = $source_id",
+    )
+    .bind(("bid", book_id as i64))
+    .bind(("name_ar", name_ar.to_string()))
+    .bind(("name_en", name_en.to_string()))
+    .bind(("author_ar", author_ar.to_string()))
+    .bind(("total_pages", total_pages as i64))
+    .bind(("headings", headings_str))
+    .bind(("category", category.map(|s| s.to_string())))
+    .bind(("book_type", book_type.map(|s| s.to_string())))
+    .bind(("source", source.map(|s| s.to_string())))
+    .bind(("source_id", source_id.map(|s| s.to_string())))
     .await?
     .check()?;
-    tracing::info!("Inserted turath_book record for {name_en} (book_id={book_id})");
+    tracing::info!("Inserted book record for {name_en} (book_id={book_id})");
 
     // 3. Insert pages in batches
     let batch_size = 100;
@@ -162,35 +164,35 @@ pub async fn ingest_book(
     );
 
     for chunk in pages.chunks(batch_size) {
-        let mut sql = String::new();
-        for (i, page) in chunk.iter().enumerate() {
-            let meta = parse_meta(&page.meta);
-            let vol = meta.vol.unwrap_or_else(|| "1".to_string());
-            let page_num = meta.page.unwrap_or(0);
-            let page_index = page.page_id - 1;
+        let futs: Vec<_> = chunk
+            .iter()
+            .map(|page| {
+                let meta = parse_meta(&page.meta);
+                let vol = meta.vol.unwrap_or_else(|| "1".to_string());
+                let page_num = meta.page.unwrap_or(0) as i64;
+                let page_index = (page.page_id - 1) as i64;
+                let text = page.text.clone();
+                let bid = book_id as i64;
 
-            let escaped_text = page.text.replace('\\', "\\\\").replace('\'', "\\'");
-            let escaped_vol = vol.replace('\'', "\\'");
+                db.query(
+                    "CREATE book_page SET book_id = $bid, page_index = $pidx, \
+                     text = $text, vol = $vol, page_num = $pnum",
+                )
+                .bind(("bid", bid))
+                .bind(("pidx", page_index))
+                .bind(("text", text))
+                .bind(("vol", vol))
+                .bind(("pnum", page_num))
+            })
+            .collect();
 
-            sql.push_str(&format!(
-                "CREATE turath_page SET book_id = {book_id}, page_index = {page_index}, \
-                 text = '{escaped_text}', vol = '{escaped_vol}', page_num = {page_num};\n"
-            ));
-
-            if i % 10 == 9 || i == chunk.len() - 1 {
-                if let Err(e) = db.query(&sql).await.and_then(|r| r.check()) {
-                    tracing::error!("Failed to insert page batch: {e}");
-                    for stmt in sql.split(";\n").filter(|s| !s.is_empty()) {
-                        let _ = db.query(stmt).await;
-                    }
-                }
-                sql.clear();
-            }
+        for fut in futs {
+            fut.await.ok();
         }
         bar.inc(chunk.len() as u64);
     }
     bar.finish();
-    tracing::info!("Inserted {total_pages} turath pages for book {book_id}");
+    tracing::info!("Inserted {total_pages} pages for book {book_id}");
 
     Ok(())
 }
@@ -262,22 +264,22 @@ pub async fn ingest_tafsir_mapping(
 pub async fn ingest_hadith_sharh_mapping(
     db: &Surreal<Db>,
     mapping_file: &str,
-    collection_book_id: u32, // e.g. 1 for Bukhari in our DB
-    sharh_book_id: u32,      // e.g. 1673 for Fath al-Bari on turath
+    collection_id: u32, // e.g. 1 for Bukhari in our DB
+    book_id: u32,       // e.g. 1673 for Fath al-Bari on turath
 ) -> Result<()> {
     // Check if already ingested
     let count: Option<CountResult> = db
         .query(
             "SELECT count() AS c FROM hadith_sharh_map \
-             WHERE book_id = $bid AND sharh_book_id = $sbid GROUP ALL",
+             WHERE collection_id = $cid AND book_id = $bid GROUP ALL",
         )
-        .bind(("bid", collection_book_id as i64))
-        .bind(("sbid", sharh_book_id as i64))
+        .bind(("cid", collection_id as i64))
+        .bind(("bid", book_id as i64))
         .await?
         .take(0)?;
     if count.map(|c| c.c as u64).unwrap_or(0) > 0 {
         tracing::info!(
-            "Hadith sharh mapping for book_id={collection_book_id} → sharh={sharh_book_id} already ingested"
+            "Hadith sharh mapping for collection_id={collection_id} → book={book_id} already ingested"
         );
         return Ok(());
     }
@@ -297,7 +299,7 @@ pub async fn ingest_hadith_sharh_mapping(
 
         sql.push_str(&format!(
             "CREATE hadith_sharh_map SET hadith_number = {hadith_number}, \
-             book_id = {collection_book_id}, sharh_book_id = {sharh_book_id}, \
+             collection_id = {collection_id}, book_id = {book_id}, \
              page_index = {};\n",
             entry.page_index
         ));
@@ -316,7 +318,7 @@ pub async fn ingest_hadith_sharh_mapping(
         }
     }
     tracing::info!(
-        "Inserted {inserted} hadith sharh mappings (book_id={collection_book_id} → sharh={sharh_book_id})"
+        "Inserted {inserted} hadith sharh mappings (collection_id={collection_id} → book={book_id})"
     );
     Ok(())
 }
@@ -325,22 +327,20 @@ pub async fn ingest_hadith_sharh_mapping(
 pub async fn ingest_narrator_book_mapping(
     db: &Surreal<Db>,
     mapping_file: &str,
-    turath_book_id: u32,
+    book_id: u32,
     book_name: &str,
 ) -> Result<()> {
     // Check if already ingested
     let count: Option<CountResult> = db
         .query(
             "SELECT count() AS c FROM narrator_book_map \
-             WHERE turath_book_id = $bid GROUP ALL",
+             WHERE book_id = $bid GROUP ALL",
         )
-        .bind(("bid", turath_book_id as i64))
+        .bind(("bid", book_id as i64))
         .await?
         .take(0)?;
     if count.map(|c| c.c as u64).unwrap_or(0) > 0 {
-        tracing::info!(
-            "Narrator book mapping for turath_book_id={turath_book_id} already ingested"
-        );
+        tracing::info!("Narrator book mapping for book_id={book_id} already ingested");
         return Ok(());
     }
 
@@ -349,35 +349,21 @@ pub async fn ingest_narrator_book_mapping(
     let mapping: HashMap<String, NarratorBookEntry> = serde_json::from_str(&mapping_raw)?;
     tracing::info!("Loaded {} narrator→book mappings", mapping.len());
 
-    let escaped_book_name = book_name.replace('\'', "\\'");
-    let mut sql = String::new();
     let mut inserted = 0;
     for (narrator_id, entry) in &mapping {
-        let escaped_nid = narrator_id.replace('\'', "\\'");
-        let entry_num_sql = match entry.entry_num {
-            Some(n) => n.to_string(),
-            None => "NONE".to_string(),
-        };
-
-        sql.push_str(&format!(
-            "CREATE narrator_book_map SET narrator_id = '{escaped_nid}', \
-             turath_book_id = {turath_book_id}, page_index = {}, \
-             entry_num = {entry_num_sql}, book_name = '{escaped_book_name}';\n",
-            entry.page_index
-        ));
+        db.query(
+            "CREATE narrator_book_map SET narrator_id = $nid, \
+             book_id = $bid, page_index = $pidx, \
+             entry_num = $entry_num, book_name = $bname",
+        )
+        .bind(("nid", narrator_id.clone()))
+        .bind(("bid", book_id as i64))
+        .bind(("pidx", entry.page_index as i64))
+        .bind(("entry_num", entry.entry_num.map(|n| n as i64)))
+        .bind(("bname", book_name.to_string()))
+        .await
+        .ok();
         inserted += 1;
-
-        if inserted % 200 == 0 {
-            if let Err(e) = db.query(&sql).await.and_then(|r| r.check()) {
-                tracing::error!("Failed to insert narrator book mapping batch: {e}");
-            }
-            sql.clear();
-        }
-    }
-    if !sql.is_empty() {
-        if let Err(e) = db.query(&sql).await.and_then(|r| r.check()) {
-            tracing::error!("Failed to insert final narrator book mapping batch: {e}");
-        }
     }
     tracing::info!("Inserted {inserted} narrator→book mappings for {book_name}");
     Ok(())

@@ -7,6 +7,7 @@
 //! a single JSON file extracted from the SemanticHadith KG TTL.
 
 use std::collections::{HashMap, HashSet};
+use std::fmt::Write as _;
 use std::path::Path;
 
 use anyhow::Result;
@@ -15,6 +16,7 @@ use surrealdb::Surreal;
 use surrealdb::types::RecordId;
 
 use crate::db::Db;
+use crate::ingest::batch::{Batch, batch_size_from_env};
 use crate::ingest::sanadset::make_progress;
 
 // ── JSON schema (matches scripts/build_semantic_data.py output) ─────────────
@@ -232,7 +234,7 @@ pub async fn ingest(
 
     // ── Create books ───────────────────────────────────────────────────────
 
-    // Fixed book order for deterministic book_id assignment
+    // Fixed book order for deterministic collection_id assignment
     const BOOK_ORDER: &[(&str, &str)] = &[
         ("SB", "صحيح البخاري"),
         ("SM", "صحيح مسلم"),
@@ -248,10 +250,10 @@ pub async fn ingest(
         let bslug = book_slug(prefix);
         let book_num = (i + 1) as i64;
         db.query(
-            "CREATE $rid CONTENT { book_number: $book_number, name_en: $name, name_ar: $name }",
+            "CREATE $rid CONTENT { collection_id: $collection_id, name_en: $name, name_ar: $name }",
         )
-        .bind(("rid", rid("book", &bslug)))
-        .bind(("book_number", book_num))
+        .bind(("rid", rid("collection", &bslug)))
+        .bind(("collection_id", book_num))
         .bind(("name", arabic_name.to_string()))
         .await?;
         book_num_map.insert(prefix.to_string(), book_num);
@@ -348,7 +350,7 @@ pub async fn ingest(
     }
     nar_pb.finish_with_message("done");
 
-    // ── Create hadiths + edges ─────────────────────────────────────────────
+    // ── Create hadiths + edges (batched for performance) ────────────────────
 
     println!("📜 Ingesting {total_expected} hadiths...");
     let pb = make_progress(total_expected as u64, "hadiths ingested");
@@ -357,159 +359,207 @@ pub async fn ingest(
     let mut hadith_count = 0;
     let mut heard_from_count = 0;
 
+    // Collect hadiths to process, then batch them
+    let mut pending: Vec<(&String, &Hadith)> = Vec::new();
     for (_hid, hadith) in &all_hadiths {
-        // Check per-book limit
         let count = ingested_counts.entry(hadith.book.clone()).or_insert(0);
         if let Some(limit) = limit_per_book {
             if *count >= limit {
                 continue;
             }
         }
+        if hadith.ref_no.map_or(true, |n| n <= 0) {
+            continue;
+        }
+        *count += 1;
+        pending.push((_hid, hadith));
+    }
 
-        let ref_no = match hadith.ref_no {
-            Some(n) if n > 0 => n,
-            _ => continue,
-        };
+    // Reset counts for actual processing
+    ingested_counts.clear();
 
-        let bslug = book_slug(&hadith.book);
-        let base_hslug = hadith_slug(&hadith.book, ref_no);
+    // Pre-build set of hadith slugs we will actually insert (across all sub-chains
+    // for tahwil hadiths). Used to filter out similar_to edges pointing to
+    // hadiths outside this ingest scope (e.g. truncated by --limit), so the
+    // batched transaction doesn't waste work on dangling refs.
+    let mut pending_slugs: HashSet<String> = HashSet::with_capacity(pending.len());
+    for (_hid, hadith) in &pending {
+        let ref_no = hadith.ref_no.unwrap();
+        let base = hadith_slug(&hadith.book, ref_no);
+        let subs = split_tahwil_chain(&hadith.chain, &data.narrators);
+        if subs.len() > 1 {
+            for vi in 0..subs.len() {
+                pending_slugs.insert(format!("{}_v{}", base, vi + 1));
+            }
+        } else {
+            pending_slugs.insert(base);
+        }
+    }
 
-        let text_ar = hadith.text_ar.as_deref().unwrap_or("");
-        let text_en = hadith.text_en.as_deref().map(fix_english_text);
+    // Tunable: 1 fsync per ~200 hadiths instead of 1 per statement (~15× per hadith).
+    // Override via env for experimentation: INGEST_BATCH=500 (shared across all ingest paths).
+    let batch_size = batch_size_from_env(200);
 
-        // Split tahwil chains into separate sub-chains
-        let sub_chains = split_tahwil_chain(&hadith.chain, &data.narrators);
-        let is_tahwil = sub_chains.len() > 1;
+    for batch in pending.chunks(batch_size) {
+        let mut b = Batch::new();
 
-        for (vi, sub_chain) in sub_chains.iter().enumerate() {
-            let hslug = if is_tahwil {
-                format!("{}_v{}", base_hslug, vi + 1)
+        for (_hid, hadith) in batch {
+            let ref_no = hadith.ref_no.unwrap();
+            let bslug = book_slug(&hadith.book);
+            let base_hslug = hadith_slug(&hadith.book, ref_no);
+            let text_ar = hadith.text_ar.as_deref().unwrap_or("");
+            let text_en = hadith.text_en.as_deref().map(fix_english_text);
+            let sub_chains = split_tahwil_chain(&hadith.chain, &data.narrators);
+            let is_tahwil = sub_chains.len() > 1;
+            let collection_id = *book_num_map.get(&hadith.book).unwrap_or(&0);
+            let book_name = hadith.book_name.clone();
+            let hadith_type = hadith
+                .hadith_type
+                .as_deref()
+                .map(map_hadith_type)
+                .map(String::from);
+            let topics = hadith.topics.clone().unwrap_or_default();
+            let quran_verses = hadith.quran_verses.clone().unwrap_or_default();
+            let chapter_name = hadith.chapter.clone();
+
+            for (vi, sub_chain) in sub_chains.iter().enumerate() {
+                let hslug = if is_tahwil {
+                    format!("{}_v{}", base_hslug, vi + 1)
+                } else {
+                    base_hslug.clone()
+                };
+
+                let narrator_text = sub_chain.last().and_then(|hn| {
+                    data.narrators.get(hn.as_str()).and_then(|n| {
+                        n.popular_name
+                            .as_deref()
+                            .or(n.name.as_deref())
+                            .map(|s| s.to_string())
+                    })
+                });
+
+                let p_rid = b.param(rid("hadith", &hslug));
+                let p_hn = b.param(ref_no);
+                let p_cid = b.param(collection_id);
+                let p_tar = b.param(text_ar.to_string());
+                let p_ten = b.param(text_en.clone());
+                let p_nt = b.param(narrator_text);
+                let p_bn = b.param(book_name.clone());
+                let p_ht = b.param(hadith_type.clone());
+                let p_top = b.param(topics.clone());
+                let p_qv = b.param(quran_verses.clone());
+                let p_cn = b.param(chapter_name.clone());
+                let p_coll = b.param(rid("collection", &bslug));
+
+                let mut stmt = String::new();
+                let _ = write!(
+                    stmt,
+                    "CREATE {p_rid} CONTENT {{ \
+                        hadith_number: {p_hn}, \
+                        collection_id: {p_cid}, \
+                        chapter_id: 0, \
+                        text_ar: {p_tar}, \
+                        text_en: {p_ten}, \
+                        matn: NONE, \
+                        narrator_text: {p_nt}, \
+                        grade: NONE, \
+                        book_name: {p_bn}, \
+                        embedding: NONE, \
+                        hadith_type: {p_ht}, \
+                        topics: {p_top}, \
+                        quran_verses: {p_qv}, \
+                        chapter_name: {p_cn} \
+                    }}"
+                );
+                b.push(&stmt);
+                b.push(format!("RELATE {p_rid}->belongs_to->{p_coll}"));
+
+                // narrates: skip if narrator wasn't created (not in source data),
+                // otherwise the strict typed RELATION would reject the whole batch.
+                for (pos, hn_id) in sub_chain.iter().enumerate() {
+                    if !data.narrators.contains_key(hn_id) {
+                        continue;
+                    }
+                    let nslug = narrator_slug(hn_id);
+                    let p_from = b.param(rid("narrator", &nslug));
+                    let p_pos = b.param(pos as i64);
+                    b.push(format!(
+                        "RELATE {p_from}->narrates->{p_rid} SET chain_position = {p_pos}"
+                    ));
+                }
+
+                // heard_from: same skip rule for missing narrators on either side.
+                for i in 0..sub_chain.len().saturating_sub(1) {
+                    let n1 = &sub_chain[i];
+                    let n2 = &sub_chain[i + 1];
+                    if !data.narrators.contains_key(n1) || !data.narrators.contains_key(n2) {
+                        continue;
+                    }
+                    let s1 = narrator_slug(n1);
+                    let s2 = narrator_slug(n2);
+                    if s1 == s2 {
+                        continue;
+                    }
+                    let g1 = parse_gen_num(data.narrators.get(n1.as_str()));
+                    let g2 = parse_gen_num(data.narrators.get(n2.as_str()));
+                    if should_skip_heard_from(g1, g2) {
+                        continue;
+                    }
+                    let p_from = b.param(rid("narrator", &s1));
+                    let p_to = b.param(rid("narrator", &s2));
+                    let p_href = b.param(rid("hadith", &hslug));
+                    let p_pos = b.param(i as i64);
+                    b.push(format!(
+                        "RELATE {p_from}->heard_from->{p_to} SET hadith_ref = {p_href}, chain_position = {p_pos}"
+                    ));
+                    heard_from_count += 1;
+                }
+            }
+
+            // similar_to edges (anchored on the first sub-chain variant).
+            let first_hslug = if is_tahwil {
+                format!("{}_v1", base_hslug)
             } else {
                 base_hslug.clone()
             };
+            let p_first = b.param(rid("hadith", &first_hslug));
 
-            // Narrator text = last narrator in sub-chain (the sahabi/companion)
-            let narrator_text = sub_chain.last().and_then(|hn| {
-                data.narrators.get(hn.as_str()).and_then(|n| {
-                    n.popular_name
-                        .as_deref()
-                        .or(n.name.as_deref())
-                        .map(|s| s.to_string())
-                })
-            });
-
-            // Create hadith record
-            db.query(
-                "CREATE $rid CONTENT { \
-                    hadith_number: $hadith_number, \
-                    book_id: $book_id, \
-                    chapter_id: 0, \
-                    text_ar: $text_ar, \
-                    text_en: $text_en, \
-                    matn: NONE, \
-                    narrator_text: $narrator_text, \
-                    grade: NONE, \
-                    book_name: $book_name, \
-                    embedding: NONE, \
-                    hadith_type: $hadith_type, \
-                    topics: $topics, \
-                    quran_verses: $quran_verses, \
-                    chapter_name: $chapter_name \
-                }",
-            )
-            .bind(("rid", rid("hadith", &hslug)))
-            .bind(("hadith_number", ref_no))
-            .bind(("book_id", *book_num_map.get(&hadith.book).unwrap_or(&0)))
-            .bind(("text_ar", text_ar.to_string()))
-            .bind(("text_en", text_en.clone()))
-            .bind(("narrator_text", narrator_text))
-            .bind(("book_name", hadith.book_name.clone()))
-            .bind((
-                "hadith_type",
-                hadith
-                    .hadith_type
-                    .as_deref()
-                    .map(map_hadith_type)
-                    .map(String::from),
-            ))
-            .bind(("topics", hadith.topics.clone().unwrap_or_default()))
-            .bind((
-                "quran_verses",
-                hadith.quran_verses.clone().unwrap_or_default(),
-            ))
-            .bind(("chapter_name", hadith.chapter.clone()))
-            .await?;
-
-            // belongs_to edge
-            db.query("RELATE $from->belongs_to->$to")
-                .bind(("from", rid("hadith", &hslug)))
-                .bind(("to", rid("book", &bslug)))
-                .await?;
-
-            // narrates edges (narrator → hadith with chain position)
-            for (pos, hn_id) in sub_chain.iter().enumerate() {
-                let nslug = narrator_slug(hn_id);
-                db.query("RELATE $from->narrates->$to SET chain_position = $pos")
-                    .bind(("from", rid("narrator", &nslug)))
-                    .bind(("to", rid("hadith", &hslug)))
-                    .bind(("pos", pos as i64))
-                    .await
-                    .ok();
-            }
-
-            // heard_from edges: sub_chain[i] heard from sub_chain[i+1]
-            for i in 0..sub_chain.len().saturating_sub(1) {
-                let s1 = narrator_slug(&sub_chain[i]);
-                let s2 = narrator_slug(&sub_chain[i + 1]);
-                if s1 == s2 {
-                    continue;
+            let emit_similar = |b: &mut Batch, sim_ids: &[String], strength: &str| {
+                for sim_hid in sim_ids {
+                    let Some(sim_ref) = parse_hadith_ref(sim_hid) else {
+                        continue;
+                    };
+                    // Skip dangling refs to hadiths not in this ingest scope.
+                    // Tahwil targets are checked by base form (sim_ref has no _vN
+                    // suffix); accept if any variant or the base exists.
+                    let exists = pending_slugs.contains(&sim_ref)
+                        || pending_slugs.contains(&format!("{sim_ref}_v1"));
+                    if !exists {
+                        continue;
+                    }
+                    let p_to = b.param(rid("hadith", &sim_ref));
+                    let p_str = b.param(strength.to_string());
+                    b.push(format!(
+                        "RELATE {p_first}->similar_to->{p_to} SET strength = {p_str}"
+                    ));
                 }
-                let g1 = parse_gen_num(data.narrators.get(sub_chain[i].as_str()));
-                let g2 = parse_gen_num(data.narrators.get(sub_chain[i + 1].as_str()));
-                if should_skip_heard_from(g1, g2) {
-                    continue;
-                }
-                db.query(
-                    "RELATE $from->heard_from->$to SET hadith_ref = $href, chain_position = $pos",
-                )
-                .bind(("from", rid("narrator", &s1)))
-                .bind(("to", rid("narrator", &s2)))
-                .bind(("href", rid("hadith", &hslug)))
-                .bind(("pos", i as i64))
-                .await
-                .ok();
-                heard_from_count += 1;
-            }
+            };
+            emit_similar(
+                &mut b,
+                hadith.similar.as_deref().unwrap_or_default(),
+                "similar",
+            );
+            emit_similar(
+                &mut b,
+                hadith.strongly_similar.as_deref().unwrap_or_default(),
+                "strong",
+            );
+
+            hadith_count += 1;
         }
 
-        // similar_to edges (from first variant only for tahwil hadiths)
-        let first_hslug = if is_tahwil {
-            format!("{}_v1", base_hslug)
-        } else {
-            base_hslug.clone()
-        };
-        for sim_hid in hadith.similar.as_deref().unwrap_or_default() {
-            if let Some(sim_ref) = parse_hadith_ref(sim_hid) {
-                db.query("RELATE $from->similar_to->$to SET strength = 'similar'")
-                    .bind(("from", rid("hadith", &first_hslug)))
-                    .bind(("to", rid("hadith", &sim_ref)))
-                    .await
-                    .ok();
-            }
-        }
-        for sim_hid in hadith.strongly_similar.as_deref().unwrap_or_default() {
-            if let Some(sim_ref) = parse_hadith_ref(sim_hid) {
-                db.query("RELATE $from->similar_to->$to SET strength = 'strong'")
-                    .bind(("from", rid("hadith", &first_hslug)))
-                    .bind(("to", rid("hadith", &sim_ref)))
-                    .await
-                    .ok();
-            }
-        }
-
-        *count += 1;
-        hadith_count += 1;
-        pb.inc(1);
+        b.commit(db).await?;
+        pb.inc(batch.len() as u64);
     }
 
     pb.finish_with_message("done");

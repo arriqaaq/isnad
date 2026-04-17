@@ -1,7 +1,7 @@
 <script lang="ts">
   import { page } from '$app/state';
-  import { getTurathBook, getTurathPages } from '$lib/api';
-  import type { TurathBookDetail, TurathPage } from '$lib/types';
+  import { getBook, getBookPages } from '$lib/api';
+  import type { BookDetail, BookPage } from '$lib/types';
   import ReaderContent from '$lib/components/reader/ReaderContent.svelte';
   import ReaderHeader from '$lib/components/reader/ReaderHeader.svelte';
   import ReaderSidebar from '$lib/components/reader/ReaderSidebar.svelte';
@@ -9,20 +9,20 @@
   import BookChat from '$lib/components/reader/BookChat.svelte';
   import ResizeHandle from '$lib/components/layout/ResizeHandle.svelte';
   import LoadingSpinner from '$lib/components/common/LoadingSpinner.svelte';
-  import { loadTurathConfig, getBookConfig } from '$lib/stores/turath';
-  import type { TurathBooksConfig } from '$lib/types';
+  import { loadBooksConfig, getBookConfig } from '$lib/stores/books';
+  import type { BooksConfig } from '$lib/types';
 
-  let turathConfig: TurathBooksConfig | null = $state(null);
+  let booksConfig: BooksConfig | null = $state(null);
   let bookConfig = $derived(
-    turathConfig ? getBookConfig(turathConfig, bookId) : undefined
+    booksConfig ? getBookConfig(booksConfig, bookId) : undefined
   );
   let chatDefaultQuestions = $derived(bookConfig?.default_questions ?? []);
 
   let bookId = $derived(Number((page.params as Record<string, string>).bookId));
   let initialPage = $derived(Number(page.url.searchParams.get('page')) || 0);
 
-  let book: TurathBookDetail | null = $state(null);
-  let pages: Map<number, TurathPage> = $state(new Map());
+  let book: BookDetail | null = $state(null);
+  let pages: Map<number, BookPage> = $state(new Map());
   let loading = $state(true);
   let currentPageIndex = $state(0);
   let readerRef: ReturnType<typeof ReaderContent> | undefined = $state(undefined);
@@ -47,7 +47,7 @@
     fetchedRanges.add(rangeKey);
 
     try {
-      const res = await getTurathPages(bookId, start, PAGE_SIZE);
+      const res = await getBookPages(bookId, start, PAGE_SIZE);
       const next = new Map(pages);
       for (const p of res.pages) {
         next.set(p.page_index, p);
@@ -60,7 +60,7 @@
   }
 
   $effect(() => {
-    loadTurathConfig().then((c) => { turathConfig = c; });
+    loadBooksConfig().then((c) => { booksConfig = c; });
   });
 
   $effect(() => {
@@ -68,7 +68,7 @@
     pages = new Map();
     fetchedRanges = new Set();
 
-    getTurathBook(bookId)
+    getBook(bookId)
       .then(async (b) => {
         book = b;
 

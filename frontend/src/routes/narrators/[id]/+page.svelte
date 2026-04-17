@@ -1,7 +1,7 @@
 <script lang="ts">
   import { page } from '$app/state';
-  import { getNarrator, getNarratorGraph, updateNarrator, getNarratorBooks, getTurathPages } from '$lib/api';
-  import type { NarratorDetailResponse, GraphData, NarratorBookRef, TurathPage } from '$lib/types';
+  import { getNarrator, getNarratorGraph, updateNarrator, getNarratorBooks, getBookPages } from '$lib/api';
+  import type { NarratorDetailResponse, GraphData, NarratorBookRef, BookPage } from '$lib/types';
   import NarratorChip from '$lib/components/narrator/NarratorChip.svelte';
   import HadithCard from '$lib/components/hadith/HadithCard.svelte';
   import GraphView from '$lib/components/graph/GraphView.svelte';
@@ -12,7 +12,7 @@
   let graphData: GraphData | null = $state(null);
   let narratorBooks: NarratorBookRef[] = $state([]);
   let selectedBookRef: NarratorBookRef | null = $state(null);
-  let bioPage: TurathPage | null = $state(null);
+  let bioPage: BookPage | null = $state(null);
   let bioPageLoading = $state(false);
   let bioCurrentIndex = $state(0);
   let loading = $state(true);
@@ -39,7 +39,7 @@
     bioPage = null;
     bioCurrentIndex = pageIndex;
     try {
-      const res = await getTurathPages(bookRef.turath_book_id, pageIndex, 1);
+      const res = await getBookPages(bookRef.book_id, pageIndex, 1);
       if (res.pages.length > 0) bioPage = res.pages[0];
     } catch (e) {
       console.error('Failed to load bio page:', e);
@@ -265,7 +265,7 @@
 
           {#if selectedBookRef}
             <div class="bio-full-link">
-              <a href="/tafsir/{selectedBookRef.turath_book_id}?page={bioCurrentIndex}">Open full reader &#x2197;</a>
+              <a href="/tafsir/{selectedBookRef.book_id}?page={bioCurrentIndex}">Open full reader &#x2197;</a>
             </div>
           {/if}
         </div>

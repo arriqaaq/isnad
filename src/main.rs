@@ -40,7 +40,7 @@ enum Commands {
 
         /// Embedding model to use
         /// Embedding model: e5-small is faster, bge-m3 is higher quality but slower
-        #[arg(long, default_value = "bge-m3", value_enum)]
+        #[arg(long, default_value = "e5-small", value_enum)]
         embed_model: EmbedModel,
     },
     /// Run analysis on ingested data (families, narrator enrichment)
@@ -63,7 +63,7 @@ enum Commands {
 
         /// Embedding model to use
         /// Embedding model: e5-small is faster, bge-m3 is higher quality but slower
-        #[arg(long, default_value = "bge-m3", value_enum)]
+        #[arg(long, default_value = "e5-small", value_enum)]
         embed_model: EmbedModel,
     },
     /// Ingest Quran data (Arabic + English + Tafsir Ibn Kathir)
@@ -78,7 +78,7 @@ enum Commands {
 
         /// Embedding model to use
         /// Embedding model: e5-small is faster, bge-m3 is higher quality but slower
-        #[arg(long, default_value = "bge-m3", value_enum)]
+        #[arg(long, default_value = "e5-small", value_enum)]
         embed_model: EmbedModel,
     },
     /// Ingest Quran→Hadith reference mappings from Quran.com
@@ -189,7 +189,7 @@ enum Commands {
 
         /// Embedding model to use
         /// Embedding model: e5-small is faster, bge-m3 is higher quality but slower
-        #[arg(long, default_value = "bge-m3", value_enum)]
+        #[arg(long, default_value = "e5-small", value_enum)]
         embed_model: EmbedModel,
 
         /// Path to PageIndex workspace directory (enables book chat feature)
@@ -378,7 +378,6 @@ async fn async_main() -> Result<()> {
             let dim = embed_model.dimension();
             db::init_schema(&db, dim).await?;
             db::init_quran_schema(&db, dim).await?;
-            db::init_tafsir_chunk_schema(&db, dim).await?;
             // Define fulltext indexes BEFORE ingesting data — on an empty table
             // this is instant, and subsequent inserts incrementally update the
             // index. This avoids the "memtable history insufficient" error that
@@ -388,10 +387,6 @@ async fn async_main() -> Result<()> {
             let embedder = embed::Embedder::new(embed_model)?;
             embed::check_embedding_dimension(&db, embed_model.dimension()).await?;
             quran::ingest::ingest(&db, &file, &embedder).await?;
-
-            // Chunk and embed tafsir texts
-            println!("📝 Chunking and embedding tafsir texts...");
-            quran::ingest::embed_tafsir_chunks(&db, &embedder).await?;
 
             tracing::info!("Quran ingestion complete");
         }
@@ -449,27 +444,27 @@ async fn async_main() -> Result<()> {
             if force {
                 tracing::info!("Force mode: clearing existing data for book {book_id}");
                 let _ = db
-                    .query(&format!("DELETE turath_page WHERE book_id = {book_id}"))
+                    .query(&format!("DELETE book_page WHERE book_id = {book_id}"))
                     .await;
                 let _ = db
-                    .query(&format!("DELETE turath_book WHERE book_id = {book_id}"))
+                    .query(&format!("DELETE book WHERE book_id = {book_id}"))
                     .await;
                 let _ = db
                     .query(&format!("DELETE tafsir_ayah_map WHERE book_id = {book_id}"))
                     .await;
                 let _ = db
                     .query(&format!(
-                        "DELETE hadith_sharh_map WHERE sharh_book_id = {book_id}"
+                        "DELETE hadith_sharh_map WHERE book_id = {book_id}"
                     ))
                     .await;
                 let _ = db
                     .query(&format!(
-                        "DELETE narrator_book_map WHERE turath_book_id = {book_id}"
+                        "DELETE narrator_book_map WHERE book_id = {book_id}"
                     ))
                     .await;
             }
 
-            ingest::turath::ingest_book(
+            ingest::book::ingest_book(
                 &db,
                 &pages_file,
                 &headings_file,
@@ -479,36 +474,28 @@ async fn async_main() -> Result<()> {
                 &author_ar,
                 category.as_deref(),
                 book_type.as_deref(),
+                None,
+                None,
             )
             .await?;
 
             if let Some(tafsir_file) = tafsir_mapping {
-                ingest::turath::ingest_tafsir_mapping(&db, &tafsir_file, book_id).await?;
+                ingest::book::ingest_tafsir_mapping(&db, &tafsir_file, book_id).await?;
             }
 
             if let Some(sharh_file) = sharh_mapping {
                 let collection_id = sharh_collection_id
                     .expect("--sharh-collection-id required when --sharh-mapping is provided");
-                ingest::turath::ingest_hadith_sharh_mapping(
-                    &db,
-                    &sharh_file,
-                    collection_id,
-                    book_id,
-                )
-                .await?;
+                ingest::book::ingest_hadith_sharh_mapping(&db, &sharh_file, collection_id, book_id)
+                    .await?;
             }
 
             if let Some(narrator_file) = narrator_mapping {
-                ingest::turath::ingest_narrator_book_mapping(
-                    &db,
-                    &narrator_file,
-                    book_id,
-                    &name_en,
-                )
-                .await?;
+                ingest::book::ingest_narrator_book_mapping(&db, &narrator_file, book_id, &name_en)
+                    .await?;
             }
 
-            tracing::info!("Turath ingestion complete for book {book_id}");
+            tracing::info!("Book ingestion complete for book {book_id}");
         }
         Commands::Serve {
             port,
@@ -524,9 +511,8 @@ async fn async_main() -> Result<()> {
             db::init_quran_schema(&db, dim).await?;
             db::init_quran_word_schema(&db).await?;
             db::init_quran_similar_schema(&db).await?;
-            db::init_tafsir_chunk_schema(&db, dim).await?;
             db::init_reciter_schema(&db).await?;
-            db::init_turath_schema(&db).await?;
+            db::init_book_schema(&db).await?;
             db::init_user_note_schema(&db).await?;
             db::init_link_preview_schema(&db).await?;
             quran::audio::init_reciters(&db).await?;

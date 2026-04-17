@@ -13,14 +13,14 @@
   import SidebarTabs from '$lib/components/reader/SidebarTabs.svelte';
   import BookChat from '$lib/components/reader/BookChat.svelte';
   import ResizeHandle from '$lib/components/layout/ResizeHandle.svelte';
-  import { loadTurathConfig, getBookConfig } from '$lib/stores/turath';
-  import type { TurathBooksConfig } from '$lib/types';
+  import { loadBooksConfig, getBookConfig } from '$lib/stores/books';
+  import type { BooksConfig } from '$lib/types';
   import { preferences } from '$lib/stores/preferences';
 
-  let turathConfig: TurathBooksConfig | null = $state(null);
-  let tafsirBookId: number | null = $derived(turathConfig?.tafsir_book_id ?? null);
+  let booksConfig: BooksConfig | null = $state(null);
+  let tafsirBookId: number | null = $derived(booksConfig?.tafsir_book_id ?? null);
   let tafsirBookConfig = $derived(
-    tafsirBookId && turathConfig ? getBookConfig(turathConfig, tafsirBookId) : undefined
+    tafsirBookId && booksConfig ? getBookConfig(booksConfig, tafsirBookId) : undefined
   );
   let tafsirBookName = $derived(tafsirBookConfig?.name_en ?? 'Tafsir');
   let tafsirDefaultQuestions = $derived(tafsirBookConfig?.default_questions ?? []);
@@ -63,7 +63,7 @@
   });
 
   $effect(() => {
-    loadTurathConfig().then((c) => { turathConfig = c; });
+    loadBooksConfig().then((c) => { booksConfig = c; });
   });
 
   $effect(() => {
