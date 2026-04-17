@@ -10,6 +10,7 @@
 
   let isLanding = $derived(page.url.pathname === '/');
   let sidebarOpen = $state(false);
+  let sidebarCollapsed = $state(false);
 
   function toggleSidebar() {
     sidebarOpen = !sidebarOpen;
@@ -19,17 +20,37 @@
     sidebarOpen = false;
   }
 
-  // Close sidebar on navigation
+  function toggleCollapse() {
+    sidebarCollapsed = !sidebarCollapsed;
+    preferences.update(p => ({ ...p, sidebarCollapsed }));
+  }
+
+  // Close mobile sidebar on navigation
   $effect(() => {
     page.url.pathname;
     sidebarOpen = false;
   });
 
   onMount(() => {
+    // Sync theme + restore sidebar collapsed state
     const unsub = preferences.subscribe(p => {
       document.documentElement.dataset.theme = p.theme;
+      sidebarCollapsed = p.sidebarCollapsed;
     });
-    return unsub;
+
+    // Keyboard shortcut: Ctrl/Cmd+B to toggle sidebar collapse
+    function handleKeydown(e: KeyboardEvent) {
+      if (e.key === 'b' && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        toggleCollapse();
+      }
+    }
+    window.addEventListener('keydown', handleKeydown);
+
+    return () => {
+      unsub();
+      window.removeEventListener('keydown', handleKeydown);
+    };
   });
 </script>
 
@@ -42,8 +63,8 @@
   {@render children()}
 {:else}
   <div class="app-layout">
-    <div class="sidebar-wrapper" class:open={sidebarOpen}>
-      <Sidebar />
+    <div class="sidebar-wrapper" class:open={sidebarOpen} class:collapsed={sidebarCollapsed}>
+      <Sidebar collapsed={sidebarCollapsed} onToggle={toggleCollapse} />
     </div>
     {#if sidebarOpen}
       <button class="sidebar-backdrop" onclick={closeSidebar} aria-label="Close menu"></button>
@@ -66,6 +87,12 @@
 
   .sidebar-wrapper {
     flex-shrink: 0;
+    width: var(--sidebar-width);
+    transition: width 200ms ease;
+  }
+
+  .sidebar-wrapper.collapsed {
+    width: var(--sidebar-collapsed-width);
   }
 
   .main-area {
@@ -93,6 +120,7 @@
       left: 0;
       height: 100vh;
       z-index: 50;
+      width: var(--sidebar-width) !important;
     }
     .sidebar-wrapper.open {
       display: flex;

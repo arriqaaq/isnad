@@ -11,6 +11,19 @@
     onclose: () => void;
   } = $props();
 
+  // Local font size for panel content only (not global)
+  let panelFontSize = $state(0.9);
+  const PANEL_FONT_STEPS = [0.75, 0.85, 0.9, 1.0, 1.1, 1.25, 1.4];
+  function stepPanelFont(dir: 1 | -1) {
+    const idx = PANEL_FONT_STEPS.indexOf(panelFontSize);
+    const nearest = idx === -1
+      ? PANEL_FONT_STEPS.reduce((a, b) => Math.abs(b - panelFontSize) < Math.abs(a - panelFontSize) ? b : a)
+      : panelFontSize;
+    const nearIdx = PANEL_FONT_STEPS.indexOf(nearest);
+    const next = Math.max(0, Math.min(nearIdx + dir, PANEL_FONT_STEPS.length - 1));
+    panelFontSize = PANEL_FONT_STEPS[next];
+  }
+
   let manuscripts: CCManuscript[] = $state([]);
   let manuscriptsLoading = $state(true);
   let hadithData: AyahHadithResponse | null = $state(null);
@@ -154,7 +167,13 @@
       </div>
     </div>
 
-    <div class="panel-content">
+    <div class="font-bar">
+      <span class="font-bar-label">Text size</span>
+      <button class="font-btn" onclick={() => stepPanelFont(-1)}>A−</button>
+      <button class="font-btn" onclick={() => stepPanelFont(1)}>A+</button>
+    </div>
+
+    <div class="panel-content" style="zoom: {panelFontSize / 0.9}">
       <!-- Related Hadiths -->
       <section class="panel-section">
         <div class="section-label">Related Hadiths</div>
@@ -253,6 +272,7 @@
     gap: 8px;
   }
 
+
   .drag-hint {
     color: var(--text-muted);
     font-size: 1rem;
@@ -277,6 +297,36 @@
   }
   .panel-close:hover {
     color: var(--text-primary);
+  }
+
+  .font-bar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 16px;
+    border-bottom: 1px solid var(--border-subtle);
+    background: var(--bg-secondary);
+    flex-shrink: 0;
+  }
+  .font-bar-label {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    margin-right: auto;
+  }
+  .font-btn {
+    padding: 2px 8px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--bg-primary);
+    color: var(--text-secondary);
+    font-size: 0.72rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition);
+  }
+  .font-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
   }
 
   .panel-content {

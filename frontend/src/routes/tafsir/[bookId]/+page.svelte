@@ -5,6 +5,7 @@
   import ReaderContent from '$lib/components/reader/ReaderContent.svelte';
   import ReaderHeader from '$lib/components/reader/ReaderHeader.svelte';
   import ReaderSidebar from '$lib/components/reader/ReaderSidebar.svelte';
+  import ResizeHandle from '$lib/components/layout/ResizeHandle.svelte';
   import LoadingSpinner from '$lib/components/common/LoadingSpinner.svelte';
 
   let bookId = $derived(Number((page.params as Record<string, string>).bookId));
@@ -14,8 +15,17 @@
   let pages: Map<number, TurathPage> = $state(new Map());
   let loading = $state(true);
   let currentPageIndex = $state(0);
-  let sidebarOpen = $state(false);
   let readerRef: ReturnType<typeof ReaderContent> | undefined = $state(undefined);
+
+  // Right sidebar state
+  let rightCollapsed = $state(false);
+  let rightWidth = $state(300);
+  const RIGHT_MIN = 220;
+  const RIGHT_MAX = 450;
+  const RIGHT_COLLAPSED_W = 40;
+
+  // Mobile drawer state
+  let mobileDrawerOpen = $state(false);
 
   // Track which page ranges are already fetched or in-flight
   let fetchedRanges: Set<string> = new Set();
@@ -48,13 +58,10 @@
       .then(async (b) => {
         book = b;
 
-        // Fetch initial pages
         if (initialPage > 0) {
-          // Fetch the chunk containing the target page
           const chunkStart = Math.max(0, initialPage - 5);
           await fetchPageChunk(chunkStart);
           currentPageIndex = initialPage;
-          // Also fetch first chunk for context
           if (chunkStart > 0) fetchPageChunk(0);
         } else {
           await fetchPageChunk(0);
@@ -62,7 +69,6 @@
 
         loading = false;
 
-        // After render, scroll to target page
         if (initialPage > 0) {
           requestAnimationFrame(() => {
             setTimeout(() => {
@@ -75,16 +81,29 @@
         console.error('Failed to load book:', e);
         loading = false;
       });
+
+    // Restore sidebar state
+    if (typeof localStorage !== 'undefined') {
+      try {
+        const saved = JSON.parse(localStorage.getItem('tafsir_right_sidebar') ?? '{}');
+        if (typeof saved.collapsed === 'boolean') rightCollapsed = saved.collapsed;
+        if (typeof saved.width === 'number') rightWidth = Math.max(RIGHT_MIN, Math.min(saved.width, RIGHT_MAX));
+      } catch { /* ignore */ }
+    }
   });
 
+  function saveRightState() {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('tafsir_right_sidebar', JSON.stringify({ collapsed: rightCollapsed, width: rightWidth }));
+    }
+  }
+
   function handleNeedMore(startIndex: number) {
-    // Align to chunk boundary
     const chunkStart = Math.floor(startIndex / PAGE_SIZE) * PAGE_SIZE;
     fetchPageChunk(chunkStart);
   }
 
   function handleSidebarNavigate(pageIndex: number) {
-    // Ensure the target chunk is loaded
     const chunkStart = Math.floor(pageIndex / PAGE_SIZE) * PAGE_SIZE;
     fetchPageChunk(chunkStart).then(() => {
       if (readerRef) readerRef.scrollToPage(pageIndex);
@@ -92,8 +111,14 @@
     currentPageIndex = pageIndex;
   }
 
-  function toggleSidebar() {
-    sidebarOpen = !sidebarOpen;
+  function handleRightDrag(deltaX: number) {
+    rightWidth = Math.max(RIGHT_MIN, Math.min(rightWidth - deltaX, RIGHT_MAX));
+    saveRightState();
+  }
+
+  function toggleRight() {
+    rightCollapsed = !rightCollapsed;
+    saveRightState();
   }
 </script>
 
@@ -111,7 +136,7 @@
       {book}
       currentPage={currentPageIndex}
       totalPages={book.total_pages}
-      onToggleSidebar={toggleSidebar}
+      onToggleSidebar={toggleRight}
     />
 
     <div class="reader-body">
@@ -125,20 +150,49 @@
         />
       </div>
 
-      <div class="sidebar-panel" class:open={sidebarOpen}>
+      <!-- Desktop right sidebar -->
+      <div class="right-sidebar-area">
+        <ResizeHandle ondrag={handleRightDrag} />
+        <div
+          class="right-sidebar"
+          class:right-collapsed={rightCollapsed}
+          style="width: {rightCollapsed ? RIGHT_COLLAPSED_W : rightWidth}px"
+        >
+          {#if rightCollapsed}
+            <button class="expand-btn" onclick={toggleRight} title="Expand panel">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
+          {:else}
+            <ReaderSidebar
+              headings={book.headings}
+              {currentPageIndex}
+              totalPages={book.total_pages}
+              onNavigate={handleSidebarNavigate}
+              onClose={toggleRight}
+            />
+          {/if}
+        </div>
+      </div>
+    </div>
+
+    <!-- Mobile floating button -->
+    <button class="mobile-sidebar-btn" onclick={() => { mobileDrawerOpen = true; }} aria-label="Open panel">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="18" y2="18"/></svg>
+    </button>
+
+    <!-- Mobile drawer -->
+    {#if mobileDrawerOpen}
+      <button class="mobile-backdrop" onclick={() => { mobileDrawerOpen = false; }} aria-label="Close sidebar"></button>
+      <div class="mobile-drawer">
         <ReaderSidebar
           headings={book.headings}
           {currentPageIndex}
           totalPages={book.total_pages}
-          onNavigate={handleSidebarNavigate}
-          onClose={() => { sidebarOpen = false; }}
+          onNavigate={(idx) => { mobileDrawerOpen = false; handleSidebarNavigate(idx); }}
+          onClose={() => { mobileDrawerOpen = false; }}
         />
       </div>
-
-      {#if sidebarOpen}
-        <button class="sidebar-backdrop" onclick={() => { sidebarOpen = false; }} aria-label="Close sidebar"></button>
-      {/if}
-    </div>
+    {/if}
   </div>
 {:else}
   <div class="error-container">
@@ -153,13 +207,13 @@
     flex-direction: column;
     height: 100%;
     overflow: hidden;
+    position: relative;
   }
 
   .reader-body {
     display: flex;
     flex: 1;
     overflow: hidden;
-    position: relative;
   }
 
   .reader-main {
@@ -170,11 +224,41 @@
     min-width: 0;
   }
 
-  .sidebar-panel {
-    width: 320px;
+  .right-sidebar-area {
+    display: flex;
     flex-shrink: 0;
+  }
+
+  .right-sidebar {
+    height: 100%;
     overflow: hidden;
-    border-left: 1px solid var(--border);
+    transition: width 200ms ease;
+    border-left: none;
+  }
+
+  .right-sidebar.right-collapsed {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .expand-btn {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+    background: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all var(--transition);
+  }
+  .expand-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: var(--accent-muted);
   }
 
   .loading-container, .error-container {
@@ -190,13 +274,51 @@
     color: var(--accent);
   }
 
-  .sidebar-backdrop {
-    display: none;
-  }
+  .mobile-sidebar-btn { display: none; }
+  .mobile-backdrop { display: none; }
+  .mobile-drawer { display: none; }
 
   @media (max-width: 768px) {
-    .sidebar-panel {
+    .right-sidebar-area {
       display: none;
+    }
+
+    .mobile-sidebar-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: fixed;
+      bottom: 20px;
+      right: 16px;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      background: var(--bg-surface);
+      color: var(--text-secondary);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+      cursor: pointer;
+      z-index: 30;
+      transition: all var(--transition);
+    }
+    .mobile-sidebar-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .mobile-backdrop {
+      display: block;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.4);
+      z-index: 49;
+      border: none;
+      padding: 0;
+      cursor: default;
+    }
+
+    .mobile-drawer {
+      display: block;
       position: fixed;
       top: 0;
       right: 0;
@@ -206,19 +328,7 @@
       z-index: 50;
       background: var(--bg-primary);
       box-shadow: -4px 0 20px rgba(0, 0, 0, 0.15);
-    }
-    .sidebar-panel.open {
-      display: block;
-    }
-    .sidebar-backdrop {
-      display: block;
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.4);
-      z-index: 49;
-      border: none;
-      padding: 0;
-      cursor: default;
+      overflow-y: auto;
     }
   }
 </style>

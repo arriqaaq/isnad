@@ -1,6 +1,11 @@
 <script lang="ts">
   import { page } from '$app/state';
 
+  let { collapsed = false, onToggle }: {
+    collapsed?: boolean;
+    onToggle?: () => void;
+  } = $props();
+
   interface NavItem {
     path: string;
     label: string;
@@ -53,24 +58,36 @@
   }
 </script>
 
-<nav class="sidebar">
-  <a href="/" class="sidebar-header">
-    <span class="logo">◆</span>
-    <span class="logo-text">Ilm</span>
-  </a>
+<nav class="sidebar" class:collapsed>
+  <div class="sidebar-header">
+    <a href="/" class="logo-link" title="Ilm">
+      <span class="logo">◆</span>
+      {#if !collapsed}
+        <span class="logo-text">Ilm</span>
+      {/if}
+    </a>
+    <button class="collapse-toggle" onclick={onToggle} title={collapsed ? 'Expand sidebar (Ctrl+B)' : 'Collapse sidebar (Ctrl+B)'}>
+      {collapsed ? '»' : '«'}
+    </button>
+  </div>
 
   <div class="nav-items">
     {#each groups as group}
       <div class="nav-group">
-        <span class="section-label">{group.label}</span>
+        {#if !collapsed}
+          <span class="section-label">{group.label}</span>
+        {/if}
         {#each group.items as item}
           <a
             href={item.path}
             class="nav-item"
             class:active={isActive(item.path)}
+            title={collapsed ? item.label : ''}
           >
             <span class="nav-icon">{item.icon}</span>
-            <span class="nav-label">{item.label}</span>
+            {#if !collapsed}
+              <span class="nav-label">{item.label}</span>
+            {/if}
           </a>
         {/each}
       </div>
@@ -78,7 +95,9 @@
   </div>
 
   <div class="sidebar-footer">
-    <span class="footer-text">Islamic Knowledge Platform</span>
+    {#if !collapsed}
+      <span class="footer-text">Islamic Knowledge Platform</span>
+    {/if}
   </div>
 </nav>
 
@@ -91,20 +110,39 @@
     display: flex;
     flex-direction: column;
     flex-shrink: 0;
+    transition: width 200ms ease;
+    overflow: hidden;
+  }
+
+  .sidebar.collapsed {
+    width: var(--sidebar-collapsed-width);
   }
 
   .sidebar-header {
-    padding: 20px 16px;
+    padding: 12px 12px;
     border-bottom: 1px solid var(--border-subtle);
     display: flex;
     align-items: center;
-    gap: 10px;
+    justify-content: space-between;
     height: var(--topbar-height);
+    white-space: nowrap;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .collapsed .sidebar-header {
+    justify-content: center;
+    padding: 12px 4px;
+  }
+
+  .logo-link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
     text-decoration: none;
     color: inherit;
     transition: opacity var(--transition);
   }
-  .sidebar-header:hover {
+  .logo-link:hover {
     opacity: 0.85;
     color: inherit;
   }
@@ -112,6 +150,7 @@
   .logo {
     color: var(--accent);
     font-size: 1.1rem;
+    flex-shrink: 0;
   }
 
   .logo-text {
@@ -129,6 +168,10 @@
     flex-direction: column;
     gap: 0;
     overflow-y: auto;
+    overflow-x: hidden;
+  }
+  .collapsed .nav-items {
+    padding: 8px 4px;
   }
 
   .nav-group {
@@ -146,6 +189,7 @@
     font-weight: 600;
     font-family: var(--font-sans);
     user-select: none;
+    white-space: nowrap;
   }
 
   .nav-group:first-child .section-label {
@@ -164,6 +208,14 @@
     font-family: var(--font-sans);
     font-size: 0.88rem;
     text-decoration: none;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+  .collapsed .nav-item {
+    justify-content: center;
+    padding: 8px 0;
+    border-left: none;
+    border-radius: var(--radius-sm);
   }
 
   .nav-item:hover {
@@ -176,6 +228,9 @@
     color: var(--accent);
     border-left-color: var(--accent);
     font-weight: 500;
+  }
+  .collapsed .nav-item.active {
+    border-left-color: transparent;
   }
 
   .nav-icon {
@@ -190,8 +245,15 @@
   }
 
   .sidebar-footer {
-    padding: 14px 16px;
+    padding: 10px 12px;
     border-top: 1px solid var(--border-subtle);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .collapsed .sidebar-footer {
+    justify-content: center;
+    padding: 10px 4px;
   }
 
   .footer-text {
@@ -199,5 +261,35 @@
     font-size: 0.72rem;
     font-style: italic;
     color: var(--text-muted);
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+
+  .collapse-toggle {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: none;
+    color: var(--text-secondary);
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all var(--transition);
+    flex-shrink: 0;
+  }
+  .collapse-toggle:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: var(--accent-muted);
+  }
+  .collapsed .collapse-toggle {
+    width: 100%;
+    border: none;
+    border-radius: 0;
   }
 </style>

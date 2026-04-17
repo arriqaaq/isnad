@@ -9,16 +9,18 @@ export interface QuranPreferences {
   theme: Theme;
   selectedReciter: string | null;
   quranFont: QuranFontMode;
+  sidebarCollapsed: boolean;
 }
 
-export const FONT_STEPS = [0.6, 0.8, 0.9, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.4, 2.8];
+export const FONT_STEPS = [0.6, 0.8, 0.9, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.4, 2.8, 3.2, 3.6];
 
 export const DEFAULTS: QuranPreferences = {
-  arabicFontSize: 1.6,
-  englishFontSize: 0.9,
+  arabicFontSize: 2.4,
+  englishFontSize: 1.0,
   theme: 'light',
   selectedReciter: null,
   quranFont: 'tajweed',
+  sidebarCollapsed: false,
 };
 
 const STORAGE_KEY = 'quran-preferences';

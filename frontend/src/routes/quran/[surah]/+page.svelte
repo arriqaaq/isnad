@@ -10,6 +10,7 @@
   import RecitationPlayer from '$lib/components/quran/RecitationPlayer.svelte';
   import BookViewerModal from '$lib/components/reader/BookViewerModal.svelte';
   import SurahSidebar from '$lib/components/quran/SurahSidebar.svelte';
+  import ResizeHandle from '$lib/components/layout/ResizeHandle.svelte';
   import { preferences } from '$lib/stores/preferences';
 
   let data: SurahDetailResponse | null = $state(null);
@@ -20,12 +21,34 @@
   let noteIndicators: NoteRefsIndicator = $state({});
   let tafsirMappings: Record<string, TafsirPageRef> = $state({});
   let tafsirTarget: { pageIndex: number; ayahRef: string } | null = $state(null);
-  let sidebarOpen = $state(false);
   let playerRef: ReturnType<typeof RecitationPlayer> | undefined = $state(undefined);
+
+  // Right sidebar state
+  let rightCollapsed = $state(true);
+  let rightWidth = $state(280);
+  const RIGHT_MIN = 200;
+  const RIGHT_MAX = 400;
+  const RIGHT_COLLAPSED_W = 40;
 
   let surahNum = $derived(Number(page.params.surah));
   let startingAyah = $derived(Number(page.url.searchParams.get('ayah')) || 0);
   let reciterFolder = $derived($preferences.selectedReciter ?? 'Alafasy_128kbps');
+
+  function saveRightState() {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('quran_right_sidebar', JSON.stringify({ collapsed: rightCollapsed, width: rightWidth }));
+    }
+  }
+
+  $effect(() => {
+    if (typeof localStorage !== 'undefined') {
+      try {
+        const saved = JSON.parse(localStorage.getItem('quran_right_sidebar') ?? '{}');
+        if (typeof saved.collapsed === 'boolean') rightCollapsed = saved.collapsed;
+        if (typeof saved.width === 'number') rightWidth = Math.max(RIGHT_MIN, Math.min(saved.width, RIGHT_MAX));
+      } catch { /* ignore */ }
+    }
+  });
 
   $effect(() => {
     loading = true;
@@ -34,18 +57,15 @@
       data = d;
       loading = false;
 
-      // Load note indicators for all ayahs in this surah
       const refIds = d.ayahs.map((a: ApiAyah) => `${d.surah.surah_number}:${a.ayah_number}`);
       fetchNoteRefs('ayah', refIds)
         .then(indicators => { noteIndicators = indicators; })
         .catch(() => {});
 
-      // Load tafsir page mappings for this surah
       getSurahTafsirPages(surahNum)
         .then(res => { tafsirMappings = res.mappings; })
         .catch(() => {});
 
-      // Scroll to specific ayah if ?ayah=N is in the URL
       if (startingAyah > 0) {
         activeAyah = startingAyah;
         requestAnimationFrame(() => {
@@ -62,7 +82,6 @@
 
   function handleAyahChange(ayah: number) {
     activeAyah = ayah;
-    // Scroll the active ayah into view
     const el = document.getElementById(`${surahNum}:${ayah}`);
     if (el) {
       el.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -75,28 +94,40 @@
       playerRef.playAyah(ayah);
     }
   }
+
+  function handleRightDrag(deltaX: number) {
+    rightWidth = Math.max(RIGHT_MIN, Math.min(rightWidth - deltaX, RIGHT_MAX));
+    saveRightState();
+  }
+
+  function toggleRight() {
+    rightCollapsed = !rightCollapsed;
+    saveRightState();
+  }
+
+  let mobileDrawerOpen = $state(false);
 </script>
 
 <div class="surah-page">
   {#if loading}
-    <LoadingSpinner />
-  {:else if data}
-    <div class="surah-nav">
-      {#if data.surah.surah_number > 1}
-        <a href="/quran/{data.surah.surah_number - 1}" class="nav-link">← Previous</a>
-      {/if}
-      <a href="/quran" class="nav-link">All Surahs</a>
-      {#if data.surah.surah_number < 114}
-        <a href="/quran/{data.surah.surah_number + 1}" class="nav-link">Next →</a>
-      {/if}
-      <button class="panel-toggle" class:active={sidebarOpen} onclick={() => { sidebarOpen = !sidebarOpen; }} aria-label="Toggle panel">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="18" y2="18"/></svg>
-      </button>
+    <div class="page-content">
+      <LoadingSpinner />
     </div>
+  {:else if data}
+    <!-- Scrollable content area -->
+    <div class="page-content">
+      <div class="surah-nav">
+        {#if data.surah.surah_number > 1}
+          <a href="/quran/{data.surah.surah_number - 1}" class="nav-link">← Previous</a>
+        {/if}
+        <a href="/quran" class="nav-link">All Surahs</a>
+        {#if data.surah.surah_number < 114}
+          <a href="/quran/{data.surah.surah_number + 1}" class="nav-link">Next →</a>
+        {/if}
+      </div>
 
-    <SurahHeader surah={data.surah} />
+      <SurahHeader surah={data.surah} />
 
-    <div class="surah-body" class:sidebar-open={sidebarOpen}>
       <div class="ayah-list">
         {#each data.ayahs as ayah}
           <div id="{data.surah.surah_number}:{ayah.ayah_number}">
@@ -115,31 +146,65 @@
         {/each}
       </div>
 
-      {#if sidebarOpen}
-        <div class="surah-sidebar-panel">
-          <SurahSidebar
-            surah={data.surah}
-            totalAyahs={data.surah.ayah_count}
-            onNavigateAyah={handleAyahChange}
-            onClose={() => { sidebarOpen = false; }}
-          />
-        </div>
-      {/if}
+      <div class="surah-nav bottom">
+        {#if data.surah.surah_number > 1}
+          <a href="/quran/{data.surah.surah_number - 1}" class="nav-link">← Previous Surah</a>
+        {/if}
+        <a href="/quran" class="nav-link">All Surahs</a>
+        {#if data.surah.surah_number < 114}
+          <a href="/quran/{data.surah.surah_number + 1}" class="nav-link">Next Surah →</a>
+        {/if}
+      </div>
     </div>
 
-    {#if sidebarOpen}
-      <button class="sidebar-backdrop-mobile" onclick={() => { sidebarOpen = false; }} aria-label="Close panel"></button>
+    <!-- Desktop: right sidebar (full page height, animates to 0 when collapsed) -->
+    <div class="right-area">
+      {#if !rightCollapsed}
+        <ResizeHandle ondrag={handleRightDrag} />
+      {/if}
+      <div
+        class="right-sidebar"
+        style="width: {rightCollapsed ? 0 : rightWidth}px"
+      >
+        {#if !rightCollapsed}
+          <div class="sidebar-inner" style="width: {rightWidth}px">
+            <div class="sidebar-header-bar">
+              <button class="sidebar-close-btn" onclick={toggleRight} title="Close panel">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+            <div class="sidebar-scroll">
+              <SurahSidebar
+                surah={data.surah}
+                totalAyahs={data.surah.ayah_count}
+                onNavigateAyah={handleAyahChange}
+                onClose={toggleRight}
+              />
+            </div>
+          </div>
+        {/if}
+      </div>
+      <button class="sidebar-open-btn" class:visible={rightCollapsed} onclick={toggleRight} title="Open panel">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+    </div>
+
+    <!-- Mobile: floating button + drawer -->
+    <button class="mobile-sidebar-btn" onclick={() => { mobileDrawerOpen = true; }} aria-label="Open panel">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="18" y2="18"/></svg>
+    </button>
+
+    {#if mobileDrawerOpen}
+      <button class="mobile-backdrop" onclick={() => { mobileDrawerOpen = false; }} aria-label="Close panel"></button>
+      <div class="mobile-drawer">
+        <SurahSidebar
+          surah={data.surah}
+          totalAyahs={data.surah.ayah_count}
+          onNavigateAyah={(ayah) => { mobileDrawerOpen = false; handleAyahChange(ayah); }}
+          onClose={() => { mobileDrawerOpen = false; }}
+        />
+      </div>
     {/if}
-
-    <div class="surah-nav bottom">
-      {#if data.surah.surah_number > 1}
-        <a href="/quran/{data.surah.surah_number - 1}" class="nav-link">← Previous Surah</a>
-      {/if}
-      <a href="/quran" class="nav-link">All Surahs</a>
-      {#if data.surah.surah_number < 114}
-        <a href="/quran/{data.surah.surah_number + 1}" class="nav-link">Next Surah →</a>
-      {/if}
-    </div>
   {/if}
 </div>
 
@@ -176,52 +241,182 @@
 {/if}
 
 <style>
-  .surah-page { padding: 24px; max-width: 1200px; margin: 0 auto; padding-bottom: 72px; }
-  .surah-nav { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; margin-bottom: 8px; gap: 8px; }
-  .surah-nav.bottom { margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--border); }
+  /* Top-level: horizontal flex — content + sidebar side by side, full height */
+  .surah-page {
+    display: flex;
+    height: 100%;
+  }
+
+  /* Scrollable content area — takes remaining width */
+  .page-content {
+    flex: 1;
+    min-width: 0;
+    overflow-y: auto;
+    padding: 24px;
+    padding-bottom: 72px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  .page-content::-webkit-scrollbar { width: 4px; }
+  .page-content::-webkit-scrollbar-track { background: transparent; }
+  .page-content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .surah-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    margin-bottom: 8px;
+    gap: 8px;
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%;
+  }
+  .surah-nav.bottom {
+    margin-top: 24px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
+  }
   .nav-link { font-size: 0.85rem; color: var(--btn-text); }
   .nav-link:hover { text-decoration: underline; color: var(--text-secondary); }
 
-  .panel-toggle {
+  /* Ayah list — centered within content area */
+  .ayah-list {
+    max-width: 800px;
+    margin: 0 auto;
+    width: 100%;
+  }
+
+  /* Right sidebar area — full height alongside content */
+  .right-area {
+    display: flex;
+    flex-shrink: 0;
+    height: 100%;
+  }
+
+  .right-sidebar {
+    height: 100%;
+    overflow: hidden;
+    transition: width 200ms ease;
+    flex-shrink: 0;
+  }
+
+  .sidebar-inner {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    border-left: 1px solid var(--border-subtle);
+  }
+
+  .sidebar-header-bar {
+    display: flex;
+    justify-content: flex-end;
+    padding: 6px 8px;
+    border-bottom: 1px solid var(--border-subtle);
+    flex-shrink: 0;
+  }
+
+  .sidebar-close-btn {
+    width: 24px;
+    height: 24px;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 34px;
-    height: 34px;
-    border: 1px solid var(--border);
+    border: none;
     border-radius: var(--radius-sm);
-    background: var(--bg-surface);
-    color: var(--text-secondary);
+    background: none;
+    color: var(--text-muted);
     cursor: pointer;
     transition: all var(--transition);
-    flex-shrink: 0;
   }
-  .panel-toggle:hover, .panel-toggle.active {
-    background: var(--bg-hover);
-    border-color: var(--accent);
+  .sidebar-close-btn:hover {
     color: var(--accent);
+    background: var(--accent-muted);
   }
 
-  .surah-body {
-    display: flex;
-    gap: 0;
+  .sidebar-scroll {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
   }
-  .ayah-list { display: flex; flex-direction: column; flex: 1; min-width: 0; max-width: 800px; }
-  .surah-sidebar-panel {
-    width: 300px;
+
+  /* Collapse/expand button — always present, only visible when collapsed */
+  .sidebar-open-btn {
+    width: 0;
+    height: 100%;
     flex-shrink: 0;
-    position: sticky;
-    top: 0;
-    height: calc(100vh - 60px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-left: 1px solid var(--border-subtle);
+    background: var(--bg-primary);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: width 200ms ease, opacity 200ms ease;
     overflow: hidden;
+    opacity: 0;
+    padding: 0;
+  }
+  .sidebar-open-btn.visible {
+    width: 32px;
+    opacity: 1;
+  }
+  .sidebar-open-btn:hover {
+    color: var(--accent);
+    background: var(--accent-muted);
   }
 
-  .sidebar-backdrop-mobile { display: none; }
+  /* Mobile */
+  .mobile-sidebar-btn { display: none; }
+  .mobile-backdrop { display: none; }
+  .mobile-drawer { display: none; }
 
   @media (max-width: 768px) {
-    .surah-page { padding: 12px; padding-bottom: 72px; }
-    .surah-nav { padding: 8px 0; }
-    .surah-sidebar-panel {
+    .surah-page { display: block; height: auto; }
+    .page-content { padding: 12px; padding-bottom: 72px; overflow-y: visible; }
+    .right-area { display: none; }
+
+    .mobile-sidebar-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: fixed;
+      bottom: 80px;
+      right: 16px;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      background: var(--bg-surface);
+      color: var(--text-secondary);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+      cursor: pointer;
+      z-index: 30;
+      transition: all var(--transition);
+    }
+    .mobile-sidebar-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .mobile-backdrop {
+      display: block;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.4);
+      z-index: 49;
+      border: none;
+      padding: 0;
+      cursor: default;
+    }
+
+    .mobile-drawer {
+      display: block;
       position: fixed;
       top: 0;
       right: 0;
@@ -231,16 +426,7 @@
       z-index: 50;
       background: var(--bg-primary);
       box-shadow: -4px 0 20px rgba(0, 0, 0, 0.15);
-    }
-    .sidebar-backdrop-mobile {
-      display: block;
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.4);
-      z-index: 49;
-      border: none;
-      padding: 0;
-      cursor: default;
+      overflow-y: auto;
     }
   }
 </style>
