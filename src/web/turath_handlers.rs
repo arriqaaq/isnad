@@ -394,13 +394,19 @@ pub async fn narrator_books(
     State(state): State<AppState>,
     Path(narrator_id): Path<String>,
 ) -> impl IntoResponse {
+    // Strip "narrator:" prefix if present (URL params include the table prefix)
+    let clean_id = narrator_id
+        .strip_prefix("narrator:")
+        .unwrap_or(&narrator_id)
+        .to_string();
+
     let result: Result<Vec<NarratorBookRow>, _> = state
         .db
         .query(
             "SELECT turath_book_id, page_index, entry_num, book_name \
              FROM narrator_book_map WHERE narrator_id = $nid",
         )
-        .bind(("nid", narrator_id.clone()))
+        .bind(("nid", clean_id.clone()))
         .await
         .and_then(|mut r| r.take(0));
 
@@ -418,7 +424,7 @@ pub async fn narrator_books(
             Json(refs).into_response()
         }
         Err(e) => {
-            tracing::error!("Failed to get narrator books for {narrator_id}: {e}");
+            tracing::error!("Failed to get narrator books for {clean_id}: {e}");
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "Failed to get narrator books",

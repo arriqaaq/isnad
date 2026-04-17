@@ -25,8 +25,6 @@ pub struct ApiNarratorSource {
     pub name_en: String,
     pub generation: Option<String>,
     pub hadith_count: Option<i64>,
-    pub reliability_rating: Option<String>,
-    pub ibn_hajar_rank: Option<String>,
     pub kunya: Option<String>,
     pub bio: Option<String>,
     pub death_year: Option<i64>,
@@ -170,23 +168,8 @@ pub async fn count_hadiths(
     })
 }
 
-/// Get full narrator bio + reliability info.
-pub async fn narrator_info(db: &Surreal<Db>, narrator: &Narrator) -> Result<ToolOutput> {
-    let nid = narrator.id.as_ref().unwrap();
-    // Fetch evidence records for reliability assessments
-    #[derive(Debug, SurrealValue)]
-    struct Evidence {
-        rating: Option<String>,
-        scholar: Option<String>,
-        work: Option<String>,
-    }
-
-    let mut res = db
-        .query("SELECT rating, scholar, work FROM evidence WHERE narrator = $nid")
-        .bind(("nid", nid.clone()))
-        .await?;
-    let evidence: Vec<Evidence> = res.take(0).unwrap_or_default();
-
+/// Get full narrator bio info.
+pub async fn narrator_info(_db: &Surreal<Db>, narrator: &Narrator) -> Result<ToolOutput> {
     let mut context = format!("## Narrator Information\n\n");
     context.push_str(&format!(
         "Name (Arabic): {}\n",
@@ -205,12 +188,6 @@ pub async fn narrator_info(db: &Surreal<Db>, narrator: &Narrator) -> Result<Tool
     if let Some(bio) = &narrator.bio {
         context.push_str(&format!("Biography: {bio}\n"));
     }
-    if let Some(rating) = &narrator.reliability_rating {
-        context.push_str(&format!("Reliability rating: {rating}\n"));
-    }
-    if let Some(rank) = &narrator.ibn_hajar_rank {
-        context.push_str(&format!("Ibn Hajar rank: {rank}\n"));
-    }
     if let Some(count) = narrator.hadith_count {
         context.push_str(&format!("Total hadiths narrated: {count}\n"));
     }
@@ -219,20 +196,6 @@ pub async fn narrator_info(db: &Surreal<Db>, narrator: &Narrator) -> Result<Tool
             context.push_str(&format!("Also known as: {}\n", aliases.join(", ")));
         }
     }
-    if !evidence.is_empty() {
-        context.push_str("\nScholarly assessments:\n");
-        for e in &evidence {
-            let scholar = e.scholar.as_deref().unwrap_or("Unknown");
-            let rating = e.rating.as_deref().unwrap_or("N/A");
-            let work = e.work.as_deref().unwrap_or("");
-            if work.is_empty() {
-                context.push_str(&format!("- {scholar}: {rating}\n"));
-            } else {
-                context.push_str(&format!("- {scholar} ({work}): {rating}\n"));
-            }
-        }
-    }
-
     let source = narrator_to_source(narrator, vec![], vec![]);
     Ok(ToolOutput {
         context,
@@ -532,8 +495,6 @@ fn narrator_to_source(
         name_en: n.name_en.clone(),
         generation: n.generation.clone(),
         hadith_count: n.hadith_count,
-        reliability_rating: n.reliability_rating.clone(),
-        ibn_hajar_rank: n.ibn_hajar_rank.clone(),
         kunya: n.kunya.clone(),
         bio: n.bio.clone(),
         death_year: n.death_year,

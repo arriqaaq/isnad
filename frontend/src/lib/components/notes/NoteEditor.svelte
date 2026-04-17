@@ -15,10 +15,10 @@
 
   let expanded = $state(!!note || startExpanded);
   let content = $state(note?.content ?? initialContent);
-  let selectedColor = $state(note?.color ?? 'yellow');
+  let selectedColor: typeof COLORS[number] = $state(note?.color as typeof COLORS[number] ?? 'yellow');
   let tags = $state<string[]>(note?.tags ?? []);
 
-  function handleColorClick(color: string) {
+  function handleColorClick(color: typeof COLORS[number]) {
     selectedColor = color;
     if (!expanded) {
       onsave({ content: '', color, tags: [] });

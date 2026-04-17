@@ -1,22 +1,24 @@
 <script lang="ts">
   import { page } from '$app/state';
-  import { getNarrator, getNarratorGraph, updateNarrator, getNarratorIsnadRole, getNarratorBooks } from '$lib/api';
-  import type { NarratorDetailResponse, GraphData, NarratorIsnadRole, NarratorBookRef } from '$lib/types';
+  import { getNarrator, getNarratorGraph, updateNarrator, getNarratorIsnadRole, getNarratorBooks, getTurathPages } from '$lib/api';
+  import type { NarratorDetailResponse, GraphData, NarratorIsnadRole, NarratorBookRef, TurathPage } from '$lib/types';
   import NarratorChip from '$lib/components/narrator/NarratorChip.svelte';
   import HadithCard from '$lib/components/hadith/HadithCard.svelte';
   import Badge from '$lib/components/common/Badge.svelte';
   import GraphView from '$lib/components/graph/GraphView.svelte';
   import LoadingSpinner from '$lib/components/common/LoadingSpinner.svelte';
-  import BookViewerModal from '$lib/components/reader/BookViewerModal.svelte';
+  import ReaderPage from '$lib/components/reader/ReaderPage.svelte';
 
   let data: NarratorDetailResponse | null = $state(null);
   let graphData: GraphData | null = $state(null);
   let isnadRole: NarratorIsnadRole | null = $state(null);
   let narratorBooks: NarratorBookRef[] = $state([]);
   let selectedBookRef: NarratorBookRef | null = $state(null);
-  let bookViewerTarget: { bookId: number; pageIndex: number; title: string; subtitle: string } | null = $state(null);
+  let bioPage: TurathPage | null = $state(null);
+  let bioPageLoading = $state(false);
+  let bioCurrentIndex = $state(0);
   let loading = $state(true);
-  let activeTab: 'network' | 'hadiths' | 'connections' | 'details' = $state('network');
+  let activeTab: 'network' | 'hadiths' | 'connections' | 'readbio' | 'details' = $state('network');
   let saving = $state(false);
   let saveMsg = $state('');
 
@@ -31,10 +33,27 @@
   let editDeathCalendar = $state('hijri');
   let editLocations = $state('');
   let editTags = $state('');
-  let editReliabilityRating = $state('');
-  let editReliabilitySource = $state('');
 
   let id = $derived(page.params.id);
+
+  async function loadBioPage(bookRef: NarratorBookRef, pageIndex: number) {
+    bioPageLoading = true;
+    bioPage = null;
+    bioCurrentIndex = pageIndex;
+    try {
+      const res = await getTurathPages(bookRef.turath_book_id, pageIndex, 1);
+      if (res.pages.length > 0) bioPage = res.pages[0];
+    } catch (e) {
+      console.error('Failed to load bio page:', e);
+    } finally {
+      bioPageLoading = false;
+    }
+  }
+
+  function selectBook(ref: NarratorBookRef) {
+    selectedBookRef = ref;
+    loadBioPage(ref, ref.page_index);
+  }
 
   function populateForm() {
     if (!data) return;
@@ -49,8 +68,6 @@
     editDeathCalendar = n.death_calendar ?? 'hijri';
     editLocations = n.locations?.join(', ') ?? '';
     editTags = n.tags?.join(', ') ?? '';
-    editReliabilityRating = n.reliability_rating ?? '';
-    editReliabilitySource = n.reliability_source ?? '';
   }
 
   $effect(() => {
@@ -72,7 +89,7 @@
         getNarratorBooks(id)
           .then(books => {
             narratorBooks = books;
-            if (books.length > 0) selectedBookRef = books[0];
+            if (books.length > 0) selectBook(books[0]);
           })
           .catch(() => {});
         populateForm();
@@ -81,15 +98,6 @@
       .finally(() => { loading = false; });
   });
 
-  const RATINGS = ['', 'thiqah', 'saduq', 'majhul', 'daif', 'matruk', 'accused_fabrication'];
-
-  function ratingColor(rating: string | null): 'default' | 'accent' | 'success' | 'warning' {
-    if (!rating) return 'default';
-    const map: Record<string, 'default' | 'accent' | 'success' | 'warning'> = {
-      thiqah: 'success', saduq: 'accent', majhul: 'default', daif: 'warning', matruk: 'warning', accused_fabrication: 'warning'
-    };
-    return map[rating] ?? 'default';
-  }
 
   async function handleSave() {
     if (!data) return;
@@ -107,8 +115,6 @@
     if (editDeathCalendar) payload.death_calendar = editDeathCalendar;
     if (editLocations.trim()) payload.locations = editLocations.split(',').map(s => s.trim()).filter(Boolean);
     if (editTags.trim()) payload.tags = editTags.split(',').map(s => s.trim()).filter(Boolean);
-    if (editReliabilityRating) payload.reliability_rating = editReliabilityRating;
-    if (editReliabilitySource) payload.reliability_source = editReliabilitySource;
 
     try {
       await updateNarrator(data.narrator.id, payload);
@@ -133,103 +139,69 @@
   {#if loading}
     <LoadingSpinner />
   {:else if data}
-    <div class="view-header">
-      <div>
-        <h1>
-          {data.narrator.name_ar || data.narrator.name_en || data.narrator.id}
-          {#if data.narrator.kunya}
-            <span class="kunya">({data.narrator.kunya})</span>
-          {/if}
-        </h1>
-        {#if data.narrator.aliases && data.narrator.aliases.length > 0}
-          <p class="aliases" dir="rtl">{data.narrator.aliases.join(' / ')}</p>
+    <div class="hero">
+      {#if data.narrator.name_ar}
+        <h1 class="hero-name" dir="rtl">{data.narrator.name_ar}</h1>
+      {/if}
+      {#if data.narrator.name_en && data.narrator.name_en !== data.narrator.name_ar}
+        <h2 class="hero-name-secondary">{data.narrator.name_en}</h2>
+      {/if}
+
+      <div class="hero-meta">
+        {#if data.narrator.kunya}
+          <span class="meta-item">{data.narrator.kunya}</span>
         {/if}
-        {#if data.narrator.birth_year || data.narrator.death_year}
-          <p class="dates">
-            {#if data.narrator.birth_year}{data.narrator.birth_year}{/if}
-            {#if data.narrator.birth_year && data.narrator.death_year}–{/if}
-            {#if data.narrator.death_year}{data.narrator.death_year}{/if}
-            {data.narrator.death_calendar === 'gregorian' ? 'CE' : 'AH'}
-          </p>
-        {/if}
-      </div>
-      <div class="badges">
-        {#if data.narrator.reliability_rating}
-          <Badge text={data.narrator.reliability_rating} variant={ratingColor(data.narrator.reliability_rating)} />
-        {/if}
-        {#if data.narrator.ibn_hajar_rank}
-          <Badge text={data.narrator.ibn_hajar_rank} variant="default" />
+        {#if data.narrator.death_year}
+          <span class="meta-dot"></span>
+          <span class="meta-item">d. {data.narrator.death_year} {data.narrator.death_calendar === 'gregorian' ? 'CE' : 'AH'}</span>
+        {:else if data.narrator.birth_year}
+          <span class="meta-dot"></span>
+          <span class="meta-item">b. {data.narrator.birth_year} {data.narrator.birth_calendar === 'gregorian' ? 'CE' : 'AH'}</span>
         {/if}
         {#if data.narrator.generation}
-          <Badge text={data.narrator.generation} variant="accent" />
+          <span class="meta-dot"></span>
+          <span class="meta-item">Generation {data.narrator.generation}</span>
         {/if}
-        {#if isnadRole && isnadRole.pivot_family_count > 0}
-          <Badge text="Pivot in {isnadRole.pivot_family_count} {isnadRole.pivot_family_count === 1 ? 'family' : 'families'}" variant="success" />
+        {#if data.hadiths.length > 0}
+          <span class="meta-dot"></span>
+          <span class="meta-item">{data.hadiths.length} {data.hadiths.length === 1 ? 'hadith' : 'hadiths'}</span>
         {/if}
-        {#if isnadRole && isnadRole.bottleneck_family_count > 0}
-          <Badge text="Bottleneck in {isnadRole.bottleneck_family_count}" variant="warning" />
+        {#if data.narrator.locations && data.narrator.locations.length > 0}
+          <span class="meta-dot"></span>
+          <span class="meta-item">{data.narrator.locations.join(', ')}</span>
         {/if}
-        {#if data.narrator.gender}
-          <Badge text={data.narrator.gender} />
+        {#if data.narrator.aliases && data.narrator.aliases.length > 0}
+          <span class="meta-dot"></span>
+          <span class="meta-item meta-aliases">aka {data.narrator.aliases.join(', ')}</span>
         {/if}
       </div>
-    </div>
 
-    {#if data.narrator.locations && data.narrator.locations.length > 0}
-      <div class="location-tags">
-        {#each data.narrator.locations as loc}
-          <span class="location-tag">{loc}</span>
-        {/each}
-      </div>
-    {/if}
-
-    {#if data.narrator.bio}
-      <div class="bio truncated">{data.narrator.bio}</div>
-    {/if}
-
-    {#if narratorBooks.length > 0}
-      <div class="book-viewer-section">
-        <span class="book-viewer-label">View in Book</span>
-        <div class="book-viewer-controls">
-          {#if narratorBooks.length === 1}
-            <span class="book-viewer-name">{narratorBooks[0].book_name}</span>
-          {:else}
-            <select class="book-viewer-select" onchange={(e) => {
-              const idx = parseInt((e.target as HTMLSelectElement).value);
-              selectedBookRef = narratorBooks[idx] ?? null;
-            }}>
-              {#each narratorBooks as book, i}
-                <option value={i}>{book.book_name}</option>
-              {/each}
-            </select>
+      {#if (isnadRole && (isnadRole.pivot_family_count > 0 || isnadRole.bottleneck_family_count > 0)) || data.narrator.gender}
+        <div class="hero-badges">
+          {#if isnadRole && isnadRole.pivot_family_count > 0}
+            <Badge text="Pivot narrator \u00b7 {isnadRole.pivot_family_count} {isnadRole.pivot_family_count === 1 ? 'family' : 'families'}" variant="success" />
           {/if}
-          <button
-            class="book-viewer-open"
-            onclick={() => {
-              if (selectedBookRef) {
-                bookViewerTarget = {
-                  bookId: selectedBookRef.turath_book_id,
-                  pageIndex: selectedBookRef.page_index,
-                  title: selectedBookRef.book_name,
-                  subtitle: data?.narrator.name_ar || data?.narrator.name_en || ''
-                };
-              }
-            }}
-          >
-            Open
-          </button>
+          {#if isnadRole && isnadRole.bottleneck_family_count > 0}
+            <Badge text="Bottleneck narrator \u00b7 {isnadRole.bottleneck_family_count} {isnadRole.bottleneck_family_count === 1 ? 'family' : 'families'}" variant="warning" />
+          {/if}
+          {#if data.narrator.gender}
+            <Badge text={data.narrator.gender} />
+          {/if}
         </div>
-      </div>
-    {/if}
+      {/if}
 
-    {#if data.narrator.reliability_source}
-      <p class="reliability-source">Source: {data.narrator.reliability_source}</p>
-    {/if}
+      {#if data.narrator.bio}
+        <p class="hero-bio">{data.narrator.bio}</p>
+      {/if}
+    </div>
 
     <div class="tabs">
       <button type="button" class="tab" class:active={activeTab === 'network'} onclick={() => { activeTab = 'network'; }}>Network</button>
       <button type="button" class="tab" class:active={activeTab === 'hadiths'} onclick={() => { activeTab = 'hadiths'; }}>Hadiths ({data.hadiths.length})</button>
       <button type="button" class="tab" class:active={activeTab === 'connections'} onclick={() => { activeTab = 'connections'; }}>Connections</button>
+      {#if narratorBooks.length > 0}
+        <button type="button" class="tab" class:active={activeTab === 'readbio'} onclick={() => { activeTab = 'readbio'; }}>Read Bio</button>
+      {/if}
       <button type="button" class="tab" class:active={activeTab === 'details'} onclick={() => { activeTab = 'details'; }}>Details</button>
     </div>
 
@@ -261,24 +233,62 @@
         {#if data.teachers.length === 0 && data.students.length === 0}
           <div class="empty">No connections found.</div>
         {/if}
+      {:else if activeTab === 'readbio'}
+        <div class="readbio-tab">
+          {#if narratorBooks.length > 1}
+            <div class="bio-book-selector">
+              <label class="bio-book-label">Book</label>
+              <select class="bio-book-select" onchange={(e) => {
+                const idx = parseInt((e.target as HTMLSelectElement).value);
+                const ref = narratorBooks[idx];
+                if (ref) selectBook(ref);
+              }}>
+                {#each narratorBooks as book, i}
+                  <option value={i} selected={book === selectedBookRef}>{book.book_name}</option>
+                {/each}
+              </select>
+            </div>
+          {:else if narratorBooks.length === 1}
+            <div class="bio-book-header">{narratorBooks[0].book_name}</div>
+          {/if}
+
+          <div class="bio-reader">
+            {#if bioPageLoading}
+              <div class="bio-loading">Loading...</div>
+            {:else if bioPage}
+              <ReaderPage page={bioPage} />
+            {:else}
+              <div class="bio-loading">No page available</div>
+            {/if}
+          </div>
+
+          <div class="bio-nav">
+            <button class="bio-nav-btn" onclick={() => { if (selectedBookRef) loadBioPage(selectedBookRef, bioCurrentIndex + 1); }} disabled={bioPageLoading}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+              Next
+            </button>
+            <span class="bio-nav-page">
+              {#if bioPage}
+                Vol {bioPage.vol} &middot; Page {bioPage.page_num}
+              {/if}
+            </span>
+            <button class="bio-nav-btn" onclick={() => { if (selectedBookRef) loadBioPage(selectedBookRef, bioCurrentIndex - 1); }} disabled={bioPageLoading || bioCurrentIndex <= 0}>
+              Prev
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+          </div>
+
+          {#if selectedBookRef}
+            <div class="bio-full-link">
+              <a href="/tafsir/{selectedBookRef.turath_book_id}?page={bioCurrentIndex}">Open full reader &#x2197;</a>
+            </div>
+          {/if}
+        </div>
+
       {:else if activeTab === 'details'}
         <form class="details-form" onsubmit={(e) => { e.preventDefault(); handleSave(); }}>
           <div class="form-section">
             <h3>Classification</h3>
-            <div class="form-row">
-              <label>
-                <span>Reliability Rating</span>
-                <select bind:value={editReliabilityRating}>
-                  {#each RATINGS as r}
-                    <option value={r}>{r || '— not set —'}</option>
-                  {/each}
-                </select>
-              </label>
-              <label>
-                <span>Source</span>
-                <input type="text" bind:value={editReliabilitySource} placeholder="e.g., Taqrib al-Tahdhib" />
-              </label>
-            </div>
             <div class="form-row">
               <label>
                 <span>Generation</span>
@@ -353,77 +363,99 @@
   {/if}
 </div>
 
-{#if bookViewerTarget}
-  <BookViewerModal
-    bookId={bookViewerTarget.bookId}
-    pageIndex={bookViewerTarget.pageIndex}
-    title={bookViewerTarget.title}
-    subtitle={bookViewerTarget.subtitle}
-    onclose={() => { bookViewerTarget = null; }}
-  />
-{/if}
 
 <style>
   .narrator-view { padding: 24px; max-width: 1200px; }
-  .view-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
-  .kunya { color: var(--text-muted); font-weight: normal; font-size: 0.85em; }
-  .aliases { color: var(--text-secondary); font-size: 0.85rem; margin-top: 2px; }
-  .dates { color: var(--text-muted); font-size: 0.85rem; margin-top: 2px; }
-  .badges { display: flex; gap: 8px; flex-wrap: wrap; }
-  .location-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
-  .location-tag { font-size: 0.75rem; padding: 2px 8px; background: var(--bg-surface); border: 1px solid var(--border); border-radius: 12px; color: var(--text-secondary); }
-  .reliability-source { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 16px; font-style: italic; }
-  .bio { font-family: var(--font-serif); color: var(--text-secondary); font-size: 0.9rem; line-height: 1.7; padding: 16px; background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 20px; max-height: 200px; overflow: hidden; text-overflow: ellipsis; }
 
-  .book-viewer-section {
+  /* Hero header — inspired by usul.ai author pages */
+  .hero { margin-bottom: 28px; }
+  .hero-name {
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1.2;
+    color: var(--text-primary);
+    margin: 0;
+    font-family: var(--font-serif, 'Scheherazade New', serif);
+  }
+  .hero-name-secondary {
+    font-size: 1.35rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin: 8px 0 0;
+    line-height: 1.3;
+  }
+  .hero-meta {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 12px;
-    padding: 10px 16px;
-    background: var(--bg-surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    margin-bottom: 20px;
+    gap: 0;
+    margin-top: 20px;
+    font-size: 0.92rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
   }
-  .book-viewer-label {
-    font-size: 0.7rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--accent);
-    white-space: nowrap;
+  .meta-item { white-space: nowrap; }
+  .meta-aliases { white-space: normal; }
+  .meta-dot {
+    width: 4px; height: 4px;
+    border-radius: 50%;
+    background: var(--text-muted);
+    margin: 0 10px;
+    flex-shrink: 0;
   }
-  .book-viewer-controls { display: flex; align-items: center; gap: 8px; flex: 1; }
-  .book-viewer-name {
-    font-size: 0.85rem;
-    color: var(--text-primary);
-    font-weight: 500;
+  .hero-badges { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+  .hero-bio {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    line-height: 1.7;
+    margin-top: 16px;
+    max-height: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
-  .book-viewer-select {
-    flex: 1;
-    max-width: 280px;
-    padding: 5px 10px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    background: var(--bg-primary);
-    color: var(--text-primary);
-    font-size: 0.82rem;
-    outline: none;
+
+  @media (min-width: 768px) {
+    .hero-name { font-size: 2.75rem; }
+    .hero-name-secondary { font-size: 1.75rem; }
   }
-  .book-viewer-select:focus { border-color: var(--accent); }
-  .book-viewer-open {
-    padding: 5px 16px;
-    font-size: 0.8rem;
-    font-weight: 500;
-    color: var(--accent);
-    background: var(--bg-primary);
-    border: 1px solid var(--accent);
-    border-radius: var(--radius-sm);
-    cursor: pointer;
+  @media (min-width: 1024px) {
+    .hero-name { font-size: 3.5rem; }
+    .hero-name-secondary { font-size: 2.25rem; }
+  }
+
+  /* Read Bio tab */
+  .readbio-tab { padding: 8px 0; }
+  .bio-book-selector { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+  .bio-book-label { font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent); }
+  .bio-book-select {
+    flex: 1; max-width: 300px; padding: 6px 10px;
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    background: var(--bg-primary); color: var(--text-primary); font-size: 0.82rem; outline: none;
+  }
+  .bio-book-select:focus { border-color: var(--accent); }
+  .bio-book-header { font-size: 0.85rem; font-weight: 600; color: var(--text-primary); margin-bottom: 12px; }
+  .bio-reader {
+    background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 16px 20px; min-height: 200px;
+  }
+  .bio-loading { display: flex; align-items: center; justify-content: center; min-height: 150px; color: var(--text-muted); font-size: 0.85rem; }
+  .bio-nav {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 0; margin-top: 8px;
+  }
+  .bio-nav-btn {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 0.78rem; font-weight: 500; color: var(--text-secondary);
+    background: var(--bg-surface); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 6px 14px; cursor: pointer;
     transition: all var(--transition);
-    white-space: nowrap;
   }
-  .book-viewer-open:hover { background: var(--accent-muted); }
+  .bio-nav-btn:hover:not(:disabled) { background: var(--bg-hover); border-color: var(--accent); color: var(--accent); }
+  .bio-nav-btn:disabled { opacity: 0.3; cursor: default; }
+  .bio-nav-page { font-size: 0.75rem; color: var(--text-muted); font-family: var(--font-mono); }
+  .bio-full-link { text-align: center; margin-top: 8px; }
+  .bio-full-link a { font-size: 0.72rem; color: var(--text-muted); text-decoration: none; }
+  .bio-full-link a:hover { color: var(--accent); text-decoration: underline; }
 
   .tabs {
     display: flex;

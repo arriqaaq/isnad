@@ -51,10 +51,6 @@ DEFINE FIELD IF NOT EXISTS death_year     ON narrator TYPE option<int>;
 DEFINE FIELD IF NOT EXISTS death_calendar ON narrator TYPE option<string>;
 DEFINE FIELD IF NOT EXISTS locations      ON narrator TYPE option<array<string>>;
 DEFINE FIELD IF NOT EXISTS tags           ON narrator TYPE option<array<string>>;
--- Reliability fields (source data from ingestion - evidence table is canonical for scholar assessments)
-DEFINE FIELD IF NOT EXISTS reliability_rating ON narrator TYPE option<string>;
-DEFINE FIELD IF NOT EXISTS reliability_source ON narrator TYPE option<string>;
-DEFINE FIELD IF NOT EXISTS ibn_hajar_rank     ON narrator TYPE option<string>;
 -- Pre-computed count of hadiths narrated (see backfill_narrator_hadith_counts)
 DEFINE FIELD IF NOT EXISTS hadith_count       ON narrator TYPE option<int>;
 DEFINE INDEX IF NOT EXISTS narrator_name ON TABLE narrator FIELDS name_en;
@@ -94,30 +90,6 @@ DEFINE FIELD IF NOT EXISTS variant_count ON hadith_family TYPE option<int>;
 DEFINE FIELD IF NOT EXISTS family_id ON hadith TYPE option<record<hadith_family>>;
 DEFINE INDEX IF NOT EXISTS hadith_family_idx ON TABLE hadith FIELDS family_id;
 
--- Scholarly source registry (extensible — add new books here)
-DEFINE TABLE IF NOT EXISTS scholarly_source SCHEMAFULL;
-DEFINE FIELD IF NOT EXISTS key            ON scholarly_source TYPE string;
-DEFINE FIELD IF NOT EXISTS title_ar       ON scholarly_source TYPE option<string>;
-DEFINE FIELD IF NOT EXISTS title_en       ON scholarly_source TYPE string;
-DEFINE FIELD IF NOT EXISTS author_ar      ON scholarly_source TYPE option<string>;
-DEFINE FIELD IF NOT EXISTS author_en      ON scholarly_source TYPE string;
-DEFINE FIELD IF NOT EXISTS source_type    ON scholarly_source TYPE string;
-DEFINE FIELD IF NOT EXISTS edition        ON scholarly_source TYPE option<string>;
-DEFINE FIELD IF NOT EXISTS notes          ON scholarly_source TYPE option<string>;
-DEFINE INDEX IF NOT EXISTS source_key_idx ON TABLE scholarly_source FIELDS key UNIQUE;
-
-DEFINE TABLE IF NOT EXISTS evidence SCHEMAFULL;
-DEFINE FIELD IF NOT EXISTS narrator ON evidence TYPE record<narrator>;
-DEFINE FIELD IF NOT EXISTS evidence_id ON evidence TYPE string;
-DEFINE FIELD IF NOT EXISTS rating ON evidence TYPE option<string>;
-DEFINE FIELD IF NOT EXISTS scholar ON evidence TYPE option<string>;
-DEFINE FIELD IF NOT EXISTS work ON evidence TYPE option<string>;
-DEFINE FIELD IF NOT EXISTS citation_text ON evidence TYPE option<string>;
-DEFINE FIELD IF NOT EXISTS layer ON evidence TYPE string;
-DEFINE FIELD IF NOT EXISTS source ON evidence TYPE option<record<scholarly_source>>;
-DEFINE FIELD IF NOT EXISTS source_locator ON evidence TYPE option<string>;
-DEFINE FIELD IF NOT EXISTS ingested_at ON evidence TYPE option<datetime>;
-DEFINE INDEX IF NOT EXISTS evidence_narrator_idx ON TABLE evidence FIELDS narrator;
 
 -- === MUSTALAH ANALYSIS TABLES (structural facts only, no computed grades) ===
 

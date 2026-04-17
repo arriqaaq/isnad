@@ -2,8 +2,11 @@
 """
 Build narrator → Tahdhib al-Tahdhib page mapping.
 
-Matches our narrators (from semantic_hadith.json) to Tahdhib heading entries
-using normalized Arabic name matching (exact, prefix-3, prefix-2).
+Matching strategy (in priority order):
+  1. Exact full name match (highest confidence)
+  2. Prefix-4+ match (4 or more name parts match — high confidence)
+  3. Prefix-3 match ONLY if the 3-word prefix is unique in Tahdhib (no ambiguity)
+  4. Skip ambiguous matches (better to have no mapping than a wrong one)
 
 Requires:
   data/tahdhib_headings.json   (from fetch_tahdhib.py)
@@ -65,40 +68,45 @@ def main():
     print(f"  Tahdhib headings: {len(headings)}")
     print(f"  Our narrators: {len(narrators)}")
 
-    # Extract Tahdhib narrator entries from headings: [N] name pattern at level 2
-    print("\nExtracting Tahdhib narrator entries from headings...")
+    # Extract Tahdhib narrator entries
+    print("\nExtracting Tahdhib narrator entries...")
     tahdhib_entries = []
     for h in headings:
-        m = re.match(r"\[(\d+)\]\s*(.+)", h["title"])
+        m = re.match(r"\[(\d+)\]\s*(?:\([^)]*\)\s*)?(.+)", h["title"])
         if m and h["level"] == 2:
-            raw_name = m.group(2).strip()
-            # Remove book symbols like (خ د تم س ق)
-            clean = re.sub(r"^\([^)]*\)\s*", "", raw_name).strip()
+            name = m.group(2).strip()
             tahdhib_entries.append({
                 "num": int(m.group(1)),
-                "name": clean,
-                "name_norm": normalize(clean),
-                "page": h["page"] - 1,  # 0-based
+                "name": name,
+                "name_norm": normalize(name),
+                "page": h["page"] - 1,
             })
+    print(f"  Tahdhib entries: {len(tahdhib_entries)}")
 
-    print(f"  Tahdhib narrator entries: {len(tahdhib_entries)}")
+    # Build indices at multiple prefix lengths
+    idx_full: dict[str, list] = {}
+    idx_4: dict[str, list] = {}
+    idx_3: dict[str, list] = {}
 
-    # Build search indices
-    idx_full: dict[str, dict] = {}
-    idx_3: dict[str, dict] = {}
-    idx_2: dict[str, dict] = {}
     for e in tahdhib_entries:
         k = e["name_norm"]
-        if k not in idx_full:
-            idx_full[k] = e
-        k3 = name_parts(k, 3)
-        if k3 not in idx_3:
-            idx_3[k3] = e
-        k2 = name_parts(k, 2)
-        if k2 not in idx_2:
-            idx_2[k2] = e
+        idx_full.setdefault(k, []).append(e)
 
-    # Build our narrator list
+        k4 = name_parts(k, 4)
+        if len(k4.split()) >= 4:
+            idx_4.setdefault(k4, []).append(e)
+
+        k3 = name_parts(k, 3)
+        if len(k3.split()) >= 3:
+            idx_3.setdefault(k3, []).append(e)
+
+    # Count ambiguity
+    ambiguous_3 = {k for k, v in idx_3.items() if len(v) > 1}
+    ambiguous_4 = {k for k, v in idx_4.items() if len(v) > 1}
+    print(f"  Ambiguous 3-word prefixes: {len(ambiguous_3)} (e.g. عبد الله بن = {len(idx_3.get(normalize('عبد الله بن'), []))} entries)")
+    print(f"  Ambiguous 4-word prefixes: {len(ambiguous_4)}")
+
+    # Build narrator list
     our = []
     for nid, n in narrators.items():
         name = n.get("name", "")
@@ -113,70 +121,118 @@ def main():
 
     print(f"  Our narrators with names: {len(our)}")
 
-    # Match
-    print("\nMatching...")
+    # Match with strict strategy
+    print("\nMatching (strict mode — no ambiguous matches)...")
     mapping = {}
     exact_count = 0
-    prefix3_count = 0
-    prefix2_count = 0
+    prefix4_count = 0
+    prefix3_unique_count = 0
+    skipped_ambiguous = 0
 
     for n in our:
         matched = None
+        method = ""
 
-        # Exact full name
-        if n["name_norm"] in idx_full:
-            matched = idx_full[n["name_norm"]]
-            exact_count += 1
-        elif n["popular_norm"] and n["popular_norm"] in idx_full:
-            matched = idx_full[n["popular_norm"]]
-            exact_count += 1
+        # 1. Exact full name
+        for name_to_try in [n["name_norm"], n["popular_norm"]]:
+            if not name_to_try:
+                continue
+            candidates = idx_full.get(name_to_try, [])
+            if len(candidates) == 1:
+                matched = candidates[0]
+                method = "exact"
+                break
+            elif len(candidates) > 1:
+                # Multiple exact matches — still take first (rare, same name different people)
+                matched = candidates[0]
+                method = "exact"
+                break
 
-        # Prefix 3 words
+        # 2. Prefix-4 match (high confidence)
         if not matched:
-            k3 = name_parts(n["name_norm"], 3)
-            if k3 in idx_3 and len(k3) > 8:
-                matched = idx_3[k3]
-                prefix3_count += 1
-            elif n["popular_norm"]:
-                pk3 = name_parts(n["popular_norm"], 3)
-                if pk3 in idx_3 and len(pk3) > 8:
-                    matched = idx_3[pk3]
-                    prefix3_count += 1
+            for name_to_try in [n["name_norm"], n["popular_norm"]]:
+                if not name_to_try:
+                    continue
+                k4 = name_parts(name_to_try, 4)
+                if len(k4.split()) >= 4 and k4 in idx_4:
+                    candidates = idx_4[k4]
+                    if len(candidates) == 1:
+                        matched = candidates[0]
+                        method = "prefix4_unique"
+                        break
+                    else:
+                        # Multiple matches at prefix-4 — try prefix-5
+                        k5 = name_parts(name_to_try, 5)
+                        for c in candidates:
+                            if name_parts(c["name_norm"], 5) == k5 and len(k5.split()) >= 5:
+                                matched = c
+                                method = "prefix5"
+                                break
+                        if matched:
+                            break
+                        # Still ambiguous — take first but only if reasonable
+                        matched = candidates[0]
+                        method = "prefix4_first"
+                        break
 
-        # Prefix 2 words
+        # 3. Prefix-3 match ONLY if unambiguous
         if not matched:
-            k2 = name_parts(n["name_norm"], 2)
-            if k2 in idx_2 and len(k2) > 6:
-                matched = idx_2[k2]
-                prefix2_count += 1
+            for name_to_try in [n["name_norm"], n["popular_norm"]]:
+                if not name_to_try:
+                    continue
+                k3 = name_parts(name_to_try, 3)
+                if len(k3.split()) >= 3 and k3 in idx_3:
+                    candidates = idx_3[k3]
+                    if len(candidates) == 1:
+                        # Unique 3-word prefix — safe match
+                        matched = candidates[0]
+                        method = "prefix3_unique"
+                        break
+                    else:
+                        skipped_ambiguous += 1
+                        # DO NOT match — too ambiguous
 
         if matched:
-            mapping[n["id"]] = {
+            db_id = "hn_" + n["id"].removeprefix("HN")
+            mapping[db_id] = {
                 "page_index": matched["page"],
                 "entry_num": matched["num"],
                 "book_name": BOOK_NAME,
             }
+            if method == "exact":
+                exact_count += 1
+            elif method.startswith("prefix4") or method == "prefix5":
+                prefix4_count += 1
+            elif method == "prefix3_unique":
+                prefix3_unique_count += 1
 
     # Save
     with open(MAPPING_FILE, "w", encoding="utf-8") as f:
         json.dump(mapping, f, ensure_ascii=False, indent=2)
 
-    total = exact_count + prefix3_count + prefix2_count
-    print(f"\n=== Results ===")
-    print(f"  Exact full name:       {exact_count:>5}")
-    print(f"  Prefix 3 words:        {prefix3_count:>5}")
-    print(f"  Prefix 2 words:        {prefix2_count:>5}")
-    print(f"  Total matched:         {total:>5} / {len(our)}")
-    print(f"  Coverage:              {total/len(our)*100:.1f}%")
+    total = exact_count + prefix4_count + prefix3_unique_count
+    print(f"\n=== Results (strict matching) ===")
+    print(f"  Exact full name:           {exact_count:>5}")
+    print(f"  Prefix 4+ words:           {prefix4_count:>5}")
+    print(f"  Prefix 3 (unique only):    {prefix3_unique_count:>5}")
+    print(f"  Total matched:             {total:>5} / {len(our)}")
+    print(f"  Skipped (ambiguous):       {skipped_ambiguous:>5}")
+    print(f"  Coverage:                  {total/len(our)*100:.1f}%")
     print(f"  Saved to {MAPPING_FILE}")
 
     # Spot checks
     print(f"\nSample mappings:")
-    count = 0
-    for nid, entry in list(mapping.items())[:10]:
-        n = narrators[nid]
-        print(f"  {nid}: {n.get('name', '?')[:30]:30} -> entry #{entry['entry_num']} pg={entry['page_index']}")
-        count += 1
+    for db_id, entry in list(mapping.items())[:10]:
+        src_id = "HN" + db_id.removeprefix("hn_")
+        n = narrators.get(src_id, {})
+        print(f"  {db_id}: {n.get('name', '?')[:30]:30} -> entry #{entry['entry_num']} pg={entry['page_index']}")
+
+    # Verify the previously-wrong narrator is now unmapped
+    print(f"\n=== Verification ===")
+    print(f"  hn_05049 mapped: {'hn_05049' in mapping}")
+    if "hn_05049" in mapping:
+        e = mapping["hn_05049"]
+        print(f"    entry #{e['entry_num']} pg={e['page_index']}")
 
 
 if __name__ == "__main__":

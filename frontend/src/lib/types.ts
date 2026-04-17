@@ -30,9 +30,6 @@ export interface ApiNarrator {
   death_calendar: string | null;
   locations: string[] | null;
   tags: string[] | null;
-  reliability_rating: string | null;
-  reliability_source: string | null;
-  ibn_hajar_rank: string | null;
 }
 
 export interface ApiBook {
@@ -50,7 +47,6 @@ export interface ApiNarratorWithCount {
   bio: string | null;
   kunya: string | null;
   death_year: number | null;
-  reliability_rating: string | null;
   hadith_count: number;
 }
 

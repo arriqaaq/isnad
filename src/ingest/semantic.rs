@@ -42,8 +42,9 @@ pub struct Narrator {
     pub office: Option<String>,
     pub attribute: Option<String>,
     pub narrator_id: Option<String>,
-    pub ibn_hajar_rank: Option<String>,
-    pub reliability_grade: Option<String>,
+    // NOTE: ibn_hajar_rank and reliability_grade exist in source JSON but are
+    // intentionally NOT ingested — data quality is unreliable (see NOTES.md).
+    // Narrator grading should come from Tahdhib al-Tahdhib via Turath instead.
 }
 
 #[derive(Debug, Deserialize)]
@@ -326,9 +327,6 @@ pub async fn ingest(
                 death_calendar: $death_cal, \
                 locations: $locations, \
                 tags: $tags, \
-                reliability_rating: $reliability_rating, \
-                reliability_source: $reliability_source, \
-                ibn_hajar_rank: $ibn_hajar_rank \
             }",
         )
         .bind(("rid", rid("narrator", &nslug)))
@@ -343,98 +341,12 @@ pub async fn ingest(
         .bind(("death_cal", death_year.map(|_| "hijri".to_string())))
         .bind(("locations", locations))
         .bind(("tags", tags))
-        .bind(("reliability_rating", {
-            // Companions (generation 1) are thiqah by ijma' regardless of individual grading
-            if generation == Some("1") {
-                Some("thiqah".to_string())
-            } else {
-                nar.reliability_grade.clone()
-            }
-        }))
-        .bind((
-            "reliability_source",
-            if generation == Some("1") {
-                Some("Companion (صحابي) — trustworthy by scholarly consensus".to_string())
-            } else {
-                nar.reliability_grade
-                    .as_ref()
-                    .map(|_| "Ibn Hajar al-Asqalani, Taqrib al-Tahdhib".to_string())
-            },
-        ))
-        .bind(("ibn_hajar_rank", nar.ibn_hajar_rank.clone()))
         .await
         .ok();
 
         nar_pb.inc(1);
     }
     nar_pb.finish_with_message("done");
-
-    // ── Seed scholarly sources + create evidence records ──────────────────
-
-    // Seed the two initial scholarly sources
-    db.query(
-        "CREATE scholarly_source:taqrib CONTENT { \
-            key: 'taqrib', \
-            title_ar: 'تقريب التهذيب', \
-            title_en: 'Taqrib al-Tahdhib', \
-            author_ar: 'ابن حجر العسقلاني', \
-            author_en: 'Ibn Hajar al-Asqalani', \
-            source_type: 'jarh_wa_tadil', \
-            edition: NONE, \
-            notes: NONE \
-        }",
-    )
-    .await
-    .ok();
-
-    db.query(
-        "CREATE scholarly_source:mizan CONTENT { \
-            key: 'mizan', \
-            title_ar: 'ميزان الاعتدال', \
-            title_en: 'Mizan al-Itidal', \
-            author_ar: 'الذهبي', \
-            author_en: 'al-Dhahabi', \
-            source_type: 'jarh_wa_tadil', \
-            edition: NONE, \
-            notes: NONE \
-        }",
-    )
-    .await
-    .ok();
-
-    // Create evidence records from Ibn Hajar ranks
-    let mut evidence_count = 0usize;
-    for (hn_id, nar) in &data.narrators {
-        if let Some(ref rank) = nar.ibn_hajar_rank {
-            if rank.is_empty() || rank == "-" {
-                continue;
-            }
-            let nslug = narrator_slug(hn_id);
-            let ev_slug = format!("ev_{}_ibn_hajar", nslug);
-            db.query(
-                "CREATE $rid CONTENT { \
-                    narrator: $nid, evidence_id: $eid, \
-                    rating: $rating, \
-                    scholar: 'Ibn Hajar al-Asqalani', \
-                    work: 'Taqrib al-Tahdhib', \
-                    citation_text: $citation, \
-                    layer: 'reported', \
-                    source: scholarly_source:taqrib, \
-                    source_locator: NONE, \
-                    ingested_at: time::now() \
-                }",
-            )
-            .bind(("rid", rid("evidence", &ev_slug)))
-            .bind(("nid", rid("narrator", &nslug)))
-            .bind(("eid", format!("ibn_hajar_{nslug}")))
-            .bind(("rating", nar.reliability_grade.clone()))
-            .bind(("citation", rank.clone()))
-            .await
-            .ok();
-            evidence_count += 1;
-        }
-    }
-    println!("📖 Created {evidence_count} evidence records from Ibn Hajar's Taqrib al-Tahdhib");
 
     // ── Create hadiths + edges ─────────────────────────────────────────────
 

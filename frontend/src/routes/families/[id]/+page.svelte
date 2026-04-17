@@ -129,7 +129,7 @@
           <div class="mustalah-grid">
             <div class="m-card">
               <div class="label">Transmission Breadth</div>
-              <div class="value">{#if glossaryId(a.breadth_class)}<GlossaryTooltip termId={glossaryId(a.breadth_class)}>{breadthLabel(a.breadth_class)}</GlossaryTooltip>{:else}{breadthLabel(a.breadth_class)}{/if}</div>
+              <div class="value">{#if glossaryId(a.breadth_class)}<GlossaryTooltip termId={glossaryId(a.breadth_class) ?? ''}>{breadthLabel(a.breadth_class)}</GlossaryTooltip>{:else}{breadthLabel(a.breadth_class)}{/if}</div>
               <div class="detail">Min {a.min_breadth} narrator(s) at tabaqah {a.bottleneck_tabaqah ?? '?'}</div>
             </div>
             <div class="m-card">
@@ -173,7 +173,7 @@
                   <div class="chain-info">
                     <a href="/hadiths/{c.variant_id}" onclick={(e: MouseEvent) => e.stopPropagation()}>{c.variant_id}</a>
                     <span class="chain-meta">
-                      {#if glossaryId(c.continuity)}<GlossaryTooltip termId={glossaryId(c.continuity)}><Badge text={c.continuity} variant={c.continuity === 'muttasil' ? 'success' : 'warning'} /></GlossaryTooltip>{:else}<Badge text={c.continuity} variant={c.continuity === 'muttasil' ? 'success' : 'warning'} />{/if}
+                      {#if glossaryId(c.continuity)}<GlossaryTooltip termId={glossaryId(c.continuity) ?? ''}><Badge text={c.continuity} variant={c.continuity === 'muttasil' ? 'success' : 'warning'} /></GlossaryTooltip>{:else}<Badge text={c.continuity} variant={c.continuity === 'muttasil' ? 'success' : 'warning'} />{/if}
                       <span class="narrator-count">{c.narrator_count} narrators</span>
                       {#if c.has_chronology_conflict}<Badge text="chronology issue" variant="warning" />{/if}
                     </span>

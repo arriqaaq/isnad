@@ -18,11 +18,11 @@
   let similarData: AyahSimilarResponse | null = $state(null);
   let similarLoading = $state(true);
 
-  // Panel position & size state
-  let panelX = $state(window.innerWidth - 620);
-  let panelY = $state(0);
-  let panelW = $state(600);
-  let panelH = $state(window.innerHeight);
+  // Panel position & size state (centered like BookViewerModal)
+  let panelW = $state(Math.min(700, window.innerWidth - 40));
+  let panelH = $state(Math.min(window.innerHeight * 0.85, window.innerHeight - 40));
+  let panelX = $state(Math.max(20, (window.innerWidth - panelW) / 2));
+  let panelY = $state(Math.max(20, (window.innerHeight - panelH) / 2));
 
   // Drag state
   let dragging = $state(false);
@@ -208,7 +208,7 @@
   .panel-backdrop {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.35);
+    background: rgba(0, 0, 0, 0.4);
     z-index: 200;
     animation: fadeIn 0.15s ease-out;
   }
@@ -217,13 +217,14 @@
     position: fixed;
     background: var(--bg-primary);
     border: 1px solid var(--border);
-    border-radius: var(--radius);
-    box-shadow: -4px 0 24px rgba(0, 0, 0, 0.15);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 12px 48px rgba(0, 0, 0, 0.25);
     display: flex;
     flex-direction: column;
-    animation: slideIn 0.2s ease-out;
-    min-width: 320px;
-    min-height: 200px;
+    animation: slideUp 0.2s ease-out;
+    min-width: 450px;
+    min-height: 350px;
+    overflow: hidden;
   }
 
   .side-panel.is-moving {
@@ -354,9 +355,9 @@
   .resize-sw { bottom: -3px; left: -3px; width: 12px; height: 12px; cursor: sw-resize; }
   .resize-se { bottom: -3px; right: -3px; width: 12px; height: 12px; cursor: se-resize; }
 
-  @keyframes slideIn {
-    from { transform: translateX(40px); opacity: 0; }
-    to { transform: translateX(0); opacity: 1; }
+  @keyframes slideUp {
+    from { transform: translateY(16px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
   }
 
   @keyframes fadeIn {

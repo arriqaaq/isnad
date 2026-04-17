@@ -14,8 +14,6 @@
     name_en: string;
     generation?: string;
     hadith_count?: number;
-    reliability_rating?: string;
-    ibn_hajar_rank?: string;
     kunya?: string;
     bio?: string;
     death_year?: number;
@@ -249,7 +247,6 @@
                       <div class="narrator-meta">
                         {#if n.generation}<span class="narrator-tag">Gen {n.generation}</span>{/if}
                         {#if n.hadith_count}<span class="narrator-tag">{n.hadith_count} hadiths</span>{/if}
-                        {#if n.reliability_rating}<span class="narrator-tag">{n.reliability_rating}</span>{/if}
                         {#if n.death_year}<span class="narrator-tag">d. {n.death_year} AH</span>{/if}
                       </div>
                     </a>

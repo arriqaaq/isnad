@@ -153,6 +153,10 @@ enum Commands {
         #[arg(long)]
         narrator_mapping: Option<String>,
 
+        /// Force re-ingestion (delete existing data for this book first)
+        #[arg(long)]
+        force: bool,
+
         /// Path to SurrealDB data directory
         #[arg(long, default_value = "db_data")]
         db_path: String,
@@ -423,9 +427,34 @@ async fn async_main() -> Result<()> {
             sharh_mapping,
             sharh_collection_id,
             narrator_mapping,
+            force,
             db_path,
         } => {
             let db = db::connect(&db_path).await?;
+
+            if force {
+                tracing::info!("Force mode: clearing existing data for book {book_id}");
+                let _ = db
+                    .query(&format!("DELETE turath_page WHERE book_id = {book_id}"))
+                    .await;
+                let _ = db
+                    .query(&format!("DELETE turath_book WHERE book_id = {book_id}"))
+                    .await;
+                let _ = db
+                    .query(&format!("DELETE tafsir_ayah_map WHERE book_id = {book_id}"))
+                    .await;
+                let _ = db
+                    .query(&format!(
+                        "DELETE hadith_sharh_map WHERE sharh_book_id = {book_id}"
+                    ))
+                    .await;
+                let _ = db
+                    .query(&format!(
+                        "DELETE narrator_book_map WHERE turath_book_id = {book_id}"
+                    ))
+                    .await;
+            }
+
             ingest::turath::ingest_book(
                 &db,
                 &pages_file,

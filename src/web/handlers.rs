@@ -301,7 +301,6 @@ pub async fn narrator_list(
             bio: n.bio,
             kunya: n.kunya,
             death_year: n.death_year,
-            reliability_rating: n.reliability_rating,
             hadith_count: n.hadith_count.unwrap_or(0),
         })
         .collect();
@@ -684,8 +683,6 @@ pub struct UpdateNarratorRequest {
     pub death_calendar: Option<String>,
     pub locations: Option<Vec<String>>,
     pub tags: Option<Vec<String>>,
-    pub reliability_rating: Option<String>,
-    pub reliability_source: Option<String>,
 }
 
 pub async fn update_narrator(
@@ -717,9 +714,6 @@ pub async fn update_narrator(
     set_field!(death_calendar);
     set_field!(locations);
     set_field!(tags);
-    set_field!(reliability_rating);
-    set_field!(reliability_source);
-
     if update.is_empty() {
         return StatusCode::BAD_REQUEST;
     }
@@ -841,31 +835,13 @@ pub async fn family_detail(
     })))
 }
 
-pub async fn narrator_reliability(
-    State(state): State<AppState>,
-    Path(id): Path<String>,
-) -> impl IntoResponse {
-    let evidence = analysis::reliability::get_narrator_evidence(&state.db, &id)
-        .await
-        .unwrap_or_default();
-
-    let assessments: Vec<serde_json::Value> = evidence
-        .iter()
-        .map(|ev| {
-            serde_json::json!({
-                "scholar": ev.scholar,
-                "work": ev.work,
-                "citation_text": ev.citation_text,
-                "rating": ev.rating,
-                "source_locator": ev.source_locator,
-            })
-        })
-        .collect();
-
+pub async fn narrator_reliability(Path(id): Path<String>) -> impl IntoResponse {
+    // Evidence/grading data removed — SemanticHadith grading was unreliable (see NOTES.md).
+    // This endpoint kept for API compatibility; returns empty assessments.
     Json(serde_json::json!({
         "narrator_id": id,
-        "assessments": assessments,
-        "sources_count": evidence.len(),
+        "assessments": [],
+        "sources_count": 0,
     }))
 }
 
@@ -880,8 +856,7 @@ pub async fn mustalah_stats(State(state): State<AppState>) -> impl IntoResponse 
              SELECT count() AS c FROM isnad_analysis WHERE breadth_class = 'mutawatir' GROUP ALL;\
              SELECT count() AS c FROM isnad_analysis WHERE breadth_class = 'mashhur' GROUP ALL;\
              SELECT count() AS c FROM isnad_analysis WHERE breadth_class = 'aziz' GROUP ALL;\
-             SELECT count() AS c FROM isnad_analysis WHERE breadth_class = 'gharib' GROUP ALL;\
-             SELECT count() AS c FROM evidence GROUP ALL",
+             SELECT count() AS c FROM isnad_analysis WHERE breadth_class = 'gharib' GROUP ALL",
         )
         .await
         .unwrap();
@@ -892,7 +867,6 @@ pub async fn mustalah_stats(State(state): State<AppState>) -> impl IntoResponse 
     let mashhur: Option<CountResult> = res.take(3).unwrap_or(None);
     let aziz: Option<CountResult> = res.take(4).unwrap_or(None);
     let gharib: Option<CountResult> = res.take(5).unwrap_or(None);
-    let evidence_count: Option<CountResult> = res.take(6).unwrap_or(None);
 
     Json(serde_json::json!({
         "family_count": families.map(|c| c.c).unwrap_or(0),
@@ -901,7 +875,6 @@ pub async fn mustalah_stats(State(state): State<AppState>) -> impl IntoResponse 
         "mashhur_count": mashhur.map(|c| c.c).unwrap_or(0),
         "aziz_count": aziz.map(|c| c.c).unwrap_or(0),
         "gharib_count": gharib.map(|c| c.c).unwrap_or(0),
-        "evidence_count": evidence_count.map(|c| c.c).unwrap_or(0),
     }))
 }
 
@@ -1127,7 +1100,6 @@ pub struct NarratorWithCount {
     pub bio: Option<String>,
     pub kunya: Option<String>,
     pub death_year: Option<i64>,
-    pub reliability_rating: Option<String>,
     pub hadith_count: Option<i64>,
 }
 
