@@ -1027,15 +1027,19 @@ pub async fn matn_diff_handler(
     let hadith_b: Option<Hadith> = res.take(1).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let hadith_b = hadith_b.ok_or(StatusCode::NOT_FOUND)?;
 
-    // Use Arabic text (or English fallback) for diffing
+    // Prefer matn (body without sanad) for diffing; fall back to full text
     let text_a = hadith_a
-        .text_ar
+        .matn
         .as_deref()
+        .filter(|s| !s.is_empty())
+        .or(hadith_a.text_ar.as_deref())
         .or(hadith_a.text_en.as_deref())
         .unwrap_or("");
     let text_b = hadith_b
-        .text_ar
+        .matn
         .as_deref()
+        .filter(|s| !s.is_empty())
+        .or(hadith_b.text_ar.as_deref())
         .or(hadith_b.text_en.as_deref())
         .unwrap_or("");
 
