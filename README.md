@@ -44,7 +44,7 @@ Rust backend serving a SvelteKit SPA, with SurrealDB as a unified graph + vector
 
 ```bash
 git clone https://github.com/arriqaaq/ilm.git && cd ilm
-make download-data            # download pre-built data (no ingestion needed)
+make pipeline-full            # ingest all data (hadiths, Quran, books, PageIndex trees)
 make dev                      # build & start server at localhost:3000
 ```
 
