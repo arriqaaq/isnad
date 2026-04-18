@@ -140,7 +140,7 @@
     sidebarOpen = false;
   }
 
-  // Drag/resize handlers (same pattern as AyahSidePanel)
+  // Drag/resize handlers (same pattern as AyahDetailsModal)
   function startDrag(e: MouseEvent) {
     dragging = true; dragStartX = e.clientX; dragStartY = e.clientY;
     dragStartPanelX = panelX; dragStartPanelY = panelY; e.preventDefault();

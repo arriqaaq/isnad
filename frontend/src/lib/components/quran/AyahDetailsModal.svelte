@@ -31,6 +31,9 @@
   let similarData: AyahSimilarResponse | null = $state(null);
   let similarLoading = $state(true);
 
+  type Tab = 'tafsir' | 'similar' | 'hadith' | 'manuscripts';
+  let activeTab: Tab = $state('tafsir');
+
   // Panel position & size state (centered like BookViewerModal)
   let panelW = $state(Math.min(700, window.innerWidth - 40));
   let panelH = $state(Math.min(window.innerHeight * 0.85, window.innerHeight - 40));
@@ -173,54 +176,65 @@
       <button class="font-btn" onclick={() => stepPanelFont(1)}>A+</button>
     </div>
 
+    <div class="panel-tabs">
+      <button class="tab-btn" class:active={activeTab === 'tafsir'} onclick={() => activeTab = 'tafsir'}>
+        Tafsir
+      </button>
+      <button class="tab-btn" class:active={activeTab === 'similar'} onclick={() => activeTab = 'similar'}>
+        Similar Ayahs
+      </button>
+      <button class="tab-btn" class:active={activeTab === 'hadith'} onclick={() => activeTab = 'hadith'}>
+        Hadith
+      </button>
+      <button class="tab-btn" class:active={activeTab === 'manuscripts'} onclick={() => activeTab = 'manuscripts'}>
+        Manuscripts
+      </button>
+    </div>
+
     <div class="panel-content" style="zoom: {panelFontSize / 0.9}">
-      <!-- Related Hadiths -->
-      <section class="panel-section">
-        <div class="section-label">Related Hadiths</div>
-        {#if hadithLoading}
-          <div class="section-loading">Loading hadiths...</div>
-        {:else if hadithData && (hadithData.curated.length > 0 || (hadithData.related && hadithData.related.length > 0))}
-          <AyahHadithList data={hadithData} />
-        {:else}
-          <div class="section-empty">No related hadiths found.</div>
-        {/if}
-      </section>
-
-      <!-- Similar Ayahs -->
-      <section class="panel-section">
-        <div class="section-label">Similar Ayahs</div>
-        {#if similarLoading}
-          <div class="section-loading">Loading similar ayahs...</div>
-        {:else if similarData && (similarData.similar.length > 0 || similarData.phrases.length > 0)}
-          <SimilarAyahs data={similarData} />
-        {:else}
-          <div class="section-empty">No similar ayahs found.</div>
-        {/if}
-      </section>
-
-      <!-- Tafsir -->
-      {#if ayah.tafsir_en}
+      {#if activeTab === 'tafsir'}
         <section class="panel-section">
-          <div class="section-label">Tafsir Ibn Kathir</div>
-          <div class="tafsir-content">{@html ayah.tafsir_en}</div>
+          {#if ayah.tafsir_en}
+            <div class="tafsir-content">{@html ayah.tafsir_en}</div>
+          {:else}
+            <div class="section-empty">No tafsir available for this ayah.</div>
+          {/if}
+        </section>
+      {:else if activeTab === 'similar'}
+        <section class="panel-section">
+          {#if similarLoading}
+            <div class="section-loading">Loading similar ayahs...</div>
+          {:else if similarData && (similarData.similar.length > 0 || similarData.phrases.length > 0)}
+            <SimilarAyahs data={similarData} />
+          {:else}
+            <div class="section-empty">No similar ayahs found.</div>
+          {/if}
+        </section>
+      {:else if activeTab === 'hadith'}
+        <section class="panel-section">
+          {#if hadithLoading}
+            <div class="section-loading">Loading hadiths...</div>
+          {:else if hadithData && (hadithData.curated.length > 0 || (hadithData.related && hadithData.related.length > 0))}
+            <AyahHadithList data={hadithData} />
+          {:else}
+            <div class="section-empty">No related hadiths found.</div>
+          {/if}
+        </section>
+      {:else if activeTab === 'manuscripts'}
+        <section class="panel-section">
+          {#if manuscriptsLoading}
+            <div class="section-loading">Loading manuscripts...</div>
+          {:else if manuscripts.length > 0}
+            <div class="manuscript-grid">
+              {#each manuscripts as ms}
+                <ManuscriptCard manuscript={ms} />
+              {/each}
+            </div>
+          {:else}
+            <div class="section-empty">No manuscripts found for this verse.</div>
+          {/if}
         </section>
       {/if}
-
-      <!-- Manuscripts -->
-      <section class="panel-section">
-        <div class="section-label">Manuscripts</div>
-        {#if manuscriptsLoading}
-          <div class="section-loading">Loading manuscripts...</div>
-        {:else if manuscripts.length > 0}
-          <div class="manuscript-grid">
-            {#each manuscripts as ms}
-              <ManuscriptCard manuscript={ms} />
-            {/each}
-          </div>
-        {:else}
-          <div class="section-empty">No manuscripts found for this verse.</div>
-        {/if}
-      </section>
     </div>
   </div>
 </div>
@@ -329,6 +343,37 @@
     color: var(--accent);
   }
 
+  .panel-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border-subtle);
+    flex-shrink: 0;
+    padding: 0 8px;
+    gap: 4px;
+    overflow-x: auto;
+  }
+
+  .tab-btn {
+    padding: 10px 14px;
+    border: none;
+    background: none;
+    color: var(--text-muted);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all var(--transition);
+    white-space: nowrap;
+  }
+
+  .tab-btn:hover {
+    color: var(--text-secondary);
+  }
+
+  .tab-btn.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+
   .panel-content {
     flex: 1;
     overflow-y: auto;
@@ -337,15 +382,6 @@
 
   .panel-section {
     margin-bottom: 28px;
-  }
-
-  .section-label {
-    font-size: 0.7rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: var(--accent);
-    margin-bottom: 12px;
   }
 
   .section-loading, .section-empty {

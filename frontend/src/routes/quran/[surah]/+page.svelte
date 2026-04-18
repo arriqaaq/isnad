@@ -4,7 +4,7 @@
   import type { ApiAyah, ApiAyahSearchResult, SurahDetailResponse, NoteRefsIndicator, TafsirPageRef } from '$lib/types';
   import SurahHeader from '$lib/components/quran/SurahHeader.svelte';
   import AyahCard from '$lib/components/quran/AyahCard.svelte';
-  import AyahSidePanel from '$lib/components/quran/AyahSidePanel.svelte';
+  import AyahDetailsModal from '$lib/components/quran/AyahDetailsModal.svelte';
   import NoteModal from '$lib/components/notes/NoteModal.svelte';
   import LoadingSpinner from '$lib/components/common/LoadingSpinner.svelte';
   import RecitationPlayer from '$lib/components/quran/RecitationPlayer.svelte';
@@ -250,7 +250,7 @@
 </div>
 
 {#if panelAyah}
-  <AyahSidePanel ayah={panelAyah} onclose={() => panelAyah = null} />
+  <AyahDetailsModal ayah={panelAyah} onclose={() => panelAyah = null} />
 {/if}
 
 {#if noteTarget}
