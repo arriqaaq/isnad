@@ -232,11 +232,23 @@ fn get_level1_chapters(structure: &serde_json::Value) -> Vec<ChapterInfo> {
         .collect()
 }
 
-/// Format level-1 chapters as a compact TOC for the LLM.
+/// Extract summary from a node (prefix_summary for branches, summary for leaves).
+fn node_summary(node: &serde_json::Value) -> Option<String> {
+    node.get("prefix_summary")
+        .or_else(|| node.get("summary"))
+        .and_then(|v| v.as_str())
+        .filter(|s| !s.is_empty())
+        .map(|s| truncate_str(s, 250).to_string())
+}
+
+/// Format level-1 chapters as a compact TOC for the LLM, including summaries when available.
 fn format_chapters_toc(chapters: &[ChapterInfo]) -> String {
     let mut out = String::new();
     for ch in chapters {
         out.push_str(&format!("{} [line {}]\n", ch.title, ch.line_num));
+        if let Some(summary) = node_summary(&ch.node) {
+            out.push_str(&format!("  → {summary}\n"));
+        }
     }
     out
 }
@@ -263,11 +275,45 @@ fn format_node_compact(node: &serde_json::Value, depth: usize, out: &mut String)
         out.push_str(&format!("{indent}{title}\n"));
     }
 
+    // Include summary if present (short, to keep token budget)
+    if let Some(summary) = node_summary(node) {
+        out.push_str(&format!("{indent}  → {summary}\n"));
+    }
+
     if let Some(children) = node.get("nodes").and_then(|v| v.as_array()) {
         for child in children {
             format_node_compact(child, depth + 1, out);
         }
     }
+}
+
+/// Parse LLM response array of line numbers, handling many formats:
+/// - `[123, 456]` (numbers)
+/// - `["123", "456"]` (strings)
+/// - `"123, 456"` (comma-separated string)
+/// - `[{"line_num": 123}, {"line_num": 456}]` (objects)
+fn parse_line_numbers(v: &serde_json::Value) -> Vec<u64> {
+    // Try comma-separated string first
+    if let Some(s) = v.as_str() {
+        return s
+            .split(',')
+            .filter_map(|p| p.trim().parse::<u64>().ok())
+            .collect();
+    }
+
+    let arr = match v.as_array() {
+        Some(a) => a,
+        None => return Vec::new(),
+    };
+
+    arr.iter()
+        .filter_map(|v| {
+            v.as_u64()
+                .or_else(|| v.as_str().and_then(|s| s.trim().parse().ok()))
+                .or_else(|| v.get("line_num").and_then(|ln| ln.as_u64()))
+                .or_else(|| v.get("line").and_then(|ln| ln.as_u64()))
+        })
+        .collect()
 }
 
 // ── Two-phase navigation ────────────────────────────────────────────────────
@@ -286,15 +332,18 @@ pub async fn navigate_two_phase(
 
     // Phase 1: Pick relevant chapters
     let chapters_toc = format_chapters_toc(&chapters);
+    let valid_chapter_lines: std::collections::HashSet<u64> =
+        chapters.iter().map(|c| c.line_num).collect();
 
     let phase1_system = format!(
         "You are navigating the chapters of \"{book_name}\".\n\
          Given the user's question, identify which chapters are most likely to contain the answer.\n\
+         Each chapter may include a summary (→) describing its content.\n\
          Return JSON only: {{\"chapters\": [line_num1, line_num2, ...]}}\n\
          Rules:\n\
-         - Select at most 3 chapters\n\
-         - Use the line numbers shown in brackets\n\
-         - Choose the most specific chapters\n\n\
+         - Select 1-3 chapters (at least 1 unless nothing remotely relates)\n\
+         - Use the line numbers shown in brackets (numbers only, not strings)\n\
+         - Match on topic/meaning, not exact wording — questions may use different terms\n\n\
          Chapters:\n{chapters_toc}",
         book_name = book.name_en,
     );
@@ -304,15 +353,51 @@ pub async fn navigate_two_phase(
         .await
         .context("Phase 1 (chapter selection) failed")?;
 
-    let selected_lines: Vec<u64> = phase1_result
-        .get("chapters")
-        .and_then(|v| v.as_array())
-        .map(|arr| arr.iter().filter_map(|v| v.as_u64()).take(3).collect())
-        .unwrap_or_default();
+    let mut selected_lines: Vec<u64> = parse_line_numbers(
+        phase1_result
+            .get("chapters")
+            .unwrap_or(&serde_json::Value::Null),
+    );
+    selected_lines.truncate(3);
 
+    // Validate line numbers exist in the tree
+    selected_lines.retain(|ln| {
+        if valid_chapter_lines.contains(ln) {
+            true
+        } else {
+            tracing::warn!("LLM returned non-existent chapter line {ln}, dropping");
+            false
+        }
+    });
+
+    // Retry with a broader prompt if Phase 1 returned nothing
     if selected_lines.is_empty() {
-        tracing::warn!("LLM returned no relevant chapters for: {question}");
-        return Ok(Vec::new());
+        tracing::warn!("Phase 1 returned no valid chapters, retrying with broader prompt");
+        let retry_system = format!(
+            "You are navigating the chapters of \"{book_name}\".\n\
+             The user's question may use different terminology than chapter titles.\n\
+             Look for chapters whose topic could RELATE to the question, even loosely.\n\
+             If truly nothing matches, pick the 2 most foundational/introductory chapters.\n\
+             Return JSON only: {{\"chapters\": [line_num1, line_num2]}}\n\
+             Use ONLY the line numbers shown in brackets.\n\n\
+             Chapters:\n{chapters_toc}",
+            book_name = book.name_en,
+        );
+        if let Ok(retry_result) = ollama.chat_json(&retry_system, question, None).await {
+            selected_lines = parse_line_numbers(
+                retry_result
+                    .get("chapters")
+                    .unwrap_or(&serde_json::Value::Null),
+            );
+            selected_lines.truncate(3);
+            selected_lines.retain(|ln| valid_chapter_lines.contains(ln));
+        }
+    }
+
+    // Final fallback: pick first 2 chapters
+    if selected_lines.is_empty() {
+        tracing::warn!("All LLM navigation attempts failed, falling back to first 2 chapters");
+        selected_lines = chapters.iter().take(2).map(|c| c.line_num).collect();
     }
 
     // Phase 2: For each selected chapter, pick specific sections
@@ -335,25 +420,45 @@ pub async fn navigate_two_phase(
             continue;
         }
 
+        // Collect valid line numbers in this subtree for validation
+        let mut valid_section_lines: std::collections::HashSet<u64> =
+            std::collections::HashSet::new();
+        if let Some(children) = chapter.node.get("nodes").and_then(|v| v.as_array()) {
+            for child in children {
+                collect_line_nums(child, &mut valid_section_lines);
+            }
+        }
+
         let phase2_system = format!(
             "You are reading the sections within chapter \"{chapter_title}\" of \"{book_name}\".\n\
              Given the user's question, identify the most relevant sections.\n\
              Return JSON only: {{\"sections\": [{{\"start_line\": N, \"end_line\": N, \"reason\": \"...\"}}]}}\n\
              Rules:\n\
-             - Select at most 3 sections\n\
-             - Use the line numbers shown in brackets\n\
+             - Select 1-3 sections (at least 1 if anything looks related)\n\
+             - Use the line numbers shown in brackets (numbers, not strings)\n\
              - For end_line, use the start_line of the NEXT section, or add 200 if it's the last\n\n\
              Sections:\n{subtree}",
             chapter_title = chapter.title,
             book_name = book.name_en,
         );
 
+        let mut chapter_added = 0;
         match ollama.chat_json(&phase2_system, question, None).await {
             Ok(result) => {
                 if let Some(sections) = result.get("sections").and_then(|v| v.as_array()) {
                     for section in sections.iter().take(3) {
-                        if let Ok(range) = serde_json::from_value::<SectionRange>(section.clone()) {
-                            all_ranges.push(range);
+                        if let Ok(mut range) =
+                            serde_json::from_value::<SectionRange>(section.clone())
+                        {
+                            // Validate start_line exists
+                            if valid_section_lines.contains(&range.start_line) {
+                                // Ensure end_line > start_line
+                                if range.end_line <= range.start_line {
+                                    range.end_line = range.start_line + 200;
+                                }
+                                all_ranges.push(range);
+                                chapter_added += 1;
+                            }
                         }
                     }
                 }
@@ -361,6 +466,19 @@ pub async fn navigate_two_phase(
             Err(e) => {
                 tracing::warn!("Phase 2 failed for chapter {}: {e}", chapter.title);
             }
+        }
+
+        // Fallback: if phase 2 gave nothing for this chapter, use the chapter itself
+        if chapter_added == 0 {
+            tracing::warn!(
+                "Phase 2 yielded no valid sections for chapter {}, using whole chapter",
+                chapter.title
+            );
+            all_ranges.push(SectionRange {
+                start_line: chapter.line_num,
+                end_line: chapter.line_num + 500,
+                reason: format!("Fallback: entire chapter '{}'", chapter.title),
+            });
         }
 
         if all_ranges.len() >= 5 {
@@ -374,7 +492,20 @@ pub async fn navigate_two_phase(
 
 // ── Section text fetching ───────────────────────────────────────────────────
 
+/// Collect all line_num values in a subtree (for validation).
+fn collect_line_nums(node: &serde_json::Value, out: &mut std::collections::HashSet<u64>) {
+    if let Some(ln) = node.get("line_num").and_then(|v| v.as_u64()) {
+        out.insert(ln);
+    }
+    if let Some(children) = node.get("nodes").and_then(|v| v.as_array()) {
+        for child in children {
+            collect_line_nums(child, out);
+        }
+    }
+}
+
 /// Fetch section text from the tree's embedded text content.
+/// If a range returns no content, expands search by ±200 lines.
 pub fn fetch_sections(book: &BookTree, ranges: &[SectionRange]) -> Result<Vec<SectionContent>> {
     let mut results = Vec::new();
 
@@ -386,8 +517,27 @@ pub fn fetch_sections(book: &BookTree, ranges: &[SectionRange]) -> Result<Vec<Se
             range.end_line,
             &mut found,
         );
+
+        // Fallback: expand range by ±200 lines if empty
+        if found.is_empty() {
+            let expanded_start = range.start_line.saturating_sub(200);
+            let expanded_end = range.end_line + 200;
+            tracing::warn!(
+                "No content in range [{}-{}], expanding to [{}-{}]",
+                range.start_line,
+                range.end_line,
+                expanded_start,
+                expanded_end
+            );
+            collect_sections_in_range(&book.structure, expanded_start, expanded_end, &mut found);
+        }
+
         results.extend(found);
     }
+
+    // Deduplicate by line number (ranges may overlap after expansion)
+    let mut seen = std::collections::HashSet::new();
+    results.retain(|s| seen.insert(s.line));
 
     Ok(results)
 }

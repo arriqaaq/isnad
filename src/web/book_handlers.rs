@@ -594,7 +594,10 @@ pub async fn book_chat(
         } else {
             match book_chat::navigate_two_phase(&ollama, &book, &question).await {
                 Ok(r) => {
-                    nav_cache.put(book.book_id, &question, r.clone());
+                    // Only cache non-empty results
+                    if !r.is_empty() {
+                        nav_cache.put(book.book_id, &question, r.clone());
+                    }
                     r
                 }
                 Err(e) => {
@@ -621,6 +624,18 @@ pub async fn book_chat(
                 Vec::new()
             }
         };
+
+        // If no sections could be retrieved, surface this to the user
+        if sections.is_empty() {
+            tracing::warn!("No sections found for question: {}", &question[..question.len().min(80)]);
+            yield Ok(bytes::Bytes::from(format!(
+                "data: {}\n\n",
+                serde_json::json!({
+                    "status": "no_relevant_sections",
+                    "message": "Could not find relevant sections in this book for your question. Try rephrasing in Arabic or asking about a more specific topic."
+                })
+            )));
+        }
 
         let sources = book_chat::build_sources(&book, &ranges);
         yield Ok(bytes::Bytes::from(format!(

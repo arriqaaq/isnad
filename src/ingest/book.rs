@@ -27,7 +27,6 @@ struct RawPage {
 
 #[derive(Debug, Deserialize)]
 struct HeadingsFile {
-    meta: serde_json::Value,
     indexes: IndexesData,
 }
 

@@ -22,6 +22,7 @@
     content: string;
     sources?: BookChatSource[];
     status?: string;
+    warning?: string;
     streaming?: boolean;
   }
 
@@ -137,7 +138,9 @@
           if (!jsonStr) continue;
           try {
             const data = JSON.parse(jsonStr);
-            if (data.status) {
+            if (data.status === 'no_relevant_sections') {
+              messages[idx] = { ...messages[idx], warning: data.message || 'No relevant sections found.' };
+            } else if (data.status) {
               messages[idx] = { ...messages[idx], status: data.status };
             } else if (data.sources) {
               messages[idx] = { ...messages[idx], sources: data.sources };
@@ -216,6 +219,9 @@
                  msg.status === 'reading' ? 'Reading relevant pages...' :
                  msg.status}
               </div>
+            {/if}
+            {#if msg.warning}
+              <div class="warning-banner">⚠ {msg.warning}</div>
             {/if}
             {#if msg.content}
               <div class="msg-text">
@@ -419,6 +425,18 @@
     font-size: 12px;
     color: var(--text-muted);
     padding: 4px 0;
+  }
+
+  .warning-banner {
+    padding: 8px 10px;
+    margin: 8px 0;
+    border: 1px solid var(--border);
+    border-left: 3px solid #f59e0b;
+    border-radius: 4px;
+    background: rgba(245, 158, 11, 0.05);
+    color: var(--text-secondary);
+    font-size: 12px;
+    direction: rtl;
   }
 
   .status-dot {
