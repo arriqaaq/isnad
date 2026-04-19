@@ -859,3 +859,950 @@ pub async fn book_chat(
         .body(Body::from_stream(sse_stream))
         .unwrap())
 }
+
+// ── Multi-tafsir feature (/tafsir page) ───────────────────────────────────
+
+#[derive(Debug, SurrealValue)]
+struct AllMappingRow {
+    book_id: i64,
+    page_index: i64,
+    heading: Option<String>,
+}
+
+#[derive(Debug, SurrealValue)]
+struct TafsirBookMetaRow {
+    book_id: i64,
+    name_en: String,
+    name_ar: String,
+}
+
+#[derive(Debug, SurrealValue)]
+struct AyahTafsirEnRow {
+    tafsir_en: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct AllTafsirsEntry {
+    pub book_id: u64,
+    pub name_en: String,
+    pub name_ar: String,
+    pub is_default: bool,
+    pub page_index: u64,
+    pub vol: String,
+    pub page_num: u64,
+    pub heading: Option<String>,
+    pub text: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct InlineEnglishTafsir {
+    pub body: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct AllTafsirsResponse {
+    pub surah: u64,
+    pub ayah: u64,
+    pub entries: Vec<AllTafsirsEntry>,
+    pub english: InlineEnglishTafsir,
+}
+
+/// GET /api/tafsir/ayah/{surah}/{ayah}/all
+/// Returns every available tafsir for this ayah in one response:
+///   - One Arabic entry per ingested book (book_type="tafsir") with page_index + full page text.
+///   - The inline English Ibn Kathir from ayah.tafsir_en, if present.
+pub async fn ayah_tafsirs_all(
+    State(state): State<AppState>,
+    Path((surah, ayah)): Path<(u64, u64)>,
+) -> impl IntoResponse {
+    // 1. Per-book mappings for this ayah.
+    let mappings: Result<Vec<AllMappingRow>, _> = state
+        .db
+        .query(
+            "SELECT book_id, page_index, heading FROM tafsir_ayah_map \
+             WHERE surah = $s AND ayah = $a",
+        )
+        .bind(("s", surah as i64))
+        .bind(("a", ayah as i64))
+        .await
+        .and_then(|mut r| r.take(0));
+
+    let mappings = match mappings {
+        Ok(m) => m,
+        Err(e) => {
+            tracing::error!("Failed to fetch tafsir mappings for {surah}:{ayah}: {e}");
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Failed to fetch tafsir mappings",
+            )
+                .into_response();
+        }
+    };
+
+    // 2. Tafsir book metadata (book_id → name_en/name_ar). Filters out non-tafsir
+    //    rows accidentally present in tafsir_ayah_map (defensive).
+    let books: Result<Vec<TafsirBookMetaRow>, _> = state
+        .db
+        .query(r#"SELECT book_id, name_en, name_ar FROM book WHERE book_type = "tafsir""#)
+        .await
+        .and_then(|mut r| r.take(0));
+
+    let book_meta: std::collections::HashMap<i64, (String, String)> = match books {
+        Ok(rows) => rows
+            .into_iter()
+            .map(|b| (b.book_id, (b.name_en, b.name_ar)))
+            .collect(),
+        Err(e) => {
+            tracing::error!("Failed to fetch tafsir book metadata: {e}");
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Failed to fetch book metadata",
+            )
+                .into_response();
+        }
+    };
+
+    // 3. Fetch page text per mapping. Sequential is fine — 2-5 books, each
+    //    lookup is indexed and fast.
+    let mut entries: Vec<AllTafsirsEntry> = Vec::with_capacity(mappings.len());
+    for m in mappings {
+        let Some((name_en, name_ar)) = book_meta.get(&m.book_id).cloned() else {
+            // A book referenced in the map but missing from the registry (or not
+            // of type "tafsir"). Skip — don't leak non-tafsir bodies here.
+            continue;
+        };
+
+        let page: Result<Option<AyahTafsirPage>, _> = state
+            .db
+            .query(
+                "SELECT text, vol, page_num FROM book_page \
+                 WHERE book_id = $b AND page_index = $p LIMIT 1",
+            )
+            .bind(("b", m.book_id))
+            .bind(("p", m.page_index))
+            .await
+            .and_then(|mut r| r.take(0));
+
+        let Ok(Some(p)) = page else {
+            tracing::warn!(
+                "Missing book_page for book {} page_index {} (ayah {}:{})",
+                m.book_id,
+                m.page_index,
+                surah,
+                ayah
+            );
+            continue;
+        };
+
+        entries.push(AllTafsirsEntry {
+            book_id: m.book_id as u64,
+            name_en,
+            name_ar,
+            is_default: (m.book_id as u64) == DEFAULT_TAFSIR_BOOK_ID,
+            page_index: m.page_index as u64,
+            vol: p.vol,
+            page_num: p.page_num as u64,
+            heading: m.heading,
+            text: p.text,
+        });
+    }
+
+    // Sort: default first (Ibn Kathir), then by book_id.
+    entries.sort_by_key(|e| (!e.is_default, e.book_id));
+
+    // 4. Inline English Ibn Kathir from ayah.tafsir_en.
+    let ayah_en: Result<Option<AyahTafsirEnRow>, _> = state
+        .db
+        .query(
+            "SELECT tafsir_en FROM ayah \
+             WHERE surah_number = $s AND ayah_number = $a LIMIT 1",
+        )
+        .bind(("s", surah as i64))
+        .bind(("a", ayah as i64))
+        .await
+        .and_then(|mut r| r.take(0));
+
+    let english = InlineEnglishTafsir {
+        body: ayah_en.ok().flatten().and_then(|r| r.tafsir_en),
+    };
+
+    Json(AllTafsirsResponse {
+        surah,
+        ayah,
+        entries,
+        english,
+    })
+    .into_response()
+}
+
+/// Resolve the set of tafsir book_ids that have BOTH a `book_type="tafsir"`
+/// row in the DB AND a loaded PageIndex BookTree. Used as the corpus for
+/// cross-book Ask AI.
+async fn tafsir_book_ids(state: &AppState) -> Vec<u64> {
+    let Some(trees) = state.book_trees.as_ref() else {
+        return Vec::new();
+    };
+    let tafsir_rows: Result<Vec<TafsirBookMetaRow>, _> = state
+        .db
+        .query(r#"SELECT book_id, name_en, name_ar FROM book WHERE book_type = "tafsir""#)
+        .await
+        .and_then(|mut r| r.take(0));
+    let Ok(rows) = tafsir_rows else {
+        return Vec::new();
+    };
+    rows.into_iter()
+        .map(|r| r.book_id as u64)
+        .filter(|id| trees.contains_key(id))
+        .collect()
+}
+
+// ── Request shape ─────────────────────────────────────────────────────────
+//
+// `BookChatRequest` (defined above for /api/books/{id}/chat) is reused here
+// because clients on the old path send `{ question }`. For the new
+// verse-aware shortcut we add `TafsirAskRequest` with an optional `verse`.
+// Axum deserializes whichever body the client sends; missing `verse` falls
+// through to the navigation path.
+
+#[derive(Debug, Deserialize)]
+pub struct TafsirAskRequest {
+    pub question: String,
+    /// Optional verse anchor. When present, the handler **skips PageIndex LLM
+    /// navigation entirely** and fetches exact tafsir pages for this
+    /// `(surah, ayah)` from the precomputed `tafsir_ayah_map` index.
+    /// The primary call site is the `/tafsir` page, which always has a
+    /// verse context.
+    pub verse: Option<TafsirVerseAnchor>,
+}
+
+#[derive(Debug, Deserialize, Clone, Copy)]
+pub struct TafsirVerseAnchor {
+    pub surah: u64,
+    pub ayah: u64,
+}
+
+// DB row shapes for the verse-aware shortcut.
+#[derive(Debug, SurrealValue)]
+struct MappingPageRow {
+    book_id: i64,
+    page_index: i64,
+    heading: Option<String>,
+}
+
+#[derive(Debug, SurrealValue)]
+struct NextPageRow {
+    page_index: i64,
+}
+
+#[derive(Debug, SurrealValue)]
+struct BookPageFullRow {
+    page_index: i64,
+    text: String,
+    vol: String,
+    page_num: i64,
+}
+
+/// Hard upper bound on pages fetched per book for a single verse. Guards
+/// against runaway ranges at end-of-book or when the ayah→page index is
+/// missing a "next ayah" boundary. 20 pages × 2–3 books ≈ 60 pages; each
+/// page is ~1–3 KB, so worst-case context stays under 180 KB before the
+/// 25 KB cap in `build_multi_book_prompt` truncates it.
+const MAX_VERSE_WINDOW_PAGES: i64 = 20;
+
+/// POST /api/tafsir/ask
+///
+/// Cross-tafsir Q&A over every loaded `book_type="tafsir"` book. Streams
+/// status events and a synthesized answer via SSE. Accepts either:
+///
+/// ```json
+/// { "question": "..." }
+/// { "question": "...", "verse": { "surah": 2, "ayah": 255 } }
+/// ```
+///
+/// ────────────────────────────────────────────────────────────────────────
+/// # Two retrieval paths, one synthesis
+/// ────────────────────────────────────────────────────────────────────────
+///
+/// ## (A) Verse-aware shortcut — used when `verse` is present
+///
+/// Motivation: `/tafsir?verse=S:A` always knows which ayah the user is on.
+/// Running an LLM (`navigate_two_phase`) twice per book to rediscover what
+/// the `tafsir_ayah_map` index already records is pure waste — and the
+/// weaker the nav model, the worse it performs (Phase 2 falls back to
+/// "whole chapter" for vague selections, introducing noise).
+///
+/// Data flow:
+/// 1. Read one `tafsir_ayah_map` row per tafsir book for this `(surah,
+///    ayah)`. Each row yields the **starting** page_index of that book's
+///    commentary on the verse.
+/// 2. For each book, resolve the **ayah-boundary window**:
+///    `[page_index, next_ayah_page_index)` where `next_ayah_page_index` is
+///    the smallest `page_index` strictly greater than the current one across
+///    ALL mappings for this book (any surah, any ayah). This correctly
+///    captures multi-page commentaries (Tabari's Throne-Verse tafsir spans
+///    ~5–15 pages) and self-terminates at the next ayah boundary even when
+///    that's the first ayah of the next surah. Capped at
+///    `MAX_VERSE_WINDOW_PAGES` to guard against degenerate ranges.
+/// 3. Fetch all `book_page` rows in the window (one query per book).
+/// 4. Flow directly into the shared synthesis step (below).
+///
+/// The inline English Ibn Kathir (`ayah.tafsir_en`, a QUL-sourced HTML
+/// blob on the `ayah` table) is **deliberately excluded** from the
+/// synthesis corpus here. It isn't a paginated turath book — treating
+/// it as one confuses the "sources" list with two different storage
+/// models. Users still see it in the accordion UI via `ayah_tafsirs_all`.
+///
+/// Latency: ~5–10 ms per DB query × (N tafsir books + 1 English) + the
+/// single synthesis LLM call. On a local CPU model the synthesis is the
+/// floor at ~10–30 s; no LLM nav cost on top.
+///
+/// ## (B) PageIndex nav fan-out — used when `verse` is absent
+///
+/// For general, non-verse-anchored questions ("compare the scholars on
+/// destiny"). Runs [`book_chat::navigate_two_phase`] in parallel against
+/// every loaded tafsir `BookTree`, each with a 180 s timeout. Timed-out
+/// or empty-result books are dropped and reported as `book_skipped` SSE
+/// events, not treated as hard failures. Results feed the same synthesis
+/// step.
+///
+/// This path is expensive on weak models (2 LLM calls × N books, often
+/// serialized by Ollama unless `OLLAMA_NUM_PARALLEL` is raised).
+///
+/// ## Shared synthesis
+///
+/// Both paths produce `books_sections: Vec<(book_name, Vec<SectionContent>)>`
+/// and the English inline body. [`book_chat::build_multi_book_prompt`]
+/// assembles them into a single prompt with per-book delimiters and a
+/// shared 25 KB cap. The answer is streamed from Ollama as SSE `text`
+/// events, terminated by `{"done": true}`.
+///
+/// ────────────────────────────────────────────────────────────────────────
+/// # SSE event contract
+/// ────────────────────────────────────────────────────────────────────────
+///
+/// Shared across both paths (client does not need to know which):
+/// - `{"status": "loading_verse", "verse": {"surah": S, "ayah": A}}` (shortcut)
+/// - `{"status": "navigating", "books": [book_id, ...]}` (nav)
+/// - `{"status": "reading", "books": [{book_id, name_en, sections}, ...]}`
+/// - `{"status": "book_skipped", "book_id": X, "reason": "..."}`
+/// - `{"sources": [{book_id, book_name_en, book_name_ar, line, title}, ...]}`
+/// - `{"text": "..."}` (repeated; LLM token chunks)
+/// - `{"done": true}` | `{"error": "..."}` (terminal)
+pub async fn tafsir_ask(
+    State(state): State<AppState>,
+    Json(body): Json<TafsirAskRequest>,
+) -> Result<Response, StatusCode> {
+    let question = body.question.trim().to_string();
+    if question.is_empty() {
+        return Err(StatusCode::BAD_REQUEST);
+    }
+    let verse_anchor = body.verse;
+
+    let ollama = state.ollama.as_ref().ok_or_else(|| {
+        tracing::error!("Ollama client not configured");
+        StatusCode::SERVICE_UNAVAILABLE
+    })?;
+
+    // `book_trees` is required for the navigation fallback path. The
+    // verse-aware shortcut could in principle run without PageIndex (it
+    // only needs `tafsir_ayah_map` + `book_page`), but we still gate on
+    // `book_trees` here so both branches share the same prerequisite and
+    // there's one consistent "is the tafsir corpus ready?" check upstream.
+    let book_trees = state.book_trees.as_ref().ok_or_else(|| {
+        tracing::error!("Book trees not loaded (--pageindex-dir not set)");
+        StatusCode::SERVICE_UNAVAILABLE
+    })?;
+
+    let ids = tafsir_book_ids(&state).await;
+    if ids.is_empty() {
+        tracing::warn!("No tafsir BookTrees loaded — /api/tafsir/ask unavailable");
+        return Err(StatusCode::SERVICE_UNAVAILABLE);
+    }
+
+    let books: Vec<crate::book_chat::BookTree> = ids
+        .iter()
+        .filter_map(|id| book_trees.get(id).cloned())
+        .collect();
+
+    let ollama = ollama.clone();
+    let nav_cache = state.nav_cache.clone();
+    let state_for_shortcut = state.clone();
+
+    let sse_stream = async_stream::stream! {
+        use futures::StreamExt;
+        use std::time::Duration;
+
+        // ─────────────────────────────────────────────────────────────────
+        // Phase 1: Retrieval
+        //
+        // Produces `books_sections: Vec<(book_name, Vec<SectionContent>)>`
+        // via one of two paths depending on whether a verse anchor was
+        // provided. Both paths emit SSE status/source events along the way
+        // so the client can surface progress during multi-second waits.
+        // ─────────────────────────────────────────────────────────────────
+
+        let books_sections: Vec<(String, Vec<crate::book_chat::SectionContent>)>;
+
+        if let Some(verse) = verse_anchor {
+            // ═══════════════════════════════════════════════════════════
+            // PATH (A) — VERSE-AWARE SHORTCUT
+            //
+            // The client tells us "the user is asking about ayah S:A", so
+            // we sidestep the LLM navigation entirely and read the exact
+            // tafsir pages from `tafsir_ayah_map` (a precomputed per-ayah
+            // index populated at ingestion time with 100% coverage).
+            //
+            // Per book:
+            //   (1) SELECT page_index FROM tafsir_ayah_map WHERE book = B
+            //                                              AND surah = S
+            //                                              AND ayah  = A
+            //     — the starting page of commentary for this ayah.
+            //
+            //   (2) SELECT MIN(page_index) FROM tafsir_ayah_map
+            //         WHERE book = B AND page_index > start_page
+            //     — the smallest page_index greater than `start_page` across
+            //       all mappings for this book. That's the boundary where
+            //       the next ayah's commentary begins, regardless of whether
+            //       it's the next ayah in this surah or the first ayah of
+            //       the next surah. Capped at start_page + MAX_VERSE_WINDOW_PAGES
+            //       to bound worst-case context size.
+            //
+            //   (3) SELECT * FROM book_page WHERE book_id = B
+            //                               AND page_index ∈ [start, end)
+            //     — the actual commentary text, one row per page, in order.
+            //
+            // Why boundary-aware and not a fixed window: in Ibn Kathir one
+            // ayah ≈ one page, but in Tabari a single ayah's commentary
+            // regularly spans 5–15 pages. A fixed 3-page window would miss
+            // most of Tabari's substance on long ayahs; the boundary scan
+            // adapts automatically.
+            // ═══════════════════════════════════════════════════════════
+
+            yield Ok::<_, std::io::Error>(bytes::Bytes::from(format!(
+                "data: {}\n\n",
+                serde_json::json!({
+                    "status": "loading_verse",
+                    "verse": {"surah": verse.surah, "ayah": verse.ayah}
+                })
+            )));
+
+            // Step 1: one query fetches every tafsir book's starting page
+            //         for this ayah. Joined with the loaded BookTree set so
+            //         we only consider books that are actually available.
+            let mappings: Vec<MappingPageRow> = match state_for_shortcut
+                .db
+                .query(
+                    "SELECT book_id, page_index, heading FROM tafsir_ayah_map \
+                     WHERE surah = $s AND ayah = $a",
+                )
+                .bind(("s", verse.surah as i64))
+                .bind(("a", verse.ayah as i64))
+                .await
+                .and_then(|mut r| r.take(0))
+            {
+                Ok(rows) => rows,
+                Err(e) => {
+                    tracing::error!("verse-aware: tafsir_ayah_map lookup failed: {e}");
+                    yield Ok(bytes::Bytes::from(format!(
+                        "data: {}\n\n",
+                        serde_json::json!({"error": format!("Mapping lookup failed: {e}")})
+                    )));
+                    return;
+                }
+            };
+
+            // Book metadata map for {book_id → (name_en, name_ar)}. Fetched
+            // once and reused — avoids N round-trips when we have N books.
+            let book_meta: std::collections::HashMap<i64, (String, String)> = books
+                .iter()
+                .map(|b| (b.book_id as i64, (b.name_en.clone(), b.name_ar.clone())))
+                .collect();
+
+            let loaded_ids: std::collections::HashSet<i64> =
+                books.iter().map(|b| b.book_id as i64).collect();
+
+            let mut sections_by_book: Vec<(u64, String, String, Vec<crate::book_chat::SectionContent>, Option<String>)> = Vec::new();
+            let mut skipped: Vec<(u64, String)> = Vec::new();
+
+            // Step 2 + 3, per book: find the ayah-boundary, fetch the window.
+            for m in &mappings {
+                if !loaded_ids.contains(&m.book_id) {
+                    // Book has a mapping row but no loaded BookTree. Skip —
+                    // not strictly required by the shortcut, but keeps the
+                    // corpus consistent with the nav path.
+                    continue;
+                }
+                let Some((name_en, name_ar)) = book_meta.get(&m.book_id).cloned() else {
+                    continue;
+                };
+
+                // Next-ayah boundary (by page_index, any surah/ayah).
+                let boundary: Option<NextPageRow> = state_for_shortcut
+                    .db
+                    .query(
+                        "SELECT page_index FROM tafsir_ayah_map \
+                         WHERE book_id = $b AND page_index > $p \
+                         ORDER BY page_index ASC LIMIT 1",
+                    )
+                    .bind(("b", m.book_id))
+                    .bind(("p", m.page_index))
+                    .await
+                    .and_then(|mut r| r.take(0))
+                    .ok()
+                    .flatten();
+
+                let hard_cap = m.page_index + MAX_VERSE_WINDOW_PAGES;
+                let end_page = match boundary {
+                    Some(n) => n.page_index.min(hard_cap),
+                    // Last ayah in book — scan up to the cap.
+                    None => hard_cap,
+                };
+
+                if end_page <= m.page_index {
+                    skipped.push((m.book_id as u64, "empty page window".into()));
+                    continue;
+                }
+
+                let pages: Vec<BookPageFullRow> = match state_for_shortcut
+                    .db
+                    .query(
+                        "SELECT page_index, text, vol, page_num FROM book_page \
+                         WHERE book_id = $b AND page_index >= $from AND page_index < $to \
+                         ORDER BY page_index ASC",
+                    )
+                    .bind(("b", m.book_id))
+                    .bind(("from", m.page_index))
+                    .bind(("to", end_page))
+                    .await
+                    .and_then(|mut r| r.take(0))
+                {
+                    Ok(rows) => rows,
+                    Err(e) => {
+                        skipped.push((m.book_id as u64, format!("page fetch failed: {e}")));
+                        continue;
+                    }
+                };
+
+                if pages.is_empty() {
+                    skipped.push((m.book_id as u64, "no pages in window".into()));
+                    continue;
+                }
+
+                // Map each page into a SectionContent so the shared synthesis
+                // prompt treats it uniformly with nav results. `line` carries
+                // the page_index (useful later for citation linking), `title`
+                // holds the human-readable Vol/Page for inline citations.
+                let sections: Vec<crate::book_chat::SectionContent> = pages
+                    .iter()
+                    .map(|p| crate::book_chat::SectionContent {
+                        line: p.page_index as u64,
+                        title: format!("Vol {} · Page {}", p.vol, p.page_num),
+                        text: p.text.clone(),
+                    })
+                    .collect();
+
+                let _ = name_ar; // reserved for future citation rendering
+
+                sections_by_book.push((
+                    m.book_id as u64,
+                    name_en,
+                    name_ar.clone(),
+                    sections,
+                    m.heading.clone(),
+                ));
+            }
+
+            // Note: the inline English `ayah.tafsir_en` is intentionally NOT
+            // included in the synthesis context here. It isn't a paginated
+            // turath book — it's a QUL-sourced HTML blob on the `ayah` table.
+            // Mixing it into the "sources" list would conflate two different
+            // storage models (turath page ranges vs. per-ayah HTML). The
+            // accordion endpoint (`ayah_tafsirs_all`) still surfaces it
+            // separately for the reader UI; the Ask AI corpus stays pure
+            // Arabic-turath.
+
+            // Surface skipped books so the UI can inform the user.
+            for (bid, reason) in &skipped {
+                yield Ok(bytes::Bytes::from(format!(
+                    "data: {}\n\n",
+                    serde_json::json!({"status": "book_skipped", "book_id": bid, "reason": reason})
+                )));
+            }
+
+            if sections_by_book.is_empty() {
+                yield Ok(bytes::Bytes::from(format!(
+                    "data: {}\n\n",
+                    serde_json::json!({
+                        "status": "no_relevant_sections",
+                        "message": format!(
+                            "No tafsir entries found for {}:{}. Is this verse ingested?",
+                            verse.surah, verse.ayah
+                        )
+                    })
+                )));
+                return;
+            }
+
+            // Sources event — one entry per page fetched, grouped by book.
+            let sources: Vec<serde_json::Value> = sections_by_book
+                .iter()
+                .flat_map(|(book_id, name_en, name_ar, sections, _)| {
+                    let bid = *book_id;
+                    let ne = name_en.clone();
+                    let na = name_ar.clone();
+                    sections.iter().map(move |s| serde_json::json!({
+                        "book_id": bid,
+                        "book_name_en": ne,
+                        "book_name_ar": na,
+                        "line": s.line,
+                        "title": s.title,
+                    })).collect::<Vec<_>>()
+                })
+                .collect();
+
+            yield Ok(bytes::Bytes::from(format!(
+                "data: {}\n\n",
+                serde_json::json!({"sources": sources})
+            )));
+
+            yield Ok(bytes::Bytes::from(format!(
+                "data: {}\n\n",
+                serde_json::json!({
+                    "status": "reading",
+                    "books": sections_by_book.iter().map(|(bid, ne, _, sections, _)| {
+                        serde_json::json!({
+                            "book_id": bid,
+                            "name_en": ne,
+                            "sections": sections.len(),
+                        })
+                    }).collect::<Vec<_>>()
+                })
+            )));
+
+            // ───────────────────────────────────────────────────────────
+            // Extractive synthesis (verse-aware path)
+            //
+            // Feed every fetched page for this ayah to the model — no cap.
+            // `build_tafsir_extract_prompt` still applies a 25 KB global
+            // safety truncation, so pathological runs can't blow the
+            // context window.
+            //
+            // Call `chat_json` with the extractive prompt, then validate
+            // every entry server-side: book_id must be in the allow-list,
+            // (book_id, page_index) must be a fetched page, and the
+            // arabic_quote must appear verbatim (modulo normalization) in
+            // that page. Hallucinations are dropped, not forwarded.
+            //
+            // Emits either a `result` event (if ≥1 valid entry) or a
+            // `no_valid_extraction` event (with raw page links so the UI
+            // can render a graceful fallback). Always terminates with
+            // `done`. The shared streaming-synthesis code below is
+            // bypassed entirely on this path.
+            //
+            // NOTE: the allow-list of books is computed dynamically from
+            // whichever tafsirs are loaded in the DB + PageIndex at
+            // request time (see `tafsir_book_ids`). Adding a new tafsir
+            // book requires no changes here or to the prompt.
+            // ───────────────────────────────────────────────────────────
+
+            let extract_books: Vec<(u64, String, Vec<crate::book_chat::SectionContent>)> =
+                sections_by_book
+                    .iter()
+                    .map(|(id, name_en, _, sections, _)| {
+                        (*id, name_en.clone(), sections.clone())
+                    })
+                    .collect();
+
+            let page_texts: std::collections::HashMap<(u64, u64), String> = extract_books
+                .iter()
+                .flat_map(|(id, _, secs)| {
+                    let bid = *id;
+                    secs.iter().map(move |s| ((bid, s.line), s.text.clone()))
+                })
+                .collect();
+
+            let allowed_ids: std::collections::HashSet<u64> =
+                extract_books.iter().map(|(id, _, _)| *id).collect();
+
+            yield Ok(bytes::Bytes::from(format!(
+                "data: {}\n\n",
+                serde_json::json!({"status": "extracting"})
+            )));
+
+            let prompt = crate::book_chat::build_tafsir_extract_prompt(
+                (verse.surah, verse.ayah),
+                &extract_books,
+            );
+
+            // Build the available_pages payload once — used by the
+            // no_valid_extraction fallback in both the LLM-error and the
+            // validation-empty cases below.
+            let available_pages: Vec<serde_json::Value> = sections_by_book
+                .iter()
+                .flat_map(|(bid, ne, na, secs, _)| {
+                    let b = *bid;
+                    let ne = ne.clone();
+                    let na = na.clone();
+                    secs.iter()
+                        .map(move |s| {
+                            serde_json::json!({
+                                "book_id": b,
+                                "book_name_en": ne,
+                                "book_name_ar": na,
+                                "page_index": s.line,
+                                "title": s.title,
+                            })
+                        })
+                        .collect::<Vec<_>>()
+                })
+                .collect();
+
+            let raw = match ollama.chat_json(&prompt, &question, None).await {
+                Ok(v) => v,
+                Err(e) => {
+                    tracing::error!("tafsir_ask extractive: chat_json failed: {e}");
+                    yield Ok(bytes::Bytes::from(format!(
+                        "data: {}\n\n",
+                        serde_json::json!({
+                            "status": "no_valid_extraction",
+                            "reason": format!("LLM call failed: {e}"),
+                            "available_pages": available_pages,
+                        })
+                    )));
+                    yield Ok(bytes::Bytes::from("data: {\"done\":true}\n\n"));
+                    return;
+                }
+            };
+
+            let validated =
+                crate::book_chat::validate_extract_result(raw, &allowed_ids, &page_texts);
+
+            if validated.entries.is_empty() {
+                tracing::warn!(
+                    "tafsir_ask extractive: no valid entries ({} dropped)",
+                    validated.dropped
+                );
+                yield Ok(bytes::Bytes::from(format!(
+                    "data: {}\n\n",
+                    serde_json::json!({
+                        "status": "no_valid_extraction",
+                        "dropped": validated.dropped,
+                        "available_pages": available_pages,
+                    })
+                )));
+            } else {
+                yield Ok(bytes::Bytes::from(format!(
+                    "data: {}\n\n",
+                    serde_json::json!({"result": {
+                        "overview": validated.overview,
+                        "entries": validated.entries,
+                        "dropped": validated.dropped,
+                    }})
+                )));
+            }
+
+            yield Ok(bytes::Bytes::from("data: {\"done\":true}\n\n"));
+            return;
+        } else {
+            // ═══════════════════════════════════════════════════════════
+            // PATH (B) — PAGEINDEX NAVIGATION FAN-OUT
+            //
+            // No verse anchor → classic agentic retrieval. For each loaded
+            // tafsir BookTree, run the two-phase LLM navigation
+            // ([`book_chat::navigate_two_phase`]) in parallel, with a
+            // per-book 180 s timeout. Books that time out or return empty
+            // ranges are dropped and surfaced as `book_skipped` SSE events.
+            //
+            // This path is expensive on weak models (2 LLM calls × N books,
+            // typically serialized by Ollama unless OLLAMA_NUM_PARALLEL > 1),
+            // which is why the verse-aware shortcut exists.
+            // ═══════════════════════════════════════════════════════════
+
+            let book_ids: Vec<u64> = books.iter().map(|b| b.book_id).collect();
+            yield Ok::<_, std::io::Error>(bytes::Bytes::from(format!(
+                "data: {}\n\n",
+                serde_json::json!({"status": "navigating", "books": book_ids})
+            )));
+
+            let nav_futures = books.iter().map(|book| {
+                let ollama = ollama.clone();
+                let nav_cache = nav_cache.clone();
+                let question = question.clone();
+                let book = book.clone();
+                async move {
+                    if let Some(cached) = nav_cache.get(book.book_id, &question) {
+                        return (book, Ok(cached));
+                    }
+                    let fut = book_chat::navigate_two_phase(&ollama, &book, &question);
+                    // Generous per-book timeout: local Ollama often serializes,
+                    // so the second book sees (first_latency + its_own_latency).
+                    // The single-book book_chat handler has no timeout — we
+                    // cap here only so a stuck book can't pin the whole request.
+                    match tokio::time::timeout(Duration::from_secs(180), fut).await {
+                        Ok(Ok(r)) => {
+                            if !r.is_empty() {
+                                nav_cache.put(book.book_id, &question, r.clone());
+                            }
+                            (book, Ok(r))
+                        }
+                        Ok(Err(e)) => (book, Err(format!("navigate failed: {e}"))),
+                        Err(_) => (book, Err("timeout".to_string())),
+                    }
+                }
+            });
+            let nav_results = futures::future::join_all(nav_futures).await;
+
+            let mut per_book: Vec<(
+                crate::book_chat::BookTree,
+                Vec<crate::book_chat::SectionRange>,
+                Vec<crate::book_chat::SectionContent>,
+            )> = Vec::new();
+            let mut failed: Vec<(u64, String)> = Vec::new();
+
+            for (book, nav) in nav_results {
+                match nav {
+                    Err(e) => {
+                        failed.push((book.book_id, e));
+                        continue;
+                    }
+                    Ok(ranges) if ranges.is_empty() => {
+                        failed.push((book.book_id, "no relevant sections".to_string()));
+                        continue;
+                    }
+                    Ok(ranges) => match book_chat::fetch_sections(&book, &ranges) {
+                        Ok(sections) if !sections.is_empty() => {
+                            per_book.push((book, ranges, sections));
+                        }
+                        Ok(_) => failed.push((book.book_id, "no sections fetched".to_string())),
+                        Err(e) => failed.push((book.book_id, format!("fetch_sections failed: {e}"))),
+                    },
+                }
+            }
+
+            for (bid, reason) in &failed {
+                yield Ok(bytes::Bytes::from(format!(
+                    "data: {}\n\n",
+                    serde_json::json!({"status": "book_skipped", "book_id": bid, "reason": reason})
+                )));
+            }
+
+            if per_book.is_empty() {
+                yield Ok(bytes::Bytes::from(format!(
+                    "data: {}\n\n",
+                    serde_json::json!({
+                        "status": "no_relevant_sections",
+                        "message": "No tafsir returned usable sections for this question."
+                    })
+                )));
+                return;
+            }
+
+            let sources: Vec<serde_json::Value> = per_book
+                .iter()
+                .flat_map(|(book, ranges, _)| {
+                    let book_id = book.book_id;
+                    let name_en = book.name_en.clone();
+                    let name_ar = book.name_ar.clone();
+                    book_chat::build_sources(book, ranges)
+                        .into_iter()
+                        .map(move |s| serde_json::json!({
+                            "book_id": book_id,
+                            "book_name_en": name_en,
+                            "book_name_ar": name_ar,
+                            "line": s.line,
+                            "title": s.title,
+                        }))
+                })
+                .collect();
+
+            yield Ok(bytes::Bytes::from(format!(
+                "data: {}\n\n",
+                serde_json::json!({"sources": sources})
+            )));
+
+            yield Ok(bytes::Bytes::from(format!(
+                "data: {}\n\n",
+                serde_json::json!({
+                    "status": "reading",
+                    "books": per_book.iter().map(|(b, _, s)| serde_json::json!({
+                        "book_id": b.book_id,
+                        "name_en": b.name_en,
+                        "sections": s.len(),
+                    })).collect::<Vec<_>>()
+                })
+            )));
+
+            books_sections = per_book
+                .into_iter()
+                .map(|(b, _, s)| (b.name_en, s))
+                .collect();
+        }
+
+        // ─────────────────────────────────────────────────────────────────
+        // Phase 2: Synthesis (shared across both paths)
+        //
+        // `build_multi_book_prompt` concatenates each book's sections with
+        // `=== Book Name ===` delimiters and applies a 25 KB shared cap.
+        // The synthesis system prompt instructs the model to attribute every
+        // claim to its book, flag agreements/disagreements, and answer in
+        // the user's language.
+        // ─────────────────────────────────────────────────────────────────
+
+        let prompt = book_chat::build_multi_book_prompt(&books_sections);
+
+        let byte_stream = match ollama.chat_stream(&prompt, &question, None).await {
+            Ok(s) => s,
+            Err(e) => {
+                tracing::error!("tafsir_ask answer stream failed: {e}");
+                yield Ok(bytes::Bytes::from(format!(
+                    "data: {}\n\n",
+                    serde_json::json!({"error": format!("Answer generation failed: {e}")})
+                )));
+                return;
+            }
+        };
+
+        let mut byte_stream = std::pin::pin!(byte_stream);
+        while let Some(chunk) = byte_stream.next().await {
+            match chunk {
+                Ok(raw) => {
+                    let mut sse = String::new();
+                    for line in raw.split(|&b| b == b'\n') {
+                        if line.is_empty() { continue; }
+                        if let Ok(parsed) = serde_json::from_slice::<ChatChunk>(line) {
+                            if let Some(msg) = parsed.message
+                                && !msg.content.is_empty()
+                            {
+                                sse.push_str(&format!(
+                                    "data: {}\n\n",
+                                    serde_json::to_string(
+                                        &serde_json::json!({"text": msg.content})
+                                    ).unwrap()
+                                ));
+                            }
+                            if parsed.done {
+                                sse.push_str("data: {\"done\":true}\n\n");
+                            }
+                        }
+                    }
+                    if !sse.is_empty() {
+                        yield Ok(bytes::Bytes::from(sse));
+                    }
+                }
+                Err(e) => {
+                    yield Ok(bytes::Bytes::from(format!(
+                        "data: {}\n\n",
+                        serde_json::json!({"error": e.to_string()})
+                    )));
+                }
+            }
+        }
+    };
+
+    Ok(Response::builder()
+        .header("Content-Type", "text/event-stream")
+        .header("Cache-Control", "no-cache")
+        .header("Connection", "keep-alive")
+        .body(Body::from_stream(sse_stream))
+        .unwrap())
+}

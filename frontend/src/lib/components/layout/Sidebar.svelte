@@ -29,6 +29,7 @@
       label: 'Quran',
       items: [
         { path: '/quran', label: 'Quran', icon: '❐' },
+        { path: '/tafsir', label: 'Tafsir', icon: '✦' },
         { path: '/quran/search', label: 'Search', icon: '⌕' },
       ],
     },

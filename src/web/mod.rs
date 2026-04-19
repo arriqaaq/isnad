@@ -205,6 +205,14 @@ pub async fn serve(
             axum::routing::get(book_handlers::ayah_tafsir),
         )
         .route(
+            "/api/tafsir/ayah/{surah}/{ayah}/all",
+            axum::routing::get(book_handlers::ayah_tafsirs_all),
+        )
+        .route(
+            "/api/tafsir/ask",
+            axum::routing::post(book_handlers::tafsir_ask),
+        )
+        .route(
             "/api/hadiths/sharh-pages",
             axum::routing::get(book_handlers::hadith_sharh_pages),
         )

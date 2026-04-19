@@ -617,6 +617,320 @@ pub fn build_answer_prompt(book_name: &str, sections: &[SectionContent]) -> Stri
     )
 }
 
+// ── Extractive tafsir synthesis (verse-aware path) ─────────────────────────
+//
+// The verse-aware branch of /api/tafsir/ask runs an *extractive* prompt:
+// the model selects verbatim Arabic passages from the provided pages and
+// writes a short explanation per passage. It does NOT paraphrase, and it
+// may only cite books from an explicit allow-list. Every output entry is
+// verified server-side before reaching the client — quotes that aren't
+// a substring of the actual page (after normalization) are dropped and
+// counted, as are entries pointing at unknown book_ids.
+//
+// See `build_tafsir_extract_prompt`, `validate_extract_result`.
+
+/// Normalize Arabic for substring comparison. Strips tatweel (U+0640) and
+/// tashkeel (U+064B..U+0652) — which models add or drop arbitrarily — and
+/// collapses whitespace so newlines and multiple spaces between words don't
+/// break the match.
+fn normalize_arabic(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    let mut prev_ws = false;
+    for c in s.chars() {
+        if c == '\u{0640}' || ('\u{064B}'..='\u{0652}').contains(&c) {
+            continue;
+        }
+        if c.is_whitespace() {
+            if !prev_ws && !out.is_empty() {
+                out.push(' ');
+            }
+            prev_ws = true;
+        } else {
+            out.push(c);
+            prev_ws = false;
+        }
+    }
+    while out.ends_with(' ') {
+        out.pop();
+    }
+    out
+}
+
+/// Verify that `quote` appears verbatim (modulo normalization) inside
+/// `haystack`. This is the anti-hallucination guard — if the model invents
+/// a quote, or paraphrases, or translates, the normalized substring will
+/// not match and the entry is dropped.
+pub fn verify_quote(quote: &str, haystack: &str) -> bool {
+    let q = normalize_arabic(quote);
+    if q.is_empty() {
+        return false;
+    }
+    normalize_arabic(haystack).contains(&q)
+}
+
+// ── Structured output shapes ───────────────────────────────────────────
+
+#[derive(Debug, Deserialize)]
+struct RawExtractEntry {
+    #[serde(default)]
+    book_id: Option<u64>,
+    #[serde(default)]
+    page_index: Option<u64>,
+    #[serde(default)]
+    arabic_quote: Option<String>,
+    #[serde(default)]
+    english_note: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct RawExtract {
+    #[serde(default)]
+    overview: Option<String>,
+    #[serde(default)]
+    entries: Vec<RawExtractEntry>,
+}
+
+/// One validated extract entry. All fields are guaranteed non-empty and
+/// `arabic_quote` has been verified against the actual page text.
+#[derive(Debug, Clone, Serialize)]
+pub struct ValidatedEntry {
+    pub book_id: u64,
+    pub page_index: u64,
+    pub arabic_quote: String,
+    pub english_note: String,
+}
+
+/// The server's trust boundary: only fields in here are forwarded to the
+/// client. `dropped` is the count of raw-LLM entries that failed validation
+/// (unknown book_id, unknown page, or quote not verbatim).
+#[derive(Debug, Clone, Serialize)]
+pub struct ValidatedExtract {
+    pub overview: Option<String>,
+    pub entries: Vec<ValidatedEntry>,
+    pub dropped: usize,
+}
+
+/// Parse the raw JSON returned by the extractive prompt, then validate each
+/// entry against the allow-list of book_ids and the actual page texts we
+/// fed in. Malformed JSON → empty extract (never panics). Per-entry
+/// failures are logged and counted in `dropped`, never surfaced as errors —
+/// we still want to return the good entries alongside a drop count.
+pub fn validate_extract_result(
+    raw: serde_json::Value,
+    allowed_book_ids: &std::collections::HashSet<u64>,
+    page_texts: &std::collections::HashMap<(u64, u64), String>,
+) -> ValidatedExtract {
+    let parsed: RawExtract = serde_json::from_value(raw).unwrap_or(RawExtract {
+        overview: None,
+        entries: Vec::new(),
+    });
+
+    let mut entries: Vec<ValidatedEntry> = Vec::new();
+    let mut dropped = 0usize;
+
+    for e in parsed.entries {
+        let Some(book_id) = e.book_id else {
+            dropped += 1;
+            continue;
+        };
+        let Some(page_index) = e.page_index else {
+            dropped += 1;
+            continue;
+        };
+        let Some(arabic_quote) = e.arabic_quote else {
+            dropped += 1;
+            continue;
+        };
+        let english_note = e.english_note.unwrap_or_default();
+
+        if arabic_quote.trim().is_empty() {
+            dropped += 1;
+            continue;
+        }
+        if !allowed_book_ids.contains(&book_id) {
+            tracing::warn!(
+                "tafsir extract: dropped entry with disallowed book_id {book_id} \
+                 (allowed: {:?})",
+                allowed_book_ids
+            );
+            dropped += 1;
+            continue;
+        }
+        let Some(page_text) = page_texts.get(&(book_id, page_index)) else {
+            tracing::warn!(
+                "tafsir extract: dropped entry with unknown (book {book_id}, page {page_index})"
+            );
+            dropped += 1;
+            continue;
+        };
+        if !verify_quote(&arabic_quote, page_text) {
+            tracing::warn!(
+                "tafsir extract: dropped entry — quote not verbatim in (book {book_id}, \
+                 page {page_index}). Quote starts: {:?}",
+                arabic_quote.chars().take(40).collect::<String>()
+            );
+            dropped += 1;
+            continue;
+        }
+
+        entries.push(ValidatedEntry {
+            book_id,
+            page_index,
+            arabic_quote,
+            english_note,
+        });
+    }
+
+    ValidatedExtract {
+        overview: parsed.overview,
+        entries,
+        dropped,
+    }
+}
+
+/// Build the extractive prompt for /api/tafsir/ask verse-aware path. The
+/// model is told the *exact* book_ids and scholar names it may cite, and
+/// the JSON schema it must return. Page headers include the book_id and
+/// page_index so the model can copy them into entries without invention.
+///
+/// `books`: `(book_id, display_name, pages)` triples. `pages` comes from
+/// the verse-aware page fetch, *capped* at N pages per book by the caller
+/// to keep the LLM context focused.
+pub fn build_tafsir_extract_prompt(
+    verse: (u64, u64),
+    books: &[(u64, String, Vec<SectionContent>)],
+) -> String {
+    let allowed_names: Vec<String> = books.iter().map(|(_, n, _)| n.clone()).collect();
+    let allowed_ids: Vec<String> = books.iter().map(|(id, _, _)| id.to_string()).collect();
+
+    // Build per-page context. Each page is prefixed with machine-readable
+    // metadata (book_id, page_index) so the model can echo them verbatim
+    // into entries, plus a human label for its own reasoning.
+    let mut context = String::new();
+    for (book_id, name, pages) in books {
+        for p in pages {
+            context.push_str(&format!(
+                "\n--- {name} · {title} · book_id={book_id} · page_index={page_index}\n{text}\n",
+                name = name,
+                title = p.title,
+                book_id = book_id,
+                page_index = p.line,
+                text = p.text
+            ));
+        }
+    }
+    if context.len() > 25_000 {
+        let safe = truncate_str(&context, 25_000).len();
+        context.truncate(safe);
+        context.push_str("\n… (content truncated)\n");
+    }
+
+    format!(
+        "You are an extractive assistant for classical Qur'anic tafsir. The user is asking \
+         about Qur'an verse {surah}:{ayah}. Answer by selecting VERBATIM Arabic passages \
+         from the tafsir pages below and explaining in the user's language why each passage \
+         answers the question.\n\n\
+         STRICT RULES (each one violated = a failure):\n\
+         1. The ONLY scholars and books available in this corpus are listed below: \
+            {names} (book_ids: [{ids}]). Do NOT mention or cite ANY other scholar or \
+            tafsir book — any attribution to a name not in that list is a fabrication \
+            and will be rejected.\n\
+         2. Every `arabic_quote` MUST be a verbatim substring of one of the pages below. \
+            Copy the exact characters. Do NOT translate, paraphrase, summarize, or \"clean up\" \
+            the Arabic. If no page has relevant Arabic, omit that book — do NOT invent a quote.\n\
+         3. Use ONLY the exact `book_id` and `page_index` values shown in each page header. \
+            Never make up page numbers.\n\
+         4. Keep each `arabic_quote` focused — one to three sentences. 1–3 entries per book \
+            is plenty. Prefer quality over quantity.\n\
+         5. Write `english_note` in the SAME language the user used for the question. Keep \
+            it 1–2 sentences, grounded in the passage you just quoted.\n\n\
+         OUTPUT FORMAT — JSON ONLY, matching this shape exactly:\n\
+         {{\n  \
+           \"overview\": \"optional 1–2 sentence framing in the user's language, or null\",\n  \
+           \"entries\": [\n    \
+             {{\n      \
+               \"book_id\": <number from allow-list>,\n      \
+               \"page_index\": <number from a page header>,\n      \
+               \"arabic_quote\": \"<verbatim substring of that page>\",\n      \
+               \"english_note\": \"<short explanation>\"\n    \
+             }}\n  \
+           ]\n\
+         }}\n\n\
+         If none of the pages answer the question, return: {{\"overview\": null, \"entries\": []}}\n\n\
+         === TAFSIR PAGES ===\n{context}\n=== END PAGES ===",
+        surah = verse.0,
+        ayah = verse.1,
+        names = allowed_names.join(", "),
+        ids = allowed_ids.join(", "),
+    )
+}
+
+/// Build a cross-book synthesis prompt for /api/tafsir/ask. Each book's
+/// sections are introduced with a natural-language header (not heavy
+/// delimiters) so weaker models don't echo the prompt structure verbatim
+/// back into their answer. Shared 25 KB byte cap, distributed evenly.
+pub fn build_multi_book_prompt(books: &[(String, Vec<SectionContent>)]) -> String {
+    let mut context = String::new();
+    let per_book_cap = if books.is_empty() {
+        25_000
+    } else {
+        25_000 / books.len().max(1)
+    };
+
+    for (book_name, sections) in books {
+        let mut book_ctx = String::new();
+        for (i, s) in sections.iter().enumerate() {
+            if i == 0 {
+                book_ctx.push_str(&format!(
+                    "\nCommentary from {book_name} ({title}):\n{text}\n",
+                    book_name = book_name,
+                    title = s.title,
+                    text = s.text
+                ));
+            } else {
+                book_ctx.push_str(&format!(
+                    "\n{book_name} continues ({title}):\n{text}\n",
+                    book_name = book_name,
+                    title = s.title,
+                    text = s.text
+                ));
+            }
+        }
+        if book_ctx.len() > per_book_cap {
+            let safe = truncate_str(&book_ctx, per_book_cap).len();
+            book_ctx.truncate(safe);
+            book_ctx.push_str("\n… (truncated)\n");
+        }
+        context.push_str(&book_ctx);
+    }
+
+    // Global safety cap in case per-book math undershoots on small books.
+    if context.len() > 25_000 {
+        let safe = truncate_str(&context, 25_000).len();
+        context.truncate(safe);
+        context.push_str("\n… (content truncated)\n");
+    }
+
+    // The instructions are phrased so the model writes prose, not delimiters.
+    // `command-r7b-arabic` tends to echo structural markers it sees — keeping
+    // the context mostly natural-language sentences is the cheapest mitigation.
+    format!(
+        "You are synthesizing what multiple classical tafsir scholars say \
+         about the user's question. Use ONLY the commentaries below as your \
+         source material.\n\n\
+         Write a single flowing answer in the user's language. Attribute every \
+         claim to a specific book (e.g. \"Ibn Kathir writes that…\", \
+         \"Al-Tabari adds…\"). When the scholars agree, say so. When they \
+         differ, spell out the difference. Quote sparingly — one or two short \
+         phrases per scholar is enough; summarise the rest in your own words. \
+         Do NOT reproduce any of the headers (\"Commentary from…\", \"Vol X · \
+         Page Y\") in your answer — those are metadata for you, not for the \
+         reader. If the commentaries don't answer the question, say so \
+         honestly; never invent content.\n\n\
+         ---\n{context}\n---"
+    )
+}
+
 // ── Build sources from section ranges and tree structure ────────────────────
 
 /// Convert section ranges into source citations.

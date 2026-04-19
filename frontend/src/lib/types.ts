@@ -483,6 +483,39 @@ export type TafsirOption =
   | { kind: 'inline-en'; key: string; label: string; subtitle?: string }
   | { kind: 'turath'; key: string; book_id: number; label: string; subtitle?: string };
 
+// ── /tafsir page (multi-book reader + ask) ──
+
+export interface AllTafsirsEntry {
+  book_id: number;
+  name_en: string;
+  name_ar: string;
+  is_default: boolean;
+  page_index: number;
+  vol: string;
+  page_num: number;
+  heading: string | null;
+  text: string;
+}
+
+export interface InlineEnglishTafsir {
+  body: string | null;
+}
+
+export interface AllTafsirsResponse {
+  surah: number;
+  ayah: number;
+  entries: AllTafsirsEntry[];
+  english: InlineEnglishTafsir;
+}
+
+export interface MultiBookSource {
+  book_id: number;
+  book_name_en: string;
+  book_name_ar: string;
+  line: number;
+  title: string;
+}
+
 // ── Book Viewer ──
 
 export interface Book {
