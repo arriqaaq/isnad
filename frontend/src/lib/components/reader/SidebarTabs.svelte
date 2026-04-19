@@ -7,6 +7,7 @@
     chat: Snippet;
   } = $props();
 
+  // svelte-ignore state_referenced_locally — prop seeds initial tab; component owns state after mount.
   let currentTab: 'content' | 'chat' = $state(activeTab);
 </script>
 

@@ -28,7 +28,10 @@
     };
   } = $props();
 
+  // svelte-ignore state_referenced_locally — intentional: one-shot init from prop,
+  // then the internal tafsir-switcher owns the state afterward.
   let bookId = $state(initialBookId);
+  // svelte-ignore state_referenced_locally — same: seeded from prop, mutates locally.
   let headerTitle = $state(initialTitle);
   let loading = $state(true);
   let pages: Map<number, BookPage> = $state(new Map());

@@ -17,7 +17,7 @@
       {#if hadith.book_name}
         <Badge text={hadith.book_name} variant="accent" />
       {:else}
-        <Badge text="Book {hadith.book_id}" />
+        <Badge text="Book {hadith.collection_id}" />
       {/if}
       <span class="hadith-num mono">#{hadith.hadith_number}</span>
     </div>

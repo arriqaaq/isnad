@@ -625,15 +625,15 @@ pub fn build_answer_prompt(book_name: &str, sections: &[SectionContent]) -> Stri
     )
 }
 
-// ── Extractive tafsir synthesis (verse-aware path) ─────────────────────────
+// ── Extractive tafsir synthesis ────────────────────────────────────────────
 //
-// The verse-aware branch of /api/tafsir/ask runs an *extractive* prompt:
-// the model selects verbatim Arabic passages from the provided pages and
-// writes a short explanation per passage. It does NOT paraphrase, and it
-// may only cite books from an explicit allow-list. Every output entry is
-// verified server-side before reaching the client — quotes that aren't
-// a substring of the actual page (after normalization) are dropped and
-// counted, as are entries pointing at unknown book_ids.
+// /api/tafsir/ask runs an *extractive* prompt per book: the model selects
+// verbatim Arabic passages from the provided pages and writes a short
+// explanation per passage. It does NOT paraphrase, and it may only cite
+// books from an explicit allow-list. Every output entry is verified
+// server-side before reaching the client — quotes that aren't a substring
+// of the actual page (after normalization) are dropped and counted, as are
+// entries pointing at unknown book_ids.
 //
 // See `build_tafsir_extract_prompt`, `validate_extract_result`.
 
@@ -870,72 +870,6 @@ pub fn build_tafsir_extract_prompt(
         ayah = verse.1,
         names = allowed_names.join(", "),
         ids = allowed_ids.join(", "),
-    )
-}
-
-/// Build a cross-book synthesis prompt for /api/tafsir/ask. Each book's
-/// sections are introduced with a natural-language header (not heavy
-/// delimiters) so weaker models don't echo the prompt structure verbatim
-/// back into their answer. Shared 25 KB byte cap, distributed evenly.
-pub fn build_multi_book_prompt(books: &[(String, Vec<SectionContent>)]) -> String {
-    let mut context = String::new();
-    let per_book_cap = if books.is_empty() {
-        25_000
-    } else {
-        25_000 / books.len().max(1)
-    };
-
-    for (book_name, sections) in books {
-        let mut book_ctx = String::new();
-        for (i, s) in sections.iter().enumerate() {
-            if i == 0 {
-                book_ctx.push_str(&format!(
-                    "\nCommentary from {book_name} ({title}):\n{text}\n",
-                    book_name = book_name,
-                    title = s.title,
-                    text = s.text
-                ));
-            } else {
-                book_ctx.push_str(&format!(
-                    "\n{book_name} continues ({title}):\n{text}\n",
-                    book_name = book_name,
-                    title = s.title,
-                    text = s.text
-                ));
-            }
-        }
-        if book_ctx.len() > per_book_cap {
-            let safe = truncate_str(&book_ctx, per_book_cap).len();
-            book_ctx.truncate(safe);
-            book_ctx.push_str("\n… (truncated)\n");
-        }
-        context.push_str(&book_ctx);
-    }
-
-    // Global safety cap in case per-book math undershoots on small books.
-    if context.len() > 25_000 {
-        let safe = truncate_str(&context, 25_000).len();
-        context.truncate(safe);
-        context.push_str("\n… (content truncated)\n");
-    }
-
-    // The instructions are phrased so the model writes prose, not delimiters.
-    // `command-r7b-arabic` tends to echo structural markers it sees — keeping
-    // the context mostly natural-language sentences is the cheapest mitigation.
-    format!(
-        "You are synthesizing what multiple classical tafsir scholars say \
-         about the user's question. Use ONLY the commentaries below as your \
-         source material.\n\n\
-         Write a single flowing answer in the user's language. Attribute every \
-         claim to a specific book (e.g. \"Ibn Kathir writes that…\", \
-         \"Al-Tabari adds…\"). When the scholars agree, say so. When they \
-         differ, spell out the difference. Quote sparingly — one or two short \
-         phrases per scholar is enough; summarise the rest in your own words. \
-         Do NOT reproduce any of the headers (\"Commentary from…\", \"Vol X · \
-         Page Y\") in your answer — those are metadata for you, not for the \
-         reader. If the commentaries don't answer the question, say so \
-         honestly; never invent content.\n\n\
-         ---\n{context}\n---"
     )
 }
 

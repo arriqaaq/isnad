@@ -49,11 +49,14 @@
       .finally(() => { tafsirLoading = false; });
   });
 
-  const currentAyah = $derived(
-    surahData?.ayahs.find((row: ApiAyah) => row.ayah_number === ayah) ?? null
+  const currentAyah = $derived.by(() => {
+    if (!surahData) return null;
+    return surahData.ayahs.find((row: ApiAyah) => row.ayah_number === ayah) ?? null;
+  });
+  const surahName = $derived.by(() =>
+    surahData ? surahData.surah.name_translit : `Surah ${surah}`
   );
-  const surahName = $derived(surahData?.surah.name_translit ?? `Surah ${surah}`);
-  const surahNameAr = $derived(surahData?.surah.name_ar ?? '');
+  const surahNameAr = $derived.by(() => (surahData ? surahData.surah.name_ar : ''));
 
   function handlePick(v: { surah: number; ayah: number }) {
     const url = new URL(page.url);

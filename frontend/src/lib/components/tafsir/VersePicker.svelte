@@ -7,6 +7,7 @@
     onsubmit: (v: { surah: number; ayah: number }) => void;
   } = $props();
 
+  // svelte-ignore state_referenced_locally — the $effect below re-syncs on prop change.
   let input = $state(`${surah}:${ayah}`);
   let error: string | null = $state(null);
 

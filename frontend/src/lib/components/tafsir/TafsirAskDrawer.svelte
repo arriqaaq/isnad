@@ -1,19 +1,13 @@
 <script lang="ts">
-  import { marked } from 'marked';
   import type { MultiBookSource } from '$lib/types';
-
-  marked.setOptions({ breaks: true, gfm: true });
 
   let { open, verse, onclose }: {
     open: boolean;
     /**
-     * Optional verse anchor. When provided, the drawer sends it along with
-     * the question so the backend can take the verse-aware shortcut
-     * (skip PageIndex LLM navigation, fetch exact pages from
-     * `tafsir_ayah_map`). The `/tafsir` page always has this. Other call
-     * sites may omit it and fall back to nav-based retrieval.
+     * Verse anchor — REQUIRED. The backend rejects requests without it
+     * with 400. All current call sites supply it.
      */
-    verse?: { surah: number; ayah: number };
+    verse: { surah: number; ayah: number };
     onclose: () => void;
   } = $props();
 
@@ -62,19 +56,14 @@
     reading?: ReadingBook[];
     skipped?: SkippedBook[];
     status?: string;
-    navigatingBooks?: number[];
     anchorVerse?: { surah: number; ayah: number };
     warning?: string;
     streaming?: boolean;
-    // Verse-aware (extractive) result. When set, the UI renders structured
-    // cards instead of the streaming markdown body.
+    // Extractive result — rendered as structured cards.
     extract?: ExtractResult;
     // `no_valid_extraction` fallback pages.
     availablePages?: AvailablePage[];
-    availableReason?: string;
-    // Verse-aware progress: total books fanned out + those that have
-    // completed so far. Shown as "3 / 4 books…" during the parallel
-    // extraction phase.
+    // Parallel-extraction progress: total books + completions so far.
     extractTotal?: number;
     extractedBooks?: ExtractedBook[];
   }
@@ -151,24 +140,17 @@
     scrollToBottom(true);
 
     try {
-      // Passing `verse` switches the backend to its fast path: it skips
-      // LLM navigation and reads the exact tafsir pages for the anchored
-      // ayah straight from the index. Omitting it forces the slow nav
-      // fallback — fine for non-verse-anchored questions.
-      const body: { question: string; verse?: { surah: number; ayah: number } } = { question };
-      if (verse) body.verse = verse;
-
       const res = await fetch('/api/tafsir/ask', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+        body: JSON.stringify({ question, verse }),
       });
 
       if (!res.ok) {
         const idx = messages.length - 1;
         let detail = res.statusText;
         if (res.status === 503) detail = 'No tafsir PageIndex trees loaded — run `make pageindex-build`.';
-        messages[idx] = { ...messages[idx], content: `Error: ${detail}`, streaming: false };
+        messages[idx] = { ...messages[idx], warning: `Error: ${detail}`, streaming: false };
         loading = false;
         return;
       }
@@ -202,12 +184,6 @@
               };
             } else if (data.status === 'reading') {
               messages[idx] = { ...messages[idx], reading: data.books, status: 'reading' };
-            } else if (data.status === 'navigating') {
-              messages[idx] = {
-                ...messages[idx],
-                status: 'navigating',
-                navigatingBooks: Array.isArray(data.books) ? data.books : [],
-              };
             } else if (data.status === 'loading_verse') {
               messages[idx] = {
                 ...messages[idx],
@@ -238,34 +214,27 @@
                 ],
               };
             } else if (data.status === 'no_valid_extraction') {
-              // Backend bailed out — either LLM failed, or every entry
-              // failed verification. Switch the message into fallback
-              // mode showing direct links to the raw pages instead.
+              // Every entry failed verification (or the LLM produced no
+              // usable output). Fall back to direct links to the raw pages.
               messages[idx] = {
                 ...messages[idx],
                 status: 'no_valid_extraction',
                 availablePages: Array.isArray(data.available_pages) ? data.available_pages : [],
-                availableReason: typeof data.reason === 'string' ? data.reason : undefined,
               };
             } else if (data.status) {
               messages[idx] = { ...messages[idx], status: data.status };
             } else if (data.result) {
-              // Verse-aware extractive result — already validated server-side.
-              // Takes precedence over any accumulated `content` (which shouldn't
-              // exist on this path anyway).
-              messages[idx] = { ...messages[idx], extract: data.result, content: '' };
+              // Extractive result — already validated server-side.
+              messages[idx] = { ...messages[idx], extract: data.result };
               scrollToBottom();
             } else if (data.sources) {
               messages[idx] = { ...messages[idx], sources: data.sources };
-            } else if (data.text) {
-              messages[idx] = { ...messages[idx], content: messages[idx].content + data.text };
-              scrollToBottom();
             } else if (data.done) {
               messages[idx] = { ...messages[idx], streaming: false, status: undefined };
             } else if (data.error) {
               messages[idx] = {
                 ...messages[idx],
-                content: messages[idx].content + `\n\n[Error: ${data.error}]`,
+                warning: `Error: ${data.error}`,
                 streaming: false,
               };
             }
@@ -276,7 +245,7 @@
       saveHistory();
     } catch (e: any) {
       const idx = messages.length - 1;
-      messages[idx] = { ...messages[idx], content: `Error: ${e.message}`, streaming: false };
+      messages[idx] = { ...messages[idx], warning: `Error: ${e.message}`, streaming: false };
     } finally {
       loading = false;
       scrollToBottom();
@@ -302,11 +271,6 @@
         }
         return 'Pulling tafsir pages for the verse…';
       }
-      case 'navigating': {
-        const n = m.navigatingBooks?.length ?? 0;
-        if (n === 0) return 'Navigating tafsir books…';
-        return `Navigating ${n} tafsir book${n === 1 ? '' : 's'}… (this may take up to a few minutes for local models)`;
-      }
       case 'reading': return 'Reading sections…';
       case 'extracting': {
         const total = m.extractTotal ?? 0;
@@ -331,7 +295,7 @@
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 {#if open}
   <div class="drawer-backdrop" onclick={onclose}></div>
-  <aside class="drawer" role="dialog" aria-label="Ask AI across tafsirs">
+  <div class="drawer" role="dialog" aria-modal="true" aria-label="Ask AI across tafsirs" tabindex="-1">
     <div class="drawer-header">
       <div class="header-left">
         <span class="drawer-title">Ask across all tafsirs</span>
@@ -483,8 +447,7 @@
               <!-- Fallback: synthesis failed; show the raw pages we pulled. -->
               <div class="extract-fallback">
                 <p class="fallback-lede">
-                  Couldn't synthesize an answer{msg.availableReason ? ` (${msg.availableReason})` : ''}.
-                  Here are the pages pulled for this verse — open any directly:
+                  Couldn't synthesize an answer. Here are the pages pulled for this verse — open any directly:
                 </p>
                 {#if msg.availablePages && msg.availablePages.length > 0}
                   <ul class="fallback-pages">
@@ -502,8 +465,6 @@
                   </ul>
                 {/if}
               </div>
-            {:else if msg.content}
-              <div class="msg-body assistant-body">{@html marked.parse(msg.content)}</div>
             {/if}
           {/if}
         </div>
@@ -522,7 +483,7 @@
         {loading ? '…' : 'Send'}
       </button>
     </form>
-  </aside>
+  </div>
 {/if}
 
 <style>
@@ -629,18 +590,6 @@
     border-radius: 12px 12px 3px 12px;
     max-width: 85%;
   }
-  .assistant-body {
-    color: var(--text-primary);
-  }
-  .assistant-body :global(p) { margin: 0.4rem 0; }
-  .assistant-body :global(ul), .assistant-body :global(ol) { margin: 0.4rem 0; padding-left: 1.2rem; }
-  .assistant-body :global(code) {
-    font-family: var(--font-mono);
-    background: var(--bg-surface);
-    padding: 1px 4px;
-    border-radius: 3px;
-  }
-
   .msg-status {
     font-size: 0.78rem;
     color: var(--text-muted);

@@ -31,8 +31,10 @@
   let loading = $state(false);
   let chatContainer: HTMLDivElement = $state(null!);
 
-  // Load chat history from localStorage
-  const storageKey = `book_chat_${bookId}`;
+  // Load chat history from localStorage. Derived so a book switch in the
+  // enclosing viewer (e.g. BookViewerModal's tafsir dropdown) re-targets
+  // the correct slot instead of writing back to the initial book's key.
+  const storageKey = $derived(`book_chat_${bookId}`);
 
   function loadHistory() {
     if (typeof localStorage === 'undefined') return;
@@ -262,7 +264,7 @@
       rows="1"
       onkeydown={handleKeydown}
     ></textarea>
-    <button type="submit" class="send-btn" disabled={loading || !input.trim()}>
+    <button type="submit" class="send-btn" aria-label="Send" disabled={loading || !input.trim()}>
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <line x1="22" y1="2" x2="11" y2="13"/>
         <polygon points="22 2 15 22 11 13 2 9 22 2"/>

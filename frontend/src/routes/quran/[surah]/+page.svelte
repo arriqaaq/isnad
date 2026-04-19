@@ -130,23 +130,24 @@
       <LoadingSpinner />
     </div>
   {:else if data}
+    {@const d = data}
     <!-- Scrollable content area -->
     <div class="page-content">
       <div class="surah-nav">
-        {#if data.surah.surah_number > 1}
-          <a href="/quran/{data.surah.surah_number - 1}" class="nav-link">← Previous</a>
+        {#if d.surah.surah_number > 1}
+          <a href="/quran/{d.surah.surah_number - 1}" class="nav-link">← Previous</a>
         {/if}
         <a href="/quran" class="nav-link">All Surahs</a>
-        {#if data.surah.surah_number < 114}
-          <a href="/quran/{data.surah.surah_number + 1}" class="nav-link">Next →</a>
+        {#if d.surah.surah_number < 114}
+          <a href="/quran/{d.surah.surah_number + 1}" class="nav-link">Next →</a>
         {/if}
       </div>
 
-      <SurahHeader surah={data.surah} />
+      <SurahHeader surah={d.surah} />
 
       <div class="ayah-list">
-        {#each data.ayahs as ayah}
-          <div id="{data.surah.surah_number}:{ayah.ayah_number}">
+        {#each d.ayahs as ayah}
+          <div id="{d.surah.surah_number}:{ayah.ayah_number}">
             <AyahCard
               {ayah}
               active={ayah.ayah_number === activeAyah}
@@ -154,7 +155,7 @@
               onopenpanel={(a) => panelAyah = a}
               onopennote={(a) => { noteTarget = { refType: 'ayah', refId: `${a.surah_number}:${a.ayah_number}`, label: `${a.surah_number}:${a.ayah_number}` }; }}
               onopentafsir={(info) => { tafsirTarget = info; }}
-              noteIndicator={noteIndicators[`${data.surah.surah_number}:${ayah.ayah_number}`]}
+              noteIndicator={noteIndicators[`${d.surah.surah_number}:${ayah.ayah_number}`]}
               tafsirPage={tafsirMappings[String(ayah.ayah_number)]}
               {reciterFolder}
             />
@@ -163,12 +164,12 @@
       </div>
 
       <div class="surah-nav bottom">
-        {#if data.surah.surah_number > 1}
-          <a href="/quran/{data.surah.surah_number - 1}" class="nav-link">← Previous Surah</a>
+        {#if d.surah.surah_number > 1}
+          <a href="/quran/{d.surah.surah_number - 1}" class="nav-link">← Previous Surah</a>
         {/if}
         <a href="/quran" class="nav-link">All Surahs</a>
-        {#if data.surah.surah_number < 114}
-          <a href="/quran/{data.surah.surah_number + 1}" class="nav-link">Next Surah →</a>
+        {#if d.surah.surah_number < 114}
+          <a href="/quran/{d.surah.surah_number + 1}" class="nav-link">Next Surah →</a>
         {/if}
       </div>
     </div>
@@ -193,8 +194,8 @@
               <SidebarTabs>
                 {#snippet content()}
                   <SurahSidebar
-                    surah={data.surah}
-                    totalAyahs={data.surah.ayah_count}
+                    surah={d.surah}
+                    totalAyahs={d.surah.ayah_count}
                     onNavigateAyah={handleAyahChange}
                     onClose={toggleRight}
                   />
@@ -229,18 +230,19 @@
         <SidebarTabs>
           {#snippet content()}
             <SurahSidebar
-              surah={data.surah}
-              totalAyahs={data.surah.ayah_count}
+              surah={d.surah}
+              totalAyahs={d.surah.ayah_count}
               onNavigateAyah={(ayah) => { mobileDrawerOpen = false; handleAyahChange(ayah); }}
               onClose={() => { mobileDrawerOpen = false; }}
             />
           {/snippet}
           {#snippet chat()}
             <BookChat
-              bookId={TAFSIR_BOOK_ID}
-              bookName="Tafsir Ibn Kathir"
+              bookId={tafsirBookId ?? 0}
+              bookName={tafsirBookName}
               currentPageIndex={0}
               onNavigate={() => { mobileDrawerOpen = false; }}
+              defaultQuestions={tafsirDefaultQuestions}
             />
           {/snippet}
         </SidebarTabs>
@@ -279,10 +281,11 @@
 {/if}
 
 {#if data}
+  {@const d = data}
   <RecitationPlayer
     bind:this={playerRef}
-    surahNumber={data.surah.surah_number}
-    ayahCount={data.surah.ayah_count}
+    surahNumber={d.surah.surah_number}
+    ayahCount={d.surah.ayah_count}
     onayahchange={handleAyahChange}
   />
 {/if}

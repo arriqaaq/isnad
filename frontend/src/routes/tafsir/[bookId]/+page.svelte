@@ -12,14 +12,14 @@
   import { loadBooksConfig, getBookConfig } from '$lib/stores/books';
   import type { BooksConfig } from '$lib/types';
 
+  let bookId = $derived(Number((page.params as Record<string, string>).bookId));
+  let initialPage = $derived(Number(page.url.searchParams.get('page')) || 0);
+
   let booksConfig: BooksConfig | null = $state(null);
   let bookConfig = $derived(
     booksConfig ? getBookConfig(booksConfig, bookId) : undefined
   );
   let chatDefaultQuestions = $derived(bookConfig?.default_questions ?? []);
-
-  let bookId = $derived(Number((page.params as Record<string, string>).bookId));
-  let initialPage = $derived(Number(page.url.searchParams.get('page')) || 0);
 
   let book: BookDetail | null = $state(null);
   let pages: Map<number, BookPage> = $state(new Map());
@@ -145,11 +145,12 @@
     <LoadingSpinner />
   </div>
 {:else if book}
+  {@const b = book}
   <div class="tafsir-reader">
     <ReaderHeader
-      {book}
+      book={b}
       currentPage={currentPageIndex}
-      totalPages={book.total_pages}
+      totalPages={b.total_pages}
       onToggleSidebar={toggleRight}
     />
 
@@ -159,7 +160,7 @@
           bind:this={readerRef}
           {pages}
           bind:currentPageIndex
-          totalPages={book.total_pages}
+          totalPages={b.total_pages}
           onNeedMore={handleNeedMore}
         />
       </div>
@@ -180,9 +181,9 @@
             <SidebarTabs>
               {#snippet content()}
                 <ReaderSidebar
-                  headings={book.headings}
+                  headings={b.headings}
                   {currentPageIndex}
-                  totalPages={book.total_pages}
+                  totalPages={b.total_pages}
                   onNavigate={handleSidebarNavigate}
                   onClose={toggleRight}
                 />
@@ -190,7 +191,7 @@
               {#snippet chat()}
                 <BookChat
                   {bookId}
-                  bookName={book.name_en}
+                  bookName={b.name_en}
                   {currentPageIndex}
                   onNavigate={handleSidebarNavigate}
                   defaultQuestions={chatDefaultQuestions}
@@ -214,9 +215,9 @@
         <SidebarTabs>
           {#snippet content()}
             <ReaderSidebar
-              headings={book.headings}
+              headings={b.headings}
               {currentPageIndex}
-              totalPages={book.total_pages}
+              totalPages={b.total_pages}
               onNavigate={(idx) => { mobileDrawerOpen = false; handleSidebarNavigate(idx); }}
               onClose={() => { mobileDrawerOpen = false; }}
             />
@@ -224,7 +225,7 @@
           {#snippet chat()}
             <BookChat
               {bookId}
-              bookName={book.name_en}
+              bookName={b.name_en}
               {currentPageIndex}
               onNavigate={(idx) => { mobileDrawerOpen = false; handleSidebarNavigate(idx); }}
             />
