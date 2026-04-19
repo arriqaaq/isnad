@@ -1,17 +1,35 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { getBook, getBookPages } from '$lib/api';
-  import type { BookPage, BookHeading } from '$lib/types';
+  import { getBook, getBookPages, getAyahTafsir } from '$lib/api';
+  import type { BookPage, BookHeading, TafsirBookEntry, TafsirOption } from '$lib/types';
   import ReaderPage from './ReaderPage.svelte';
+  import TafsirSourcePicker from '../quran/TafsirSourcePicker.svelte';
 
-  let { bookId, pageIndex, title, subtitle, onclose }: {
+  let {
+    bookId: initialBookId,
+    pageIndex,
+    title: initialTitle,
+    subtitle,
+    onclose,
+    tafsirAnchor,
+  }: {
     bookId: number;
     pageIndex: number;
     title: string;     // e.g. "Tafsir Ibn Kathir" or "Fath al-Bari"
     subtitle: string;  // e.g. "2:255" or "Hadith 1"
     onclose: () => void;
+    // When provided, renders an Arabic-tafsir source switcher in the header.
+    // The switcher re-resolves page_index per ayah via the per-ayah endpoint,
+    // so (surah, ayah) is the anchor that survives book changes.
+    tafsirAnchor?: {
+      surah: number;
+      ayah: number;
+      availableBooks: TafsirBookEntry[];
+    };
   } = $props();
 
+  let bookId = $state(initialBookId);
+  let headerTitle = $state(initialTitle);
   let loading = $state(true);
   let pages: Map<number, BookPage> = $state(new Map());
   let headings: BookHeading[] = $state([]);
@@ -19,6 +37,45 @@
   // svelte-ignore state_referenced_locally — intentional: one-shot init from prop
   let currentIndex = $state(pageIndex);
   let sidebarOpen = $state(false);
+  let pickerOpen = $state(false);
+  let switching = $state(false);
+
+  let tafsirOptions: TafsirOption[] = $derived.by(() => {
+    if (!tafsirAnchor) return [];
+    return tafsirAnchor.availableBooks.map((b) => ({
+      kind: 'turath' as const,
+      key: `turath-${b.book_id}`,
+      book_id: b.book_id,
+      label: b.name_en,
+      subtitle: b.name_ar,
+    }));
+  });
+  let selectedKey = $derived(`turath-${bookId}`);
+
+  async function switchBook(key: string) {
+    if (!tafsirAnchor) return;
+    const opt = tafsirOptions.find((o) => o.key === key);
+    if (!opt || opt.kind !== 'turath' || opt.book_id === bookId) return;
+    switching = true;
+    try {
+      const data = await getAyahTafsir(tafsirAnchor.surah, tafsirAnchor.ayah, opt.book_id);
+      const bookMeta = tafsirAnchor.availableBooks.find((b) => b.book_id === opt.book_id);
+      bookId = opt.book_id;
+      headerTitle = bookMeta?.name_en ?? opt.label;
+      pages = new Map();           // invalidate cache — new book, new pages
+      headings = [];
+      totalPages = 0;
+      currentIndex = data.page_index;
+      const book = await getBook(bookId);
+      headings = book.headings;
+      totalPages = book.total_pages;
+      await fetchAround(data.page_index);
+    } catch (e) {
+      console.error('Failed to switch tafsir book:', e);
+    } finally {
+      switching = false;
+    }
+  }
 
   // Panel position & size
   let panelX = $state(0);
@@ -194,7 +251,19 @@
         <button class="icon-btn sidebar-btn" onclick={(e) => { e.stopPropagation(); sidebarOpen = !sidebarOpen; }} title="Chapters">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="18" y2="18"/></svg>
         </button>
-        <span class="header-title" dir="rtl">{title}</span>
+        {#if tafsirAnchor && tafsirOptions.length > 1}
+          <button
+            class="book-switcher"
+            onclick={(e) => { e.stopPropagation(); pickerOpen = true; }}
+            aria-haspopup="dialog"
+            title="Switch tafsir source"
+          >
+            <span class="header-title" dir="rtl">{headerTitle}</span>
+            <span class="switcher-chevron" aria-hidden="true">⇅</span>
+          </button>
+        {:else}
+          <span class="header-title" dir="rtl">{headerTitle}</span>
+        {/if}
         <span class="header-ref">{subtitle}</span>
       </div>
       <div class="header-right">
@@ -240,7 +309,7 @@
 
       <!-- Content -->
       <div class="panel-content">
-        {#if loading}
+        {#if loading || switching}
           <div class="loading-state">Loading tafsir...</div>
         {:else if currentPage}
           <ReaderPage page={currentPage} />
@@ -278,6 +347,15 @@
     </div>
   </div>
 </div>
+
+{#if pickerOpen && tafsirAnchor}
+  <TafsirSourcePicker
+    options={tafsirOptions}
+    selectedKey={selectedKey}
+    onselect={switchBook}
+    onclose={() => pickerOpen = false}
+  />
+{/if}
 
 <style>
   .modal-backdrop {
@@ -326,6 +404,25 @@
     font-weight: 600;
     color: var(--text-primary);
     font-family: var(--font-arabic-text), 'Noto Naskh Arabic', serif;
+  }
+  .book-switcher {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 8px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all var(--transition);
+  }
+  .book-switcher:hover {
+    border-color: var(--accent);
+    background: var(--bg-secondary);
+  }
+  .switcher-chevron {
+    color: var(--text-muted);
+    font-size: 0.85rem;
   }
   .header-ref {
     font-size: 0.7rem;

@@ -107,9 +107,40 @@ pub struct BookConfigEntry {
 }
 
 #[derive(Debug, Serialize)]
+pub struct TafsirBookEntry {
+    pub book_id: u64,
+    pub slug: String,
+    pub name_ar: String,
+    pub name_en: String,
+    pub is_default: bool,
+}
+
+#[derive(Debug, Serialize)]
 pub struct BooksConfigResponse {
     pub books: Vec<BookConfigEntry>,
-    pub tafsir_book_id: Option<u64>,
+    pub tafsir_books: Vec<TafsirBookEntry>,
+}
+
+/// Ibn Kathir is the historical default — appears first and is selected by the UI
+/// when no explicit tafsir is chosen.
+const DEFAULT_TAFSIR_BOOK_ID: u64 = 23604;
+
+fn slugify_tafsir(name_en: &str) -> String {
+    let cleaned: String = name_en
+        .chars()
+        .map(|c| {
+            if c.is_ascii_alphanumeric() {
+                c.to_ascii_lowercase()
+            } else {
+                '-'
+            }
+        })
+        .collect();
+    cleaned
+        .split('-')
+        .filter(|s| !s.is_empty())
+        .collect::<Vec<_>>()
+        .join("-")
 }
 
 fn default_questions_for_type(book_type: Option<&str>) -> Vec<String> {
@@ -222,14 +253,20 @@ pub async fn books_config(State(state): State<AppState>) -> impl IntoResponse {
 
     match result {
         Ok(rows) => {
-            let mut tafsir_book_id: Option<u64> = None;
+            let mut tafsir_books: Vec<TafsirBookEntry> = Vec::new();
             let books: Vec<BookConfigEntry> = rows
                 .into_iter()
                 .map(|b| {
                     let bid = b.book_id as u64;
                     let bt = b.book_type.as_deref();
                     if bt == Some("tafsir") {
-                        tafsir_book_id = Some(bid);
+                        tafsir_books.push(TafsirBookEntry {
+                            book_id: bid,
+                            slug: slugify_tafsir(&b.name_en),
+                            name_ar: b.name_ar.clone(),
+                            name_en: b.name_en.clone(),
+                            is_default: bid == DEFAULT_TAFSIR_BOOK_ID,
+                        });
                     }
                     BookConfigEntry {
                         book_id: bid,
@@ -243,9 +280,12 @@ pub async fn books_config(State(state): State<AppState>) -> impl IntoResponse {
                 })
                 .collect();
 
+            // Default first, then stable by book_id.
+            tafsir_books.sort_by_key(|t| (!t.is_default, t.book_id));
+
             Json(BooksConfigResponse {
                 books,
-                tafsir_book_id,
+                tafsir_books,
             })
             .into_response()
         }
@@ -376,17 +416,25 @@ pub async fn get_pages(
     }
 }
 
+#[derive(Deserialize)]
+pub struct TafsirQuery {
+    pub book_id: Option<u64>,
+}
+
 pub async fn surah_tafsir_pages(
     State(state): State<AppState>,
     Path(surah_number): Path<u64>,
+    Query(q): Query<TafsirQuery>,
 ) -> impl IntoResponse {
+    let book_id = q.book_id.unwrap_or(DEFAULT_TAFSIR_BOOK_ID);
     let result: Result<Vec<MappingRow>, _> = state
         .db
         .query(
             "SELECT ayah, page_index, heading FROM tafsir_ayah_map \
-             WHERE surah = $surah ORDER BY ayah ASC",
+             WHERE surah = $surah AND book_id = $book ORDER BY ayah ASC",
         )
         .bind(("surah", surah_number as i64))
+        .bind(("book", book_id as i64))
         .await
         .and_then(|mut r| r.take(0));
 
@@ -405,10 +453,113 @@ pub async fn surah_tafsir_pages(
             Json(TafsirSurahMappings { mappings }).into_response()
         }
         Err(e) => {
-            tracing::error!("Failed to get tafsir pages for surah {surah_number}: {e}");
+            tracing::error!(
+                "Failed to get tafsir pages for surah {surah_number} book {book_id}: {e}"
+            );
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "Failed to get tafsir pages",
+            )
+                .into_response()
+        }
+    }
+}
+
+#[derive(Debug, SurrealValue)]
+struct AyahTafsirMapping {
+    page_index: i64,
+    heading: Option<String>,
+}
+
+#[derive(Debug, SurrealValue)]
+struct AyahTafsirPage {
+    text: String,
+    vol: String,
+    page_num: i64,
+}
+
+#[derive(Debug, Serialize)]
+pub struct AyahTafsirResponse {
+    pub book_id: u64,
+    pub surah: u64,
+    pub ayah: u64,
+    pub page_index: u64,
+    pub vol: String,
+    pub page_num: u64,
+    pub heading: Option<String>,
+    pub text: String,
+}
+
+/// GET /api/quran/ayah/{surah}/{ayah}/tafsir?book_id=<id>
+/// Returns the tafsir body for one ayah from one book in a single response.
+/// The `(surah, ayah)` anchor stays constant while the UI switches `book_id`.
+pub async fn ayah_tafsir(
+    State(state): State<AppState>,
+    Path((surah, ayah)): Path<(u64, u64)>,
+    Query(q): Query<TafsirQuery>,
+) -> impl IntoResponse {
+    let book_id = q.book_id.unwrap_or(DEFAULT_TAFSIR_BOOK_ID);
+
+    let mapping: Result<Option<AyahTafsirMapping>, _> = state
+        .db
+        .query(
+            "SELECT page_index, heading FROM tafsir_ayah_map \
+             WHERE surah = $s AND ayah = $a AND book_id = $b LIMIT 1",
+        )
+        .bind(("s", surah as i64))
+        .bind(("a", ayah as i64))
+        .bind(("b", book_id as i64))
+        .await
+        .and_then(|mut r| r.take(0));
+
+    let mapping = match mapping {
+        Ok(Some(m)) => m,
+        Ok(None) => {
+            return (StatusCode::NOT_FOUND, "No tafsir mapping for this ayah").into_response();
+        }
+        Err(e) => {
+            tracing::error!(
+                "Failed to lookup tafsir mapping for {surah}:{ayah} book {book_id}: {e}"
+            );
+            return (StatusCode::INTERNAL_SERVER_ERROR, "Failed to lookup tafsir").into_response();
+        }
+    };
+
+    let page: Result<Option<AyahTafsirPage>, _> = state
+        .db
+        .query(
+            "SELECT text, vol, page_num FROM book_page \
+             WHERE book_id = $b AND page_index = $p LIMIT 1",
+        )
+        .bind(("b", book_id as i64))
+        .bind(("p", mapping.page_index))
+        .await
+        .and_then(|mut r| r.take(0));
+
+    match page {
+        Ok(Some(p)) => Json(AyahTafsirResponse {
+            book_id,
+            surah,
+            ayah,
+            page_index: mapping.page_index as u64,
+            vol: p.vol,
+            page_num: p.page_num as u64,
+            heading: mapping.heading,
+            text: p.text,
+        })
+        .into_response(),
+        Ok(None) => {
+            tracing::warn!(
+                "tafsir mapping for {surah}:{ayah} book {book_id} points at missing page {}",
+                mapping.page_index
+            );
+            (StatusCode::NOT_FOUND, "Tafsir page missing").into_response()
+        }
+        Err(e) => {
+            tracing::error!("Failed to load tafsir page for {surah}:{ayah} book {book_id}: {e}");
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Failed to load tafsir page",
             )
                 .into_response()
         }

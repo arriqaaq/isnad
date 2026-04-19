@@ -17,8 +17,16 @@ export async function loadBooksConfig(): Promise<BooksConfig> {
   return loading;
 }
 
+/**
+ * Returns the default tafsir's `book_id`, or null if no tafsirs are configured.
+ * Defaults are marked server-side (currently Ibn Kathir); falls back to the
+ * first entry if no explicit default is flagged.
+ */
 export function getTafsirBookId(config: BooksConfig): number | null {
-  return config.tafsir_book_id;
+  const list = config.tafsir_books ?? [];
+  if (list.length === 0) return null;
+  const dflt = list.find((t) => t.is_default);
+  return (dflt ?? list[0]).book_id;
 }
 
 export function getBookConfig(config: BooksConfig, bookId: number): BookConfig | undefined {

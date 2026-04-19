@@ -33,6 +33,7 @@ import type {
   BookDetail,
   BookPagesResponse,
   TafsirSurahMappings,
+  AyahTafsirResponse,
   SharhBatchResponse,
   NarratorBookRef,
 } from './types';
@@ -380,8 +381,17 @@ export async function getBookPages(bookId: number, start: number, size: number):
   return get(`/books/${bookId}/pages?start=${start}&size=${size}`);
 }
 
-export async function getSurahTafsirPages(surahNumber: number): Promise<TafsirSurahMappings> {
-  return get(`/quran/surah/${surahNumber}/tafsir-pages`);
+export async function getSurahTafsirPages(surahNumber: number, bookId?: number): Promise<TafsirSurahMappings> {
+  const q = bookId ? `?book_id=${bookId}` : '';
+  return get(`/quran/surah/${surahNumber}/tafsir-pages${q}`);
+}
+
+export async function getAyahTafsir(
+  surah: number,
+  ayah: number,
+  bookId: number,
+): Promise<AyahTafsirResponse> {
+  return get(`/quran/ayah/${surah}/${ayah}/tafsir?book_id=${bookId}`);
 }
 
 export async function getNarratorBooks(narratorId: string): Promise<NarratorBookRef[]> {

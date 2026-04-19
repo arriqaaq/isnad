@@ -55,6 +55,12 @@ BOOKS = [
         "name_ar": "تفسير ابن كثير",
     },
     {
+        "id": 7798,
+        "slug": "tafsir_tabari",
+        "name_en": "Tafsir al-Tabari",
+        "name_ar": "تفسير الطبري جامع البيان",
+    },
+    {
         "id": 1711,
         "slug": "nawawi_on_muslim",
         "name_en": "Sharh Nawawi ala Muslim",

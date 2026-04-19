@@ -219,6 +219,10 @@ quran-full: quran-check quran data/quran-morphology.txt data/morphology-terms-ar
 turath-fetch-tafsir:
 	python3 scripts/fetch_tafsir.py --pages
 
+# Fetch Tafsir al-Tabari (Jami' al-Bayan) from turath.io API (~25 min, resume-safe)
+turath-fetch-tabari:
+	python3 scripts/fetch_tabari.py --pages
+
 # Fetch Fath al-Bari from turath.io API (~15 min, resume-safe)
 turath-fetch-fathulbari:
 	python3 scripts/fetch_fathulbari.py --pages
@@ -248,7 +252,7 @@ turath-fetch-ibnmajah:
 	python3 scripts/fetch_ibn_majah.py --pages
 
 # Fetch all books (can run in parallel with -j8)
-turath-fetch: turath-fetch-tafsir turath-fetch-fathulbari turath-fetch-nawawi turath-fetch-tuhfat turath-fetch-nasai turath-fetch-awnmabud turath-fetch-ibnmajah turath-fetch-tahdhib
+turath-fetch: turath-fetch-tafsir turath-fetch-tabari turath-fetch-fathulbari turath-fetch-nawawi turath-fetch-tuhfat turath-fetch-nasai turath-fetch-awnmabud turath-fetch-ibnmajah turath-fetch-tahdhib
 
 # Build narrator→book mappings (needs: semantic_hadith.json + tahdhib_headings.json)
 turath-mapping-narrators:
@@ -265,7 +269,7 @@ turath-mapping:
 
 # Ingest Tafsir Ibn Kathir (needs: turath-fetch-tafsir)
 book-ingest-tafsir:
-	cargo run -- ingest-book \
+	cargo run -- ingest-turath \
 		--pages-file data/tafsir_ibn_kathir_pages.json \
 		--headings-file data/tafsir_ibn_kathir_headings.json \
 		--book-id 23604 \
@@ -275,9 +279,21 @@ book-ingest-tafsir:
 		--tafsir-mapping data/tafsir_verse_mapping.json \
 		--category quran --book-type tafsir
 
+# Ingest Tafsir al-Tabari (needs: turath-fetch-tabari)
+book-ingest-tabari:
+	cargo run -- ingest-turath \
+		--pages-file data/tafsir_tabari_pages.json \
+		--headings-file data/tafsir_tabari_headings.json \
+		--book-id 7798 \
+		--name-ar "تفسير الطبري جامع البيان" \
+		--name-en "Tafsir al-Tabari" \
+		--author-ar "الطبري" \
+		--tafsir-mapping data/tafsir_tabari_verse_mapping.json \
+		--category quran --book-type tafsir
+
 # Ingest Fath al-Bari (needs: turath-fetch-fathulbari + turath-mapping)
 book-ingest-fathulbari:
-	cargo run -- ingest-book \
+	cargo run -- ingest-turath \
 		--pages-file data/fath_al_bari_pages.json \
 		--headings-file data/fath_al_bari_headings.json \
 		--book-id 1673 \
@@ -290,7 +306,7 @@ book-ingest-fathulbari:
 
 # Ingest Sharh Nawawi (needs: turath-fetch-nawawi + turath-mapping)
 book-ingest-nawawi:
-	cargo run -- ingest-book \
+	cargo run -- ingest-turath \
 		--pages-file data/nawawi_on_muslim_pages.json \
 		--headings-file data/nawawi_on_muslim_headings.json \
 		--book-id 1711 \
@@ -303,7 +319,7 @@ book-ingest-nawawi:
 
 # Ingest Tuhfat al-Ahwadhi (needs: turath-fetch-tuhfat + turath-mapping)
 book-ingest-tuhfat:
-	cargo run -- ingest-book \
+	cargo run -- ingest-turath \
 		--pages-file data/tuhfat_ahwadhi_pages.json \
 		--headings-file data/tuhfat_ahwadhi_headings.json \
 		--book-id 21662 \
@@ -316,7 +332,7 @@ book-ingest-tuhfat:
 
 # Ingest Sahih Sunan al-Nasa'i
 book-ingest-nasai:
-	cargo run -- ingest-book \
+	cargo run -- ingest-turath \
 		--pages-file data/sahih_nasai_pages.json \
 		--headings-file data/sahih_nasai_headings.json \
 		--book-id 1147 \
@@ -329,7 +345,7 @@ book-ingest-nasai:
 
 # Ingest Awn al-Ma'bud
 book-ingest-awnmabud:
-	cargo run -- ingest-book \
+	cargo run -- ingest-turath \
 		--pages-file data/awn_mabud_pages.json \
 		--headings-file data/awn_mabud_headings.json \
 		--book-id 5760 \
@@ -342,7 +358,7 @@ book-ingest-awnmabud:
 
 # Ingest Sunan Ibn Majah
 book-ingest-ibnmajah:
-	cargo run -- ingest-book \
+	cargo run -- ingest-turath \
 		--pages-file data/ibn_majah_pages.json \
 		--headings-file data/ibn_majah_headings.json \
 		--book-id 98138 \
@@ -355,7 +371,7 @@ book-ingest-ibnmajah:
 
 # Ingest Tahdhib al-Tahdhib (narrator bios)
 book-ingest-tahdhib:
-	cargo run -- ingest-book \
+	cargo run -- ingest-turath \
 		--pages-file data/tahdhib_pages.json \
 		--headings-file data/tahdhib_headings.json \
 		--book-id 1278 \
@@ -366,11 +382,13 @@ book-ingest-tahdhib:
 		--category narrator --book-type biography
 
 # Ingest all books
-book-ingest: book-ingest-tafsir book-ingest-fathulbari book-ingest-nawawi book-ingest-tuhfat book-ingest-nasai book-ingest-awnmabud book-ingest-ibnmajah book-ingest-tahdhib
+book-ingest: book-ingest-tafsir book-ingest-tabari book-ingest-fathulbari book-ingest-nawawi book-ingest-tuhfat book-ingest-nasai book-ingest-awnmabud book-ingest-ibnmajah book-ingest-tahdhib
 
-# Full book pipeline: fetch → mapping → ingest
+# Full book pipeline: fetch → mapping → ingest → PageIndex trees
 # Note: turath-mapping needs data/semantic_hadith.json (run make semantic-setup first if missing)
-book-full: turath-fetch turath-mapping turath-mapping-narrators book-ingest
+# pageindex-build runs last — it reads the fetched *_headings/*_pages JSONs to build
+# retrieval trees in data/pageindex/{book_id}.json (one per book in index_books.py's BOOKS).
+book-full: turath-fetch turath-mapping turath-mapping-narrators book-ingest pageindex-build
 
 # Check required turath data files
 turath-check:
@@ -496,7 +514,6 @@ pipeline-full: data/semantic_hadith.json pageindex-clone pipeline-check
 	$(MAKE) hadith-full
 	$(MAKE) quran-full
 	$(MAKE) book-full
-	$(MAKE) pageindex-build
 	@echo ""
 	@echo "✓ Full pipeline complete. Run: make server"
 

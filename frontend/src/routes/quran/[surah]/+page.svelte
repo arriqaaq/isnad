@@ -13,12 +13,12 @@
   import SidebarTabs from '$lib/components/reader/SidebarTabs.svelte';
   import BookChat from '$lib/components/reader/BookChat.svelte';
   import ResizeHandle from '$lib/components/layout/ResizeHandle.svelte';
-  import { loadBooksConfig, getBookConfig } from '$lib/stores/books';
+  import { loadBooksConfig, getBookConfig, getTafsirBookId } from '$lib/stores/books';
   import type { BooksConfig } from '$lib/types';
   import { preferences } from '$lib/stores/preferences';
 
   let booksConfig: BooksConfig | null = $state(null);
-  let tafsirBookId: number | null = $derived(booksConfig?.tafsir_book_id ?? null);
+  let tafsirBookId: number | null = $derived(booksConfig ? getTafsirBookId(booksConfig) : null);
   let tafsirBookConfig = $derived(
     tafsirBookId && booksConfig ? getBookConfig(booksConfig, tafsirBookId) : undefined
   );
@@ -263,12 +263,18 @@
 {/if}
 
 {#if tafsirTarget}
+  {@const parts = tafsirTarget.ayahRef.split(':').map(Number)}
   <BookViewerModal
     bookId={tafsirBookId ?? 23604}
     pageIndex={tafsirTarget.pageIndex}
     title={tafsirBookName}
     subtitle={tafsirTarget.ayahRef}
     onclose={() => { tafsirTarget = null; }}
+    tafsirAnchor={booksConfig && parts.length === 2 ? {
+      surah: parts[0],
+      ayah: parts[1],
+      availableBooks: booksConfig.tafsir_books ?? []
+    } : undefined}
   />
 {/if}
 

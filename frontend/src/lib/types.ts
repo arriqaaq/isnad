@@ -455,10 +455,33 @@ export interface BookConfig {
   default_questions: string[];
 }
 
+export interface TafsirBookEntry {
+  book_id: number;
+  slug: string;
+  name_ar: string;
+  name_en: string;
+  is_default: boolean;
+}
+
 export interface BooksConfig {
   books: BookConfig[];
-  tafsir_book_id: number | null;
+  tafsir_books: TafsirBookEntry[];
 }
+
+export interface AyahTafsirResponse {
+  book_id: number;
+  surah: number;
+  ayah: number;
+  page_index: number;
+  vol: string;
+  page_num: number;
+  heading: string | null;
+  text: string;
+}
+
+export type TafsirOption =
+  | { kind: 'inline-en'; key: string; label: string; subtitle?: string }
+  | { kind: 'turath'; key: string; book_id: number; label: string; subtitle?: string };
 
 // ── Book Viewer ──
 
