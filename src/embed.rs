@@ -9,13 +9,14 @@ use crate::db::Db;
 const BATCH_SIZE: usize = 64;
 
 /// Supported embedding models.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, clap::ValueEnum)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, clap::ValueEnum, Default)]
 pub enum EmbedModel {
     /// BAAI/bge-m3 (1024-dim, no prefixes)
     #[value(name = "bge-m3")]
     BgeM3,
     /// intfloat/multilingual-e5-small (384-dim, requires query/passage prefixes)
     #[value(name = "e5-small")]
+    #[default]
     MultilingualE5Small,
 }
 
@@ -46,12 +47,6 @@ impl EmbedModel {
             Self::BgeM3 => "",
             Self::MultilingualE5Small => "passage: ",
         }
-    }
-}
-
-impl Default for EmbedModel {
-    fn default() -> Self {
-        Self::MultilingualE5Small
     }
 }
 
@@ -116,20 +111,19 @@ pub async fn check_embedding_dimension(db: &Surreal<Db>, expected_dim: usize) ->
         .query("SELECT embedding FROM hadith WHERE embedding IS NOT NONE LIMIT 1")
         .await?;
     let probes: Vec<EmbedProbe> = res.take(0)?;
-    if let Some(probe) = probes.first() {
-        if let Some(ref emb) = probe.embedding {
-            if emb.len() != expected_dim {
-                anyhow::bail!(
-                    "Existing embeddings have dimension {} but selected model produces dimension {}.\n\
+    if let Some(probe) = probes.first()
+        && let Some(ref emb) = probe.embedding
+        && emb.len() != expected_dim
+    {
+        anyhow::bail!(
+            "Existing embeddings have dimension {} but selected model produces dimension {}.\n\
                      To switch models, clean your data directory and re-ingest:\n  \
                      rm -rf db_data\n  \
                      hadith ingest --embed-model <model> --file data/semantic_hadith.json\n  \
                      hadith ingest-quran --embed-model <model> --file data/quran.csv",
-                    emb.len(),
-                    expected_dim,
-                );
-            }
-        }
+            emb.len(),
+            expected_dim,
+        );
     }
     Ok(())
 }

@@ -82,6 +82,7 @@ fn parse_meta(raw: &serde_json::Value) -> PageMeta {
 
 /// Ingest a book (pages + headings) into SurrealDB.
 /// Works for any book — just pass the right book_id, name, and author.
+#[allow(clippy::too_many_arguments)]
 pub async fn ingest_book(
     db: &Surreal<Db>,
     pages_file: &str,
@@ -250,10 +251,10 @@ pub async fn ingest_tafsir_mapping(
             sql.clear();
         }
     }
-    if !sql.is_empty() {
-        if let Err(e) = db.query(&sql).await.and_then(|r| r.check()) {
-            tracing::error!("Failed to insert final tafsir mapping batch: {e}");
-        }
+    if !sql.is_empty()
+        && let Err(e) = db.query(&sql).await.and_then(|r| r.check())
+    {
+        tracing::error!("Failed to insert final tafsir mapping batch: {e}");
     }
     tracing::info!("Inserted {inserted} tafsir ayah mappings for book {book_id}");
     Ok(())
@@ -311,10 +312,10 @@ pub async fn ingest_hadith_sharh_mapping(
             sql.clear();
         }
     }
-    if !sql.is_empty() {
-        if let Err(e) = db.query(&sql).await.and_then(|r| r.check()) {
-            tracing::error!("Failed to insert final hadith sharh mapping batch: {e}");
-        }
+    if !sql.is_empty()
+        && let Err(e) = db.query(&sql).await.and_then(|r| r.check())
+    {
+        tracing::error!("Failed to insert final hadith sharh mapping batch: {e}");
     }
     tracing::info!(
         "Inserted {inserted} hadith sharh mappings (collection_id={collection_id} → book={book_id})"

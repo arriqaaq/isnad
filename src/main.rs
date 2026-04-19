@@ -337,15 +337,14 @@ async fn async_main() -> Result<()> {
                         continue;
                     }
 
-                    match analysis::mustalah::analyze_family_mustalah(&db, &fid).await? {
-                        Some(result) => {
-                            let breadth_key =
-                                format!("{:?}", result.breadth.classification).to_lowercase();
-                            *breadth_counts.entry(breadth_key).or_default() += 1;
-                            analysis::mustalah::store_mustalah_results(&db, &result).await?;
-                            analyzed += 1;
-                        }
-                        None => {}
+                    if let Some(result) =
+                        analysis::mustalah::analyze_family_mustalah(&db, &fid).await?
+                    {
+                        let breadth_key =
+                            format!("{:?}", result.breadth.classification).to_lowercase();
+                        *breadth_counts.entry(breadth_key).or_default() += 1;
+                        analysis::mustalah::store_mustalah_results(&db, &result).await?;
+                        analyzed += 1;
                     }
                     pb.inc(1);
                 }
@@ -444,21 +443,19 @@ async fn async_main() -> Result<()> {
             if force {
                 tracing::info!("Force mode: clearing existing data for book {book_id}");
                 let _ = db
-                    .query(&format!("DELETE book_page WHERE book_id = {book_id}"))
+                    .query(format!("DELETE book_page WHERE book_id = {book_id}"))
                     .await;
                 let _ = db
-                    .query(&format!("DELETE book WHERE book_id = {book_id}"))
+                    .query(format!("DELETE book WHERE book_id = {book_id}"))
                     .await;
                 let _ = db
-                    .query(&format!("DELETE tafsir_ayah_map WHERE book_id = {book_id}"))
+                    .query(format!("DELETE tafsir_ayah_map WHERE book_id = {book_id}"))
                     .await;
                 let _ = db
-                    .query(&format!(
-                        "DELETE hadith_sharh_map WHERE book_id = {book_id}"
-                    ))
+                    .query(format!("DELETE hadith_sharh_map WHERE book_id = {book_id}"))
                     .await;
                 let _ = db
-                    .query(&format!(
+                    .query(format!(
                         "DELETE narrator_book_map WHERE book_id = {book_id}"
                     ))
                     .await;

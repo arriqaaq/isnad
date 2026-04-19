@@ -464,10 +464,10 @@ pub async fn ingest(
             .map(|n| {
                 let bare = normalize_arabic(n);
                 if is_relative_ref(&bare) {
-                    if let Some(ref referent) = last_real_name {
-                        if let Some(resolved) = resolve_relative(&bare, referent) {
-                            return (resolved.clone(), slug(&resolved));
-                        }
+                    if let Some(ref referent) = last_real_name
+                        && let Some(resolved) = resolve_relative(&bare, referent)
+                    {
+                        return (resolved.clone(), slug(&resolved));
                     }
                     (n.clone(), String::new())
                 } else {

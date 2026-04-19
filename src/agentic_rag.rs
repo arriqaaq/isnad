@@ -106,6 +106,17 @@ use crate::quran::models::AyahSearchResult;
 use crate::rag::OllamaClient;
 use crate::tools::{self, ApiNarratorSource};
 
+/// Which corpus the caller wants the Ask pipeline scoped to.
+/// Structured narrator intents fire under `Hadith` and `Both`; under `Quran`
+/// we skip classification entirely and go straight to the scoped semantic
+/// fallback (none of the current structured intents apply to ayahs).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AskScope {
+    Hadith,
+    Quran,
+    Both,
+}
+
 /// Result of the agentic RAG pipeline.
 pub enum AgenticResult {
     /// Structured DB query path — we have exact data, stream the answer.
@@ -114,7 +125,9 @@ pub enum AgenticResult {
         hadith_sources: Vec<HadithSearchResult>,
         byte_stream: Box<dyn Stream<Item = Result<bytes::Bytes, reqwest::Error>> + Send + Unpin>,
     },
-    /// Fallback to existing unified semantic RAG.
+    /// Fallback to scope-appropriate semantic RAG. Empty source vecs for
+    /// corpora outside the requested scope (e.g. `ayah_sources = vec![]`
+    /// under `AskScope::Hadith`).
     Semantic {
         ayah_sources: Vec<AyahSearchResult>,
         hadith_sources: Vec<HadithSearchResult>,
@@ -138,7 +151,17 @@ impl OllamaClient {
         embedder: &Embedder,
         question: &str,
         model_override: Option<&str>,
+        scope: AskScope,
     ) -> Result<AgenticResult> {
+        // Quran scope: none of the current structured intents apply to ayahs,
+        // so skip classification (saves ~500ms) and go straight to the
+        // Quran-only semantic fallback.
+        if scope == AskScope::Quran {
+            return self
+                .fallback_semantic(db, embedder, question, model_override, scope)
+                .await;
+        }
+
         // Phase 1: Classify the user's question into a structured intent.
         // e.g. "How many hadiths did Abu Huraira narrate?"
         //    → NarratorCount { name: "Abu Huraira", book: None }
@@ -156,7 +179,7 @@ impl OllamaClient {
         // so we retrieve semantically similar ayahs + hadiths and let the LLM synthesize.
         if matches!(intent, QueryIntent::ContentQuery) {
             return self
-                .fallback_semantic(db, embedder, question, model_override)
+                .fallback_semantic(db, embedder, question, model_override, scope)
                 .await;
         }
 
@@ -170,7 +193,7 @@ impl OllamaClient {
                 let Some(narrator) = tools::resolve_narrator(db, name).await? else {
                     tracing::info!("Narrator '{name}' not found, falling back to semantic");
                     return self
-                        .fallback_semantic(db, embedder, question, model_override)
+                        .fallback_semantic(db, embedder, question, model_override, scope)
                         .await;
                 };
                 tools::narrator_info(db, &narrator).await?
@@ -178,7 +201,7 @@ impl OllamaClient {
             QueryIntent::NarratorCount { name, book } => {
                 let Some(narrator) = tools::resolve_narrator(db, name).await? else {
                     return self
-                        .fallback_semantic(db, embedder, question, model_override)
+                        .fallback_semantic(db, embedder, question, model_override, scope)
                         .await;
                 };
                 tools::count_hadiths(db, &narrator, book.as_deref()).await?
@@ -186,7 +209,7 @@ impl OllamaClient {
             QueryIntent::NarratorTeachers { name } => {
                 let Some(narrator) = tools::resolve_narrator(db, name).await? else {
                     return self
-                        .fallback_semantic(db, embedder, question, model_override)
+                        .fallback_semantic(db, embedder, question, model_override, scope)
                         .await;
                 };
                 tools::narrator_teachers(db, &narrator).await?
@@ -194,7 +217,7 @@ impl OllamaClient {
             QueryIntent::NarratorStudents { name } => {
                 let Some(narrator) = tools::resolve_narrator(db, name).await? else {
                     return self
-                        .fallback_semantic(db, embedder, question, model_override)
+                        .fallback_semantic(db, embedder, question, model_override, scope)
                         .await;
                 };
                 tools::narrator_students(db, &narrator).await?
@@ -202,7 +225,7 @@ impl OllamaClient {
             QueryIntent::NarratorHadiths { name } => {
                 let Some(narrator) = tools::resolve_narrator(db, name).await? else {
                     return self
-                        .fallback_semantic(db, embedder, question, model_override)
+                        .fallback_semantic(db, embedder, question, model_override, scope)
                         .await;
                 };
                 tools::narrator_hadiths(db, &narrator, 10).await?
@@ -210,12 +233,12 @@ impl OllamaClient {
             QueryIntent::ChainBetween { name1, name2 } => {
                 let Some(n1) = tools::resolve_narrator(db, name1).await? else {
                     return self
-                        .fallback_semantic(db, embedder, question, model_override)
+                        .fallback_semantic(db, embedder, question, model_override, scope)
                         .await;
                 };
                 let Some(n2) = tools::resolve_narrator(db, name2).await? else {
                     return self
-                        .fallback_semantic(db, embedder, question, model_override)
+                        .fallback_semantic(db, embedder, question, model_override, scope)
                         .await;
                 };
                 tools::chain_between(db, &n1, &n2).await?
@@ -239,22 +262,46 @@ impl OllamaClient {
         })
     }
 
-    /// Fallback to existing unified semantic RAG.
+    /// Fallback to scope-appropriate semantic RAG.
     async fn fallback_semantic(
         &self,
         db: &Surreal<Db>,
         embedder: &Embedder,
         question: &str,
         model_override: Option<&str>,
+        scope: AskScope,
     ) -> Result<AgenticResult> {
-        let (ayah_sources, hadith_sources, stream) = self
-            .ask_unified(db, embedder, question, model_override)
-            .await?;
-
-        Ok(AgenticResult::Semantic {
-            ayah_sources,
-            hadith_sources,
-            byte_stream: Box::new(stream),
-        })
+        match scope {
+            AskScope::Hadith => {
+                let (hadith_sources, stream) = self
+                    .ask_hadith_only(db, embedder, question, model_override)
+                    .await?;
+                Ok(AgenticResult::Semantic {
+                    ayah_sources: vec![],
+                    hadith_sources,
+                    byte_stream: Box::new(stream),
+                })
+            }
+            AskScope::Quran => {
+                let (ayah_sources, stream) = self
+                    .ask_quran_only(db, embedder, question, model_override)
+                    .await?;
+                Ok(AgenticResult::Semantic {
+                    ayah_sources,
+                    hadith_sources: vec![],
+                    byte_stream: Box::new(stream),
+                })
+            }
+            AskScope::Both => {
+                let (ayah_sources, hadith_sources, stream) = self
+                    .ask_unified(db, embedder, question, model_override)
+                    .await?;
+                Ok(AgenticResult::Semantic {
+                    ayah_sources,
+                    hadith_sources,
+                    byte_stream: Box::new(stream),
+                })
+            }
+        }
     }
 }

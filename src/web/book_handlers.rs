@@ -1152,9 +1152,12 @@ const MAX_VERSE_WINDOW_PAGES: i64 = 20;
 /// it as one confuses the "sources" list with two different storage
 /// models. Users still see it in the accordion UI via `ayah_tafsirs_all`.
 ///
-/// Latency: ~5–10 ms per DB query × (N tafsir books + 1 English) + the
-/// single synthesis LLM call. On a local CPU model the synthesis is the
-/// floor at ~10–30 s; no LLM nav cost on top.
+/// Latency: ~5–10 ms per DB query × N tafsir books, then one `chat_json`
+/// call **per book in parallel** (each sees only its own pages, so the
+/// prompts are 5–15 KB instead of one 30–60 KB combined prompt). On local
+/// CPU models per-book calls run ~30–90 s and overlap if
+/// `OLLAMA_NUM_PARALLEL > 1`; total wall time ≈ the slowest book. No LLM
+/// nav cost on top.
 ///
 /// ## (B) PageIndex nav fan-out — used when `verse` is absent
 ///
@@ -1186,8 +1189,19 @@ const MAX_VERSE_WINDOW_PAGES: i64 = 20;
 /// - `{"status": "reading", "books": [{book_id, name_en, sections}, ...]}`
 /// - `{"status": "book_skipped", "book_id": X, "reason": "..."}`
 /// - `{"sources": [{book_id, book_name_en, book_name_ar, line, title}, ...]}`
+///
+/// Verse-aware extractive path only:
+/// - `{"status": "extracting", "books": N}` (fan-out starting)
+/// - `{"status": "book_extracted", "book_id": X, "book_name_en": "...",
+///    "entries": K, "dropped": M, "error": null|"..."}` (one per book as it finishes)
+/// - `{"result": {"overview": ..., "entries": [...], "dropped": N}}` (merged, terminal)
+/// - `{"status": "no_valid_extraction", "available_pages": [...]}` (fallback, terminal)
+///
+/// Nav fallback path only:
 /// - `{"text": "..."}` (repeated; LLM token chunks)
-/// - `{"done": true}` | `{"error": "..."}` (terminal)
+///
+/// Terminal for both:
+/// - `{"done": true}` | `{"error": "..."}`
 pub async fn tafsir_ask(
     State(state): State<AppState>,
     Json(body): Json<TafsirAskRequest>,
@@ -1321,7 +1335,15 @@ pub async fn tafsir_ask(
             let loaded_ids: std::collections::HashSet<i64> =
                 books.iter().map(|b| b.book_id as i64).collect();
 
-            let mut sections_by_book: Vec<(u64, String, String, Vec<crate::book_chat::SectionContent>, Option<String>)> = Vec::new();
+            // (book_id, name_en, name_ar, section_contents, verse_heading)
+            type SectionsByBookRow = (
+                u64,
+                String,
+                String,
+                Vec<crate::book_chat::SectionContent>,
+                Option<String>,
+            );
+            let mut sections_by_book: Vec<SectionsByBookRow> = Vec::new();
             let mut skipped: Vec<(u64, String)> = Vec::new();
 
             // Step 2 + 3, per book: find the ayah-boundary, fetch the window.
@@ -1480,29 +1502,27 @@ pub async fn tafsir_ask(
             )));
 
             // ───────────────────────────────────────────────────────────
-            // Extractive synthesis (verse-aware path)
+            // Extractive synthesis (verse-aware path) — per-book parallel
             //
-            // Feed every fetched page for this ayah to the model — no cap.
-            // `build_tafsir_extract_prompt` still applies a 25 KB global
-            // safety truncation, so pathological runs can't blow the
-            // context window.
+            // One `chat_json` call per book, fanned out concurrently. Each
+            // call sees only that book's own pages (smaller prompt → much
+            // faster completion on local CPU models) and a single-element
+            // allow-list containing just its own book_id. Results are
+            // validated server-side as they arrive and merged.
             //
-            // Call `chat_json` with the extractive prompt, then validate
-            // every entry server-side: book_id must be in the allow-list,
-            // (book_id, page_index) must be a fetched page, and the
-            // arabic_quote must appear verbatim (modulo normalization) in
-            // that page. Hallucinations are dropped, not forwarded.
+            // Why not one big call with every book's pages:
+            //   - A single 30-page Arabic prompt on `command-r7b-arabic`
+            //     takes 2–5 min; the user sees one "extracting" spinner
+            //     the whole time.
+            //   - Per-book calls are ~5–15 KB each → 30–60 s each. With
+            //     OLLAMA_NUM_PARALLEL > 1, wall time ≈ slowest book.
+            //   - Streamed `book_extracted` events give the user visible
+            //     progress as each book finishes.
             //
-            // Emits either a `result` event (if ≥1 valid entry) or a
-            // `no_valid_extraction` event (with raw page links so the UI
-            // can render a graceful fallback). Always terminates with
-            // `done`. The shared streaming-synthesis code below is
-            // bypassed entirely on this path.
-            //
-            // NOTE: the allow-list of books is computed dynamically from
-            // whichever tafsirs are loaded in the DB + PageIndex at
-            // request time (see `tafsir_book_ids`). Adding a new tafsir
-            // book requires no changes here or to the prompt.
+            // Anti-hallucination guarantees are unchanged: every entry's
+            // arabic_quote is still verified as a verbatim substring of
+            // the page it cites, and the allow-list (per book) rejects
+            // any cross-book fabrication.
             // ───────────────────────────────────────────────────────────
 
             let extract_books: Vec<(u64, String, Vec<crate::book_chat::SectionContent>)> =
@@ -1513,30 +1533,8 @@ pub async fn tafsir_ask(
                     })
                     .collect();
 
-            let page_texts: std::collections::HashMap<(u64, u64), String> = extract_books
-                .iter()
-                .flat_map(|(id, _, secs)| {
-                    let bid = *id;
-                    secs.iter().map(move |s| ((bid, s.line), s.text.clone()))
-                })
-                .collect();
-
-            let allowed_ids: std::collections::HashSet<u64> =
-                extract_books.iter().map(|(id, _, _)| *id).collect();
-
-            yield Ok(bytes::Bytes::from(format!(
-                "data: {}\n\n",
-                serde_json::json!({"status": "extracting"})
-            )));
-
-            let prompt = crate::book_chat::build_tafsir_extract_prompt(
-                (verse.surah, verse.ayah),
-                &extract_books,
-            );
-
             // Build the available_pages payload once — used by the
-            // no_valid_extraction fallback in both the LLM-error and the
-            // validation-empty cases below.
+            // no_valid_extraction fallback if validation merges to zero.
             let available_pages: Vec<serde_json::Value> = sections_by_book
                 .iter()
                 .flat_map(|(bid, ne, na, secs, _)| {
@@ -1557,36 +1555,127 @@ pub async fn tafsir_ask(
                 })
                 .collect();
 
-            let raw = match ollama.chat_json(&prompt, &question, None).await {
-                Ok(v) => v,
-                Err(e) => {
-                    tracing::error!("tafsir_ask extractive: chat_json failed: {e}");
-                    yield Ok(bytes::Bytes::from(format!(
-                        "data: {}\n\n",
-                        serde_json::json!({
-                            "status": "no_valid_extraction",
-                            "reason": format!("LLM call failed: {e}"),
-                            "available_pages": available_pages,
-                        })
-                    )));
-                    yield Ok(bytes::Bytes::from("data: {\"done\":true}\n\n"));
-                    return;
+            let total_books = extract_books.len();
+            yield Ok(bytes::Bytes::from(format!(
+                "data: {}\n\n",
+                serde_json::json!({"status": "extracting", "books": total_books})
+            )));
+
+            let verse_tup = (verse.surah, verse.ayah);
+            let mut in_flight: futures::stream::FuturesUnordered<_> = extract_books
+                .into_iter()
+                .map(|(bid, name_en, sections)| {
+                    let ollama = ollama.clone();
+                    let question = question.clone();
+                    async move {
+                        let single_book = vec![(bid, name_en.clone(), sections.clone())];
+                        let prompt = crate::book_chat::build_tafsir_extract_prompt(
+                            verse_tup,
+                            &single_book,
+                        );
+                        let allowed: std::collections::HashSet<u64> =
+                            [bid].into_iter().collect();
+                        let page_texts: std::collections::HashMap<(u64, u64), String> =
+                            sections
+                                .iter()
+                                .map(|s| ((bid, s.line), s.text.clone()))
+                                .collect();
+
+                        // Per-book timeout: a single book's prompt is far
+                        // smaller than the previous all-in-one, so 180 s
+                        // is generous. Timeouts drop to zero-entry rather
+                        // than fail the whole request — other books may
+                        // still produce useful extracts.
+                        let res = tokio::time::timeout(
+                            Duration::from_secs(180),
+                            ollama.chat_json(&prompt, &question, None),
+                        )
+                        .await;
+
+                        let (validated, err): (
+                            crate::book_chat::ValidatedExtract,
+                            Option<String>,
+                        ) = match res {
+                            Ok(Ok(raw)) => (
+                                crate::book_chat::validate_extract_result(
+                                    raw, &allowed, &page_texts,
+                                ),
+                                None,
+                            ),
+                            Ok(Err(e)) => {
+                                tracing::warn!(
+                                    "tafsir extract (book {bid} '{name_en}'): chat_json failed: {e}"
+                                );
+                                (
+                                    crate::book_chat::ValidatedExtract {
+                                        overview: None,
+                                        entries: Vec::new(),
+                                        dropped: 0,
+                                    },
+                                    Some(format!("chat_json failed: {e}")),
+                                )
+                            }
+                            Err(_) => {
+                                tracing::warn!(
+                                    "tafsir extract (book {bid} '{name_en}'): timeout after 180s"
+                                );
+                                (
+                                    crate::book_chat::ValidatedExtract {
+                                        overview: None,
+                                        entries: Vec::new(),
+                                        dropped: 0,
+                                    },
+                                    Some("timeout".to_string()),
+                                )
+                            }
+                        };
+
+                        (bid, name_en, validated, err)
+                    }
+                })
+                .collect();
+
+            let mut merged_overview: Option<String> = None;
+            let mut merged_entries: Vec<crate::book_chat::ValidatedEntry> = Vec::new();
+            let mut merged_dropped: usize = 0;
+
+            while let Some((bid, name_en, validated, err)) = in_flight.next().await {
+                // First non-empty overview wins; the UI shows one framing
+                // sentence, not one per book.
+                if merged_overview.is_none()
+                    && validated.overview.as_deref().is_some_and(|s| !s.trim().is_empty())
+                {
+                    merged_overview = validated.overview.clone();
                 }
-            };
+                let n_entries = validated.entries.len();
+                let n_dropped = validated.dropped;
+                merged_entries.extend(validated.entries);
+                merged_dropped += n_dropped;
 
-            let validated =
-                crate::book_chat::validate_extract_result(raw, &allowed_ids, &page_texts);
+                yield Ok(bytes::Bytes::from(format!(
+                    "data: {}\n\n",
+                    serde_json::json!({
+                        "status": "book_extracted",
+                        "book_id": bid,
+                        "book_name_en": name_en,
+                        "entries": n_entries,
+                        "dropped": n_dropped,
+                        "error": err,
+                    })
+                )));
+            }
 
-            if validated.entries.is_empty() {
+            if merged_entries.is_empty() {
                 tracing::warn!(
-                    "tafsir_ask extractive: no valid entries ({} dropped)",
-                    validated.dropped
+                    "tafsir_ask extractive: no valid entries across all {} books ({} dropped)",
+                    total_books,
+                    merged_dropped
                 );
                 yield Ok(bytes::Bytes::from(format!(
                     "data: {}\n\n",
                     serde_json::json!({
                         "status": "no_valid_extraction",
-                        "dropped": validated.dropped,
+                        "dropped": merged_dropped,
                         "available_pages": available_pages,
                     })
                 )));
@@ -1594,9 +1683,9 @@ pub async fn tafsir_ask(
                 yield Ok(bytes::Bytes::from(format!(
                     "data: {}\n\n",
                     serde_json::json!({"result": {
-                        "overview": validated.overview,
-                        "entries": validated.entries,
-                        "dropped": validated.dropped,
+                        "overview": merged_overview,
+                        "entries": merged_entries,
+                        "dropped": merged_dropped,
                     }})
                 )));
             }

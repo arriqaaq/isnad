@@ -236,20 +236,64 @@ pub async fn ask_quran(
     })?;
 
     let model_name = body.model.clone();
-    let (sources, byte_stream) = ollama
-        .ask_quran(&state.db, &state.embedder, &question, model_name.as_deref())
+
+    // Quran scope bypasses intent classification (no Quran-specific structured
+    // intents yet) and goes straight to ayah-only semantic RAG with inline tafsir.
+    let result = ollama
+        .ask_agentic(
+            &state.db,
+            &state.embedder,
+            &question,
+            model_name.as_deref(),
+            crate::agentic_rag::AskScope::Quran,
+        )
         .await
         .map_err(|e| {
-            tracing::error!("Quran RAG ask failed: {e}");
+            tracing::error!("Agentic RAG ask (quran) failed: {e}");
             StatusCode::INTERNAL_SERVER_ERROR
         })?;
 
-    let source_ayahs: Vec<ApiAyahSearchResult> =
-        sources.into_iter().map(ApiAyahSearchResult::from).collect();
-    let sources_event = format!(
-        "data: {}\n\n",
-        serde_json::to_string(&serde_json::json!({ "sources": source_ayahs })).unwrap()
-    );
+    use crate::agentic_rag::AgenticResult;
+
+    let (sources_event, byte_stream) = match result {
+        AgenticResult::Semantic {
+            ayah_sources,
+            byte_stream,
+            ..
+        } => {
+            let ayah_api: Vec<ApiAyahSearchResult> = ayah_sources
+                .into_iter()
+                .map(ApiAyahSearchResult::from)
+                .collect();
+            let event = format!(
+                "data: {}\n\n",
+                serde_json::to_string(&serde_json::json!({ "quran_sources": ayah_api })).unwrap()
+            );
+            (event, byte_stream)
+        }
+        // Structured intents don't fire under Quran scope (classifier is
+        // skipped). If that ever changes, surface whatever narrator/hadith
+        // data came back so callers see something meaningful.
+        AgenticResult::Structured {
+            narrator_sources,
+            hadith_sources,
+            byte_stream,
+        } => {
+            let hadith_api: Vec<ApiHadithSearchResult> = hadith_sources
+                .into_iter()
+                .map(ApiHadithSearchResult::from)
+                .collect();
+            let event = format!(
+                "data: {}\n\n",
+                serde_json::to_string(&serde_json::json!({
+                    "narrator_sources": narrator_sources,
+                    "hadith_sources": hadith_api,
+                }))
+                .unwrap()
+            );
+            (event, byte_stream)
+        }
+    };
 
     let sse_stream =
         futures::stream::once(
@@ -279,7 +323,13 @@ pub async fn ask_quran(
                 }
                 Ok(bytes::Bytes::from(sse))
             }
-            Err(e) => Err(std::io::Error::other(e)),
+            Err(e) => {
+                let err_event = format!(
+                    "data: {}\n\n",
+                    serde_json::to_string(&serde_json::json!({ "error": e.to_string() })).unwrap()
+                );
+                Ok(bytes::Bytes::from(err_event))
+            }
         }));
 
     Ok(Response::builder()

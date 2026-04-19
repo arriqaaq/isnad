@@ -149,7 +149,7 @@ pub async fn count_hadiths(
         (narrator.hadith_count.unwrap_or(0), None)
     };
 
-    let mut context = format!("## Narrator Hadith Count\n\n");
+    let mut context = "## Narrator Hadith Count\n\n".to_string();
     context.push_str(&format!("Narrator: {} ({})\n", name, narrator.name_en));
     if let Some(generation) = &narrator.generation {
         context.push_str(&format!("Generation (Tabaqah): {generation}\n"));
@@ -170,7 +170,7 @@ pub async fn count_hadiths(
 
 /// Get full narrator bio info.
 pub async fn narrator_info(_db: &Surreal<Db>, narrator: &Narrator) -> Result<ToolOutput> {
-    let mut context = format!("## Narrator Information\n\n");
+    let mut context = "## Narrator Information\n\n".to_string();
     context.push_str(&format!(
         "Name (Arabic): {}\n",
         narrator.name_ar.as_deref().unwrap_or("N/A")
@@ -191,10 +191,10 @@ pub async fn narrator_info(_db: &Surreal<Db>, narrator: &Narrator) -> Result<Too
     if let Some(count) = narrator.hadith_count {
         context.push_str(&format!("Total hadiths narrated: {count}\n"));
     }
-    if let Some(aliases) = &narrator.aliases {
-        if !aliases.is_empty() {
-            context.push_str(&format!("Also known as: {}\n", aliases.join(", ")));
-        }
+    if let Some(aliases) = &narrator.aliases
+        && !aliases.is_empty()
+    {
+        context.push_str(&format!("Also known as: {}\n", aliases.join(", ")));
     }
     let source = narrator_to_source(narrator, vec![], vec![]);
     Ok(ToolOutput {

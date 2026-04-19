@@ -333,7 +333,7 @@ pub async fn narrator_detail(
     let (narrator, hadiths, teachers, students) = match state
         .db
         .query(
-            &format!(
+            format!(
                 "SELECT * FROM $rid; \
                  SELECT ->narrates->hadith.{{{HADITH_FIELDS}}} AS hadiths FROM $rid; \
                  SELECT array::distinct(array::filter(->heard_from->narrator.*, |$v| $v IS NOT NONE)) AS teachers FROM $rid; \
@@ -611,22 +611,64 @@ pub async fn ask(
     })?;
 
     let model_name = body.model.clone();
-    let (sources, byte_stream) = ollama
-        .ask(&state.db, &state.embedder, &question, model_name.as_deref())
+
+    // Route through the agentic pipeline scoped to hadith: classify the
+    // question (e.g. "how many hadiths did Abu Huraira narrate?" →
+    // NarratorCount, answered from pre-computed narrator.hadith_count).
+    // Fall back to hadith-only semantic RAG for content questions.
+    let result = ollama
+        .ask_agentic(
+            &state.db,
+            &state.embedder,
+            &question,
+            model_name.as_deref(),
+            crate::agentic_rag::AskScope::Hadith,
+        )
         .await
         .map_err(|e| {
-            tracing::error!("RAG ask failed: {e}");
+            tracing::error!("Agentic RAG ask (hadith) failed: {e}");
             StatusCode::INTERNAL_SERVER_ERROR
         })?;
 
-    let source_hadiths: Vec<ApiHadithSearchResult> = sources
-        .into_iter()
-        .map(ApiHadithSearchResult::from)
-        .collect();
-    let sources_event = format!(
-        "data: {}\n\n",
-        serde_json::to_string(&serde_json::json!({ "sources": source_hadiths })).unwrap()
-    );
+    use crate::agentic_rag::AgenticResult;
+
+    let (sources_event, byte_stream) = match result {
+        AgenticResult::Structured {
+            narrator_sources,
+            hadith_sources,
+            byte_stream,
+        } => {
+            let hadith_api: Vec<ApiHadithSearchResult> = hadith_sources
+                .into_iter()
+                .map(ApiHadithSearchResult::from)
+                .collect();
+            let event = format!(
+                "data: {}\n\n",
+                serde_json::to_string(&serde_json::json!({
+                    "narrator_sources": narrator_sources,
+                    "hadith_sources": hadith_api,
+                }))
+                .unwrap()
+            );
+            (event, byte_stream)
+        }
+        AgenticResult::Semantic {
+            hadith_sources,
+            byte_stream,
+            ..
+        } => {
+            let hadith_api: Vec<ApiHadithSearchResult> = hadith_sources
+                .into_iter()
+                .map(ApiHadithSearchResult::from)
+                .collect();
+            let event = format!(
+                "data: {}\n\n",
+                serde_json::to_string(&serde_json::json!({ "hadith_sources": hadith_api }))
+                    .unwrap()
+            );
+            (event, byte_stream)
+        }
+    };
 
     let sse_stream =
         futures::stream::once(
@@ -1210,7 +1252,13 @@ pub async fn unified_ask(
 
     // Use agentic RAG: classify intent, run structured queries or fallback to semantic
     let result = ollama
-        .ask_agentic(&state.db, &state.embedder, &question, model_name.as_deref())
+        .ask_agentic(
+            &state.db,
+            &state.embedder,
+            &question,
+            model_name.as_deref(),
+            crate::agentic_rag::AskScope::Both,
+        )
         .await
         .map_err(|e| {
             tracing::error!("Agentic RAG ask failed: {e}");

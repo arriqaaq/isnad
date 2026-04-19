@@ -298,7 +298,7 @@ impl FamilyGraph {
 
     /// Compute provenance completeness: fraction of chain narrators with biographical data.
     pub fn compute_provenance(&mut self, nid: &str) -> f64 {
-        if self.nodes.get(nid).is_none() {
+        if !self.nodes.contains_key(nid) {
             return 1.0;
         }
 

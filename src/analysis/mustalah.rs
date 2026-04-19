@@ -163,10 +163,11 @@ fn assess_chain(graph: &FamilyGraph, variant_id: &str) -> ChainAssessment {
     // Classify continuity
     let continuity = if generation_gaps == 0 && max_consecutive_gap == 0 {
         // Check for mursal: root narrator is Tabi'i (gen 2) with no teacher
-        let is_mursal = chain.last().map_or(false, |root| {
-            graph.nodes.get(root).map_or(false, |n| {
-                n.generation == Some(2) && n.direct_teachers.is_empty()
-            })
+        let is_mursal = chain.last().is_some_and(|root| {
+            graph
+                .nodes
+                .get(root)
+                .is_some_and(|n| n.generation == Some(2) && n.direct_teachers.is_empty())
         });
         if is_mursal {
             ChainContinuity::Mursal
@@ -177,9 +178,9 @@ fn assess_chain(graph: &FamilyGraph, variant_id: &str) -> ChainAssessment {
         ChainContinuity::Mudal
     } else if generation_gaps > 0 {
         // Check if gap is at beginning (mu'allaq) or middle (munqati')
-        let first_has_gap = chain.first().map_or(false, |first| {
-            graph.nodes.get(first).and_then(|n| n.generation).is_none()
-        });
+        let first_has_gap = chain
+            .first()
+            .is_some_and(|first| graph.nodes.get(first).and_then(|n| n.generation).is_none());
         if first_has_gap {
             ChainContinuity::Muallaq
         } else {
@@ -290,7 +291,7 @@ fn identify_pivots(graph: &mut FamilyGraph) -> Vec<PivotNarrator> {
             missing
                 .iter()
                 .filter(|v| {
-                    vmap.get(*v).map_or(false, |narrs| {
+                    vmap.get(*v).is_some_and(|narrs| {
                         narrs.iter().any(|n| ancestors.contains(n))
                             && narrs.iter().any(|n| descendants.contains(n))
                     })
@@ -348,18 +349,14 @@ fn detect_corroboration(graph: &FamilyGraph) -> CorroborationAnalysis {
 
     // Mutaba'at: within same Sahabi, count divergent paths
     let mut mutabaat_count = 0usize;
-    for (_sahabi, variants) in &sahabi_variants {
+    for variants in sahabi_variants.values() {
         if variants.len() > 1 {
             mutabaat_count += variants.len() - 1;
         }
     }
 
     // Shawahid: different Sahabah narrating same meaning
-    let shawahid_count = if sahabi_count > 1 {
-        sahabi_count - 1
-    } else {
-        0
-    };
+    let shawahid_count = sahabi_count.saturating_sub(1);
 
     CorroborationAnalysis {
         sahabi_count,

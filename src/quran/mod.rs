@@ -3,7 +3,6 @@ pub mod hadith_refs;
 pub mod ingest;
 pub mod models;
 pub mod morphology;
-pub mod rag;
 pub mod search;
 pub mod similar;
 

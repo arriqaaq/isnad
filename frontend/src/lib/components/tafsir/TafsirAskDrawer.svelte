@@ -19,6 +19,15 @@
 
   interface SkippedBook { book_id: number; reason: string; }
   interface ReadingBook { book_id: number; name_en: string; sections: number; }
+  // Per-book extraction progress (verse-aware path, parallel fan-out).
+  // One of these arrives as each book's chat_json call finishes.
+  interface ExtractedBook {
+    book_id: number;
+    book_name_en: string;
+    entries: number;
+    dropped: number;
+    error?: string | null;
+  }
 
   // Verse-aware extractive synthesis output. Each entry is a verified
   // verbatim Arabic passage plus a short explanation. The backend drops
@@ -63,6 +72,11 @@
     // `no_valid_extraction` fallback pages.
     availablePages?: AvailablePage[];
     availableReason?: string;
+    // Verse-aware progress: total books fanned out + those that have
+    // completed so far. Shown as "3 / 4 books…" during the parallel
+    // extraction phase.
+    extractTotal?: number;
+    extractedBooks?: ExtractedBook[];
   }
 
   let messages: Message[] = $state([]);
@@ -200,6 +214,29 @@
                 status: 'loading_verse',
                 anchorVerse: data.verse,
               };
+            } else if (data.status === 'extracting') {
+              messages[idx] = {
+                ...messages[idx],
+                status: 'extracting',
+                extractTotal: typeof data.books === 'number' ? data.books : undefined,
+                extractedBooks: [],
+              };
+            } else if (data.status === 'book_extracted') {
+              const cur = messages[idx].extractedBooks ?? [];
+              messages[idx] = {
+                ...messages[idx],
+                status: 'extracting',
+                extractedBooks: [
+                  ...cur,
+                  {
+                    book_id: data.book_id,
+                    book_name_en: data.book_name_en,
+                    entries: data.entries ?? 0,
+                    dropped: data.dropped ?? 0,
+                    error: data.error ?? null,
+                  },
+                ],
+              };
             } else if (data.status === 'no_valid_extraction') {
               // Backend bailed out — either LLM failed, or every entry
               // failed verification. Switch the message into fallback
@@ -271,7 +308,14 @@
         return `Navigating ${n} tafsir book${n === 1 ? '' : 's'}… (this may take up to a few minutes for local models)`;
       }
       case 'reading': return 'Reading sections…';
-      case 'extracting': return 'Asking the model to pick relevant Arabic passages…';
+      case 'extracting': {
+        const total = m.extractTotal ?? 0;
+        const done = m.extractedBooks?.length ?? 0;
+        if (total > 0) {
+          return `Extracting passages… (${done} / ${total} book${total === 1 ? '' : 's'} done)`;
+        }
+        return 'Asking the model to pick relevant Arabic passages…';
+      }
       default: return m.status ?? '';
     }
   }
@@ -327,6 +371,20 @@
               <ul class="reading-list">
                 {#each msg.reading as r}
                   <li>{r.name_en}: <span class="muted">{r.sections} {r.sections === 1 ? 'section' : 'sections'}</span></li>
+                {/each}
+              </ul>
+            {/if}
+            {#if msg.extractedBooks && msg.extractedBooks.length > 0 && !msg.extract && msg.status !== 'no_valid_extraction'}
+              <ul class="reading-list">
+                {#each msg.extractedBooks as b}
+                  <li>
+                    {b.book_name_en}:
+                    {#if b.error}
+                      <span class="muted">{b.error}</span>
+                    {:else}
+                      <span class="muted">{b.entries} {b.entries === 1 ? 'passage' : 'passages'}{b.dropped > 0 ? ` (${b.dropped} dropped)` : ''}</span>
+                    {/if}
+                  </li>
                 {/each}
               </ul>
             {/if}

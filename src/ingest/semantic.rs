@@ -114,12 +114,12 @@ fn split_tahwil_chain(chain: &[String], narrators: &HashMap<String, Narrator>) -
     for i in 1..chain.len() {
         let g_prev = parse_gen_num(narrators.get(chain[i - 1].as_str()));
         let g_curr = parse_gen_num(narrators.get(chain[i].as_str()));
-        if let (Some(gp), Some(gc)) = (g_prev, g_curr) {
-            if gc >= gp + 2 {
-                sub_chains.push(current);
-                current = vec![chain[i].clone()];
-                continue;
-            }
+        if let (Some(gp), Some(gc)) = (g_prev, g_curr)
+            && gc >= gp + 2
+        {
+            sub_chains.push(current);
+            current = vec![chain[i].clone()];
+            continue;
         }
         current.push(chain[i].clone());
     }
@@ -223,10 +223,10 @@ pub async fn ingest(
     let mut total_expected = 0;
     for (_hid, h) in &all_hadiths {
         let count = book_counts.entry(h.book.clone()).or_insert(0);
-        if let Some(limit) = limit_per_book {
-            if *count >= limit {
-                continue;
-            }
+        if let Some(limit) = limit_per_book
+            && *count >= limit
+        {
+            continue;
         }
         *count += 1;
         total_expected += 1;
@@ -307,10 +307,10 @@ pub async fn ingest(
 
         // Build aliases
         let mut aliases: Vec<String> = Vec::new();
-        if let (Some(pop), Some(full)) = (&nar.popular_name, &nar.name) {
-            if pop != full {
-                aliases.push(full.clone());
-            }
+        if let (Some(pop), Some(full)) = (&nar.popular_name, &nar.name)
+            && pop != full
+        {
+            aliases.push(full.clone());
         }
 
         db.query(
@@ -363,12 +363,12 @@ pub async fn ingest(
     let mut pending: Vec<(&String, &Hadith)> = Vec::new();
     for (_hid, hadith) in &all_hadiths {
         let count = ingested_counts.entry(hadith.book.clone()).or_insert(0);
-        if let Some(limit) = limit_per_book {
-            if *count >= limit {
-                continue;
-            }
+        if let Some(limit) = limit_per_book
+            && *count >= limit
+        {
+            continue;
         }
-        if hadith.ref_no.map_or(true, |n| n <= 0) {
+        if hadith.ref_no.is_none_or(|n| n <= 0) {
             continue;
         }
         *count += 1;

@@ -66,8 +66,16 @@ pub struct BookSource {
 const CACHE_TTL_SECS: u64 = 600; // 10 minutes
 const CACHE_MAX_ENTRIES: usize = 100;
 
+type NavCacheEntries = HashMap<(u64, String), (Instant, Vec<SectionRange>)>;
+
 pub struct NavCache {
-    entries: Mutex<HashMap<(u64, String), (Instant, Vec<SectionRange>)>>,
+    entries: Mutex<NavCacheEntries>,
+}
+
+impl Default for NavCache {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl NavCache {
@@ -80,10 +88,10 @@ impl NavCache {
     pub fn get(&self, book_id: u64, question: &str) -> Option<Vec<SectionRange>> {
         let entries = self.entries.lock().ok()?;
         let key = (book_id, question.to_string());
-        if let Some((instant, ranges)) = entries.get(&key) {
-            if instant.elapsed().as_secs() < CACHE_TTL_SECS {
-                return Some(ranges.clone());
-            }
+        if let Some((instant, ranges)) = entries.get(&key)
+            && instant.elapsed().as_secs() < CACHE_TTL_SECS
+        {
+            return Some(ranges.clone());
         }
         None
     }
